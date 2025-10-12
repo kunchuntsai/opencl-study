@@ -1,0 +1,56 @@
+# Build directories
+build/
+cmake-build-*/
+out/
+
+# Compiled files
+*.o
+*.so
+*.dylib
+*.dll
+*.exe
+*.a
+*.lib
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Test outputs
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.pgm
+*.ppm
+test_output/
+output/
+results/
+input.pgm
+output.pgm
+
+# CMake artifacts
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+venv/
+env/
+
+# Temporary files
+*.tmp
+*.log
+*.backup
