@@ -17,8 +17,9 @@ add_executable(threshold_demo src/main.cpp)
 # Link OpenCL library
 target_link_libraries(threshold_demo ${OpenCL_LIBRARIES})
 
-# Copy kernels directory to build directory
-file(COPY ${CMAKE_SOURCE_DIR}/kernels DESTINATION ${CMAKE_BINARY_DIR})
+# Copy kernel files from src/cl to build/kernels directory
+file(GLOB KERNEL_FILES "${CMAKE_SOURCE_DIR}/src/cl/*.cl")
+file(COPY ${KERNEL_FILES} DESTINATION ${CMAKE_BINARY_DIR}/kernels)
 
 # Print configuration info
 message(STATUS "OpenCL Include Dirs: ${OpenCL_INCLUDE_DIRS}")

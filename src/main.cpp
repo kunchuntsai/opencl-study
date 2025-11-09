@@ -12,7 +12,13 @@
  * 8. Cleanup
  */
 
+// Platform-specific OpenCL headers
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
 #include <CL/cl.h>
+#endif
+
 #include <iostream>
 #include <fstream>
 #include <vector>
@@ -126,6 +132,7 @@ int main() {
     std::cout << "\n=== Step 3: Kernel Loading and Building ===" << std::endl;
 
     // Load kernel source code from file
+    // Note: Runtime path relative to build directory (CMake copies from src/cl/ to build/kernels/)
     std::string kernelSource = loadKernelSource("kernels/threshold.cl");
     if (kernelSource.empty()) {
         std::cerr << "Failed to load kernel source" << std::endl;
