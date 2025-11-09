@@ -1,41 +1,36 @@
 /**
- * @file threshold.h
- * @brief Binary threshold operation for grayscale images
+ * @file gaussian5x5.h
+ * @brief 5x5 Gaussian blur operation for grayscale images
  */
 
-#ifndef THRESHOLD_H
-#define THRESHOLD_H
+#ifndef GAUSSIAN5X5_H
+#define GAUSSIAN5X5_H
 
 #include "opBase.h"
 #include <vector>
 #include <string>
 
 /**
- * @class ThresholdOp
- * @brief Binary threshold operation: pixels >= threshold become 255, others become 0
+ * @class Gaussian5x5Op
+ * @brief 5x5 Gaussian blur using weighted convolution for image smoothing
  */
-class ThresholdOp : public OpBase {
+class Gaussian5x5Op : public OpBase {
 public:
     /**
-     * @brief Construct threshold operation
+     * @brief Construct Gaussian blur operation
      * @param width Image width (default: 512)
      * @param height Image height (default: 512)
-     * @param threshold Threshold value 0-255 (default: 128)
      */
-    ThresholdOp(int width = 512, int height = 512, unsigned char threshold = 128);
+    Gaussian5x5Op(int width = 512, int height = 512);
 
     /** @brief Destructor */
-    virtual ~ThresholdOp();
-
-    // ========================================================================
-    // OpBase Interface Implementation
-    // ========================================================================
+    virtual ~Gaussian5x5Op();
 
     std::string getName() const override;
     std::string getKernelPath() const override;
     std::string getKernelName() const override;
 
-    /** @brief Create gradient test image and save to input.pgm */
+    /** @brief Create test image with noise and patterns, save to input_gaussian.pgm */
     int prepareInputData() override;
 
     /** @brief Get input buffer specification */
@@ -44,27 +39,26 @@ public:
     /** @brief Get output buffer specification */
     BufferSpec getOutputBufferSpec() override;
 
-    /** @brief Get kernel arguments: input, output, width, height, threshold */
+    /** @brief Get kernel arguments: input, output, width, height */
     std::vector<KernelArgument> getKernelArguments() override;
 
     /** @brief Get global work size (2D: width x height) */
     int getGlobalWorkSize(size_t* globalWorkSize) override;
 
-    /** @brief Save thresholded image to output.pgm */
+    /** @brief Save blurred image to output_gaussian.pgm */
     int verifyResults() override;
 
 private:
     int width_;                              ///< Image width
     int height_;                             ///< Image height
-    unsigned char threshold_;                ///< Threshold value (0-255)
     std::vector<unsigned char> inputImage_;  ///< Input buffer
     std::vector<unsigned char> outputImage_; ///< Output buffer
 
-    /** @brief Generate gradient test image (0 at top-left, 255 at bottom-right) */
+    /** @brief Generate test image with noise, edges, and patterns */
     void createTestImage();
 
     /** @brief Save image as PGM format */
     void saveImagePGM(const char* filename, const std::vector<unsigned char>& image);
 };
 
-#endif // THRESHOLD_H
+#endif // GAUSSIAN5X5_H
