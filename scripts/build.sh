@@ -40,8 +40,8 @@ cmake --build .
 # Check if build was successful
 if [ $? -eq 0 ]; then
     echo -e "${GREEN}=== Build Successful ===${NC}"
-    echo -e "${BLUE}Executable location: $BUILD_DIR/threshold_demo${NC}"
-    echo -e "${BLUE}To run: cd build && ./threshold_demo${NC}"
+    echo -e "${BLUE}Executable location: $BUILD_DIR/opencl_ops${NC}"
+    echo -e "${BLUE}To run: ./scripts/run.sh [operation_number]${NC}"
 else
     echo -e "${RED}=== Build Failed ===${NC}"
     exit 1

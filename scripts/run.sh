@@ -1,7 +1,10 @@
 #!/bin/bash
 
 # OpenCL Study Run Script
-# This script runs the OpenCL threshold demo
+# This script runs the OpenCL operations framework
+# Usage: ./run.sh [operation_number]
+#   operation_number: Optional. Select operation by number (e.g., 1 for Threshold)
+#                     If not provided, interactive selection will be prompted
 
 set -e  # Exit on any error
 
@@ -12,13 +15,20 @@ YELLOW='\033[0;33m'
 RED='\033[0;31m'
 NC='\033[0m' # No Color
 
-echo -e "${BLUE}=== OpenCL Study Run Script ===${NC}"
+echo -e "${BLUE}=== OpenCL Operations Run Script ===${NC}"
 
 # Get the script directory and project root
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 BUILD_DIR="$PROJECT_ROOT/build"
-EXECUTABLE="$BUILD_DIR/threshold_demo"
+EXECUTABLE="$BUILD_DIR/opencl_ops"
+
+# Get operation selection from command line argument
+OPERATION_ARG=""
+if [ $# -ge 1 ]; then
+    OPERATION_ARG="$1"
+    echo -e "${BLUE}Operation selection: $OPERATION_ARG${NC}"
+fi
 
 # Check if build directory exists
 if [ ! -d "$BUILD_DIR" ]; then
@@ -36,9 +46,15 @@ fi
 cd "$BUILD_DIR"
 
 # Run the program
-echo -e "${GREEN}Running threshold_demo...${NC}"
-echo -e "${BLUE}----------------------------------------${NC}"
-./threshold_demo
+if [ -n "$OPERATION_ARG" ]; then
+    echo -e "${GREEN}Running opencl_ops with operation $OPERATION_ARG...${NC}"
+    echo -e "${BLUE}----------------------------------------${NC}"
+    ./opencl_ops "$OPERATION_ARG"
+else
+    echo -e "${GREEN}Running opencl_ops (interactive mode)...${NC}"
+    echo -e "${BLUE}----------------------------------------${NC}"
+    ./opencl_ops
+fi
 
 # Check if program ran successfully
 if [ $? -eq 0 ]; then

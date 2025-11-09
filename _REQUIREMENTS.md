@@ -1,25 +1,19 @@
-## Objective
-
-This project is to provide a concrete example for studying openCL, and the focuses are
-- How to configure kernels
-- How to build the kernel code, to load the kernel binary in runtime?
-- How to allocate memory that is able to share between host and kernel?
-- How the host transfer data to the kernels?
-- How to retrieve the kernel code result?
-Please provide a simple OpenCL example to demonstrate above using a simple algorithm in OpenCV
-
+## Note:
 Reference: https://github.com/opencv/opencv/wiki/OpenCL-optimizations
 
-## Plan:
-1. Create a simple but complete image thresholding example with:
-    - A custom OpenCL kernel (.cl file)
-    - Host code demonstrating the full OpenCL workflow
-    - Detailed inline comments explaining each step
-    - CMake build system with instructions for Linux/Windows
-    - README explaining the learning objectives and how to use the example
-2. Structure:
-    - /src - Host code (C++)
-    - /kernels - OpenCL kernel code (.cl files)
-    - /docs - Documentation explaining OpenCL concepts
-    - CMakeLists.txt - Build configuration
-    - README.md - Project overview and build instructions
+- in main.cpp funciton, be able to load image parameters, kernel codes path from the target class
+- new operations will inherit from OpsBase class and implement its details
+
+The OpBase/derived classes will focus on preparing their inputs/outputs, kernel implementation and golden results for the rest of CL host processes will handled by main.cpp or OpBase class. Thus, main.cpp may need something like Op list for adding/removing each derived classes. 
+
+Keep the custom OP implementation clean and only focus on it's
+- inputs/outputs
+- kernel implementation
+- golden sample verification
+And don't touch any CL host flow control behaviour
+
+Move the rest of host behaviour flow control to main.cpp, e.g. 
+- Step 5: Allocate device memory buffers
+- Step 6: Transfer data from host to device
+- Step 7: Configure kernel arguments and execute <it should be read parameters from custom class but the actual control should be in main.cpp>
+- Step 8: Retrieve results from device to host
