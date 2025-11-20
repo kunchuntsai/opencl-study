@@ -9,7 +9,9 @@ A modular, plugin-like C implementation for OpenCL image processing algorithms w
 - **Automatic Verification**: Built-in C reference implementations for correctness checking
 - **Performance Benchmarking**: Automatic timing and speedup calculations
 - **Configuration-Driven**: Runtime configuration via INI file without recompilation
-- **Interactive Menu**: User-friendly console interface for algorithm selection
+- **Dual Interface**: Both interactive prompts and command-line mode
+- **MISRA-C:2023 Compliant**: 100% compliance for safety-critical applications
+- **Clean Architecture**: Separated init/build/run phases for OpenCL operations
 
 ## Project Structure
 
@@ -43,9 +45,10 @@ A modular, plugin-like C implementation for OpenCL image processing algorithms w
 │   └── utils/
 │       ├── op_interface.h          # Common interface for all algorithms
 │       ├── op_registry.c/.h        # Algorithm registration and dispatch
-│       ├── opencl_utils.c/.h       # OpenCL initialization and utilities
+│       ├── opencl_utils.c/.h       # OpenCL init/build/run utilities
 │       ├── config_parser.c/.h      # INI file parser
-│       └── image_io.c/.h           # Raw image I/O
+│       ├── image_io.c/.h           # Raw image I/O
+│       └── safe_ops.h              # MISRA-C safe arithmetic operations
 ├── scripts/
 │   ├── build.sh                    # Build script
 │   └── run.sh                      # Run script
@@ -77,36 +80,41 @@ This will compile all source files and create the `opencl_host` executable in th
 
 ## Running
 
-Using the run script:
+### Interactive Mode (with prompts)
+
+Using the run script without arguments:
 ```bash
 ./scripts/run.sh
 ```
 
-Or manually:
+This will prompt you to select an algorithm and variant interactively.
+
+### Command-Line Mode (direct execution)
+
+Specify algorithm and variant indices:
 ```bash
-./build/opencl_host
+./scripts/run.sh <algorithm_index> <variant_index>
+
+# Examples:
+./scripts/run.sh 0 0    # Run dilate3x3 with variant v0
+./scripts/run.sh 0 1    # Run dilate3x3 with variant v1
+./scripts/run.sh 1 0    # Run gaussian5x5 with variant v0
 ```
+
+Or run directly:
+```bash
+./build/opencl_host <algorithm_index> <variant_index>
+```
+
+**Algorithm Indices:**
+- `0` = dilate3x3
+- `1` = gaussian5x5
+
+**Variant Indices:**
+- `0` = v0 (basic)
+- `1` = v1 (optimized, if available)
 
 Note: The executable runs from the project root directory, so all paths in `config/config.ini` are relative to the project root.
-
-The program will present an interactive menu:
-
-```
-=== OpenCL Image Processing Framework ===
-1. Dilate 3x3
-2. Gaussian 5x5
-0. Exit
-Select algorithm:
-```
-
-After selecting an algorithm, you can choose from available kernel variants:
-
-```
-Available variants for Dilate 3x3:
-1. v0 (kernels/dilate0.cl - dilate3x3)
-2. v1 (kernels/dilate1.cl - dilate3x3_optimized)
-Select variant:
-```
 
 ## Configuration
 
@@ -155,33 +163,184 @@ Gaussian blur with a 5x5 kernel.
 
 To add a new algorithm (e.g., `erode3x3`):
 
-1. Create a new directory: `src/erode/`
-2. Create subdirectories: `src/erode/c_ref/` and `src/erode/cl/`
-3. Implement C reference in `src/erode/c_ref/erode3x3_ref.c/.h`
-4. Create algorithm wrapper in `src/erode/erode3x3.c/.h` (include `../utils/op_interface.h`)
-5. Add OpenCL kernel variants in `src/erode/cl/erode0.cl`, `erode1.cl`, etc.
-6. Register in `src/main.c`:
-   - Add `#include "erode/erode3x3.h"`
-   - Add `register_algorithm(&erode3x3_algorithm);`
-7. Update `config/config.ini` with new kernel configurations
-8. Update `src/Makefile` to include new source files in SRCS
-9. Create test data directories: `test_data/erode/`
+### 1. Create Directory Structure
+```bash
+mkdir -p src/erode/c_ref
+mkdir -p src/erode/cl
+mkdir -p test_data/erode
+```
+
+### 2. Implement C Reference (for verification)
+**File:** `src/erode/c_ref/erode3x3_ref.h`
+```c
+#pragma once
+
+void erode3x3_ref(unsigned char* input, unsigned char* output,
+                  int width, int height);
+```
+
+**File:** `src/erode/c_ref/erode3x3_ref.c`
+```c
+#include "erode3x3_ref.h"
+
+void erode3x3_ref(unsigned char* input, unsigned char* output,
+                  int width, int height) {
+    /* Implement your algorithm here */
+    /* This serves as the ground truth for verification */
+}
+```
+
+### 3. Create Algorithm Wrapper
+**File:** `src/erode/erode3x3.h`
+```c
+#pragma once
+
+#include "../utils/op_interface.h"
+
+extern Algorithm erode3x3_algorithm;
+```
+
+**File:** `src/erode/erode3x3.c`
+```c
+#include "erode3x3.h"
+#include "c_ref/erode3x3_ref.h"
+#include <math.h>
+
+/* Verification function */
+static int erode3x3_verify(unsigned char* gpu_output,
+                           unsigned char* ref_output,
+                           int width, int height,
+                           float* max_error) {
+    /* Compare GPU output with reference */
+    /* Return 1 if passed, 0 if failed */
+}
+
+/* Info function (optional) */
+static void erode3x3_info(void) {
+    /* Print algorithm information */
+}
+
+/* Algorithm definition */
+Algorithm erode3x3_algorithm = {
+    .name = "Erode 3x3",
+    .id = "erode3x3",
+    .reference_impl = erode3x3_ref,
+    .verify_result = erode3x3_verify,
+    .print_info = erode3x3_info
+};
+```
+
+### 4. Create OpenCL Kernel(s)
+**File:** `src/erode/cl/erode0.cl`
+```c
+__kernel void erode3x3(__global const uchar* input,
+                       __global uchar* output,
+                       int width,
+                       int height) {
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    if (x >= width || y >= height) return;
+
+    /* Implement your kernel here */
+}
+```
+
+Add optimized variants as needed (`erode1.cl`, etc.)
+
+### 5. Register Algorithm
+**File:** `src/main.c`
+
+Add include at the top:
+```c
+#include "erode/erode3x3.h"
+```
+
+Add to `register_all_algorithms()` function:
+```c
+static void register_all_algorithms(void) {
+    Algorithm* const algorithms[] = {
+        &dilate3x3_algorithm,
+        &gaussian5x5_algorithm,
+        &erode3x3_algorithm,     // Add your algorithm here
+        NULL
+    };
+
+    int i = 0;
+    while (algorithms[i] != NULL) {
+        register_algorithm(algorithms[i]);
+        i++;
+    }
+}
+```
+
+### 6. Update Configuration
+**File:** `config/config.ini`
+
+Add kernel configuration(s):
+```ini
+[kernel.erode_v0]
+op_id = erode3x3
+variant_id = v0
+kernel_file = src/erode/cl/erode0.cl
+kernel_function = erode3x3
+work_dim = 2
+global_work_size = 1024,1024
+local_work_size = 16,16
+```
+
+### 7. Build and Test
+```bash
+cd src && make clean && make
+cd ..
+./build/opencl_host 2 0    # Algorithm index 2 (new), variant 0
+```
+
+### Notes
+- **Makefile:** Automatically discovers `.c` files - no need to manually update
+- **Index:** New algorithm will be index 2 (after dilate=0, gaussian=1)
+- **MISRA-C:** Follow existing patterns for compliance:
+  - Use `#pragma once` in headers
+  - Check all return values
+  - Use safe arithmetic from `safe_ops.h`
+  - Add NULL parameter checks
+  - Use const for read-only parameters
 
 ## Output
 
 After running an algorithm, you'll see:
 
 ```
-Running C reference implementation...
-Running OpenCL kernel: dilate3x3...
+Parsed config file: config/config.ini (3 kernel configurations)
+
+=== OpenCL Initialization ===
+Using GPU device
+Device: Apple M4 Pro
+OpenCL initialized successfully
+Registered algorithm: Dilate 3x3 (ID: dilate3x3)
+Registered algorithm: Gaussian 5x5 (ID: gaussian5x5)
+
+=== Running Dilate 3x3 (variant: v0) ===
+Read image from test_data/input.bin (1024 x 1024)
+
+=== C Reference Implementation ===
+Reference time: 2.505 ms
+
+=== Building OpenCL Kernel ===
+Built kernel 'dilate3x3' from src/dilate/cl/dilate0.cl
+
+=== Running OpenCL Kernel ===
+GPU kernel time: 0.007 ms
 
 === Results ===
-C Reference time: 125.340 ms
-OpenCL GPU time:  3.245 ms
-Speedup:          38.63x
+C Reference time: 2.505 ms
+OpenCL GPU time:  0.007 ms
+Speedup:          361.94x
 Verification:     PASSED
 Max error:        0.00
+Wrote image to test_data/output.bin (1024 x 1024)
 Output saved to: test_data/output.bin
+OpenCL cleaned up
 ```
 
 ## Testing
@@ -219,6 +378,8 @@ This removes the entire `build/` directory, including all intermediate object fi
 - OpenCL runtime (Apple OpenCL framework on macOS, or OpenCL SDK on Linux/Windows)
 - Python 3 with NumPy (for test image generation)
 
-## Implementation Details
+## Documentation
 
-See [IMPL_PLAN.md](IMPL_PLAN.md) for detailed architecture and design decisions.
+- **[IMPL_PLAN.md](IMPL_PLAN.md)** - Detailed architecture and design decisions
+- **[MISRA_C_2023_COMPLIANCE.md](MISRA_C_2023_COMPLIANCE.md)** - MISRA-C:2023 compliance documentation
+- **[STUDY.md](STUDY.md)** - Comprehensive codebase study and module documentation
