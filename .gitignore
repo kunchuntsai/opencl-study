@@ -20,7 +20,7 @@ out/
 *~
 .DS_Store
 
-# Test outputs
+# Test outputs and data
 *.png
 *.jpg
 *.jpeg
@@ -33,13 +33,22 @@ results/
 input.pgm
 output.pgm
 
+# Test data directory - keep structure, ignore contents
+test_data/*.bin
+test_data/*.raw
+test_data/dilate/*
+test_data/gaussian/*
+!test_data/dilate/.gitkeep
+!test_data/gaussian/.gitkeep
+!test_data/*.py
+
 # CMake artifacts
 CMakeCache.txt
 CMakeFiles/
 cmake_install.cmake
-Makefile
 *.cmake
 !CMakeLists.txt
+!src/Makefile
 
 # Python
 __pycache__/

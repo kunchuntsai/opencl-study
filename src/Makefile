@@ -1,0 +1,36 @@
+CC = gcc
+CFLAGS = -Wall -O2 -std=c99 -I.
+LDFLAGS = -framework OpenCL -lm
+
+# Directories
+BUILD_DIR = ../build
+OBJ_DIR = $(BUILD_DIR)/obj
+TARGET = $(BUILD_DIR)/opencl_host
+
+# Source files - automatically find all .c files
+# Note: List algorithm directories explicitly to avoid duplicates
+ALGO_DIRS = dilate gaussian
+SRCS = main.c \
+       $(wildcard utils/*.c) \
+       $(foreach dir,$(ALGO_DIRS),$(wildcard $(dir)/*.c) $(wildcard $(dir)/c_ref/*.c))
+
+OBJS = $(SRCS:%.c=$(OBJ_DIR)/%.o)
+
+all: $(TARGET)
+
+$(TARGET): $(OBJS)
+	@mkdir -p $(BUILD_DIR)
+	$(CC) $(OBJS) $(LDFLAGS) -o $@
+	@echo "Built executable: $(TARGET)"
+
+$(OBJ_DIR)/%.o: %.c
+	@mkdir -p $(dir $@)
+	$(CC) $(CFLAGS) -c $< -o $@
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+run: $(TARGET)
+	cd .. && ./build/opencl_host
+
+.PHONY: all clean run
