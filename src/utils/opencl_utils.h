@@ -1,5 +1,4 @@
-#ifndef OPENCL_UTILS_H
-#define OPENCL_UTILS_H
+#pragma once
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -14,19 +13,21 @@ typedef struct {
     cl_command_queue queue;
 } OpenCLEnv;
 
-// Initialize OpenCL
+/* Initialize OpenCL environment (platform, device, context, queue) */
 int opencl_init(OpenCLEnv* env);
 
-// Load and compile kernel from file
-cl_kernel opencl_load_kernel(OpenCLEnv* env, const char* kernel_file,
-                            const char* kernel_name);
+/* Build kernel from source file (load and compile) */
+cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* kernel_file,
+                               const char* kernel_name);
 
-// Execute kernel
-int opencl_execute_kernel(OpenCLEnv* env, cl_kernel kernel,
-                         cl_mem input_buf, cl_mem output_buf,
-                         int work_dim, size_t* global_size, size_t* local_size);
+/* Run kernel with provided buffers and configuration */
+int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
+                      cl_mem input_buf, cl_mem output_buf,
+                      int width, int height,
+                      const size_t* global_work_size,
+                      const size_t* local_work_size,
+                      int work_dim,
+                      double* gpu_time_ms);
 
-// Cleanup
+/* Cleanup OpenCL resources */
 void opencl_cleanup(OpenCLEnv* env);
-
-#endif // OPENCL_UTILS_H

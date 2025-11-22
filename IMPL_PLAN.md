@@ -10,26 +10,31 @@ The system will use a modular, plugin-like architecture where each algorithm is 
 
 ```
 project/
-├── config.ini                      # Runtime configuration
+├── config/
+|   └── config.ini                      # Runtime configuration
 ├── src/
 │   ├── main.c                      # Entry point, menu system
-│   ├── opencl_utils.c/.h           # OpenCL initialization, device selection
-│   ├── config_parser.c/.h          # INI file parser
-│   ├── image_io.c/.h               # Raw image read/write
-│   ├── algorithm_registry.c/.h     # Algorithm registration and dispatch
-│   └── algorithms/
+│   ├── Makefile
+│   ├── dilate/
+│   |   ├── c_ref
+│   |   └── cl/
+│   │      ├── dilate_0.cl
+│   |      └── dilate_1.cl
+│   ├── gaussian/
+│   |   ├── c_ref
+│   |   └── cl/
+│   └── utils/
 │       ├── algorithm_interface.h   # Common interface for all algorithms
-│       ├── dilate3x3.c/.h          # Dilate algorithm implementation
-│       └── gaussian5x5.c/.h        # Gaussian algorithm implementation
-├── kernels/
-│   ├── dilate0.cl                  # Dilate kernel variant 0
-│   ├── dilate1.cl                  # Dilate kernel variant 1
-│   ├── gaussian0.cl                # Gaussian kernel variant 0
-│   └── gaussian1.cl                # Gaussian kernel variant 1
-├── reference/
-│   ├── dilate3x3_ref.c/.h          # C reference for dilate
-│   └── gaussian5x5_ref.c/.h        # C reference for gaussian
-└── Makefile
+│       ├── algorithm_registry.c/.h     # Algorithm registration and dispatch
+│       ├── opencl_utils.c/.h           # OpenCL initialization, device selection
+│       ├── config_parser.c/.h          # INI file parser
+│       └── image_io.c/.h               # Raw image read/write
+├── scripts/
+│   ├── build.sh
+│   └── run.sh
+└── test_data/
+    ├── dilate/ # Input image, output image, golden
+    └── gaussian/
 ```
 
 ---

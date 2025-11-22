@@ -1,5 +1,4 @@
-#ifndef OP_INTERFACE_H
-#define OP_INTERFACE_H
+#pragma once
 
 typedef struct {
     char name[64];              // Algorithm display name (e.g., "Dilate 3x3")
@@ -14,5 +13,3 @@ typedef struct {
 
     void (*print_info)(void);   // Optional: print algorithm-specific info
 } Algorithm;
-
-#endif // OP_INTERFACE_H
