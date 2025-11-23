@@ -1,4 +1,5 @@
 #include "dilate3x3_ref.h"
+#include "../../utils/safe_ops.h"
 #include <stddef.h>
 
 /* Helper function to clamp coordinates to image bounds */
@@ -45,9 +46,15 @@ void dilate3x3_ref(unsigned char* input, unsigned char* output,
     unsigned char max_val;
     unsigned char val;
     int output_index;
+    int total_pixels;
 
     if ((input == NULL) || (output == NULL) || (width <= 0) || (height <= 0)) {
         return;
+    }
+
+    /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
+    if (!safe_mul_int(width, height, &total_pixels)) {
+        return; /* Overflow detected */
     }
 
     /* Handle borders by replication */
@@ -72,7 +79,7 @@ void dilate3x3_ref(unsigned char* input, unsigned char* output,
             output_index = y * width + x;
 
             /* MISRA-C:2023 Rule 18.1: Bounds check before write */
-            if (output_index < (width * height)) {
+            if (output_index < total_pixels) {
                 output[output_index] = max_val;
             }
         }

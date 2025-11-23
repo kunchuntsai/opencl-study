@@ -7,11 +7,13 @@ A modular, plugin-like C implementation for OpenCL image processing algorithms w
 - **Modular Architecture**: Easy to add new algorithms following the plugin pattern
 - **Multiple Kernel Variants**: Support for different implementations of the same algorithm
 - **Automatic Verification**: Built-in C reference implementations for correctness checking
+- **Golden Sample Caching**: Automatic caching of c_ref outputs for regression testing
+- **Kernel Binary Caching**: Compiled OpenCL binaries are cached per algorithm to skip recompilation
 - **Performance Benchmarking**: Automatic timing and speedup calculations
 - **Configuration-Driven**: Runtime configuration via INI file without recompilation
-- **Dual Interface**: Both interactive prompts and command-line mode
-- **MISRA-C:2023 Compliant**: 100% compliance for safety-critical applications
+- **MISRA-C:2023 Compliant**: High compliance for safety-critical applications
 - **Clean Architecture**: Separated init/build/run phases for OpenCL operations
+- **Organized Cache Structure**: Per-algorithm cache organization under `test_data/`
 
 ## Project Structure
 
@@ -50,12 +52,18 @@ A modular, plugin-like C implementation for OpenCL image processing algorithms w
 │       ├── image_io.c/.h           # Raw image I/O
 │       └── safe_ops.h              # MISRA-C safe arithmetic operations
 ├── scripts/
-│   ├── build.sh                    # Build script
+│   ├── build.sh                    # Build script (with --clean option)
+│   ├── generate_test_image.py     # Test image generator
 │   └── run.sh                      # Run script
 └── test_data/
-    ├── dilate/                     # Test data for dilate
-    ├── gaussian/                   # Test data for gaussian
-    └── input.bin                   # Sample input image
+    ├── dilate3x3/                  # Algorithm-specific cache
+    │   ├── kernels/                # Cached kernel binaries (.bin)
+    │   └── golden/                 # Golden sample from c_ref (.bin)
+    ├── gaussian5x5/                # Algorithm-specific cache
+    │   ├── kernels/                # Cached kernel binaries (.bin)
+    │   └── golden/                 # Golden sample from c_ref (.bin)
+    ├── input.bin                   # Sample input image
+    └── output.bin                  # Latest output image
 ```
 
 ## Building
@@ -67,16 +75,27 @@ python3 scripts/generate_test_image.py
 
 Then build using the build script:
 ```bash
-./scripts/build.sh
+./scripts/build.sh                # Incremental build
+./scripts/build.sh --clean        # Clean build (removes build/ and cache/)
+./scripts/build.sh --help         # Show help
 ```
 
 Or manually:
 ```bash
 cd src
-make
+make                              # Incremental build
+make clean && make                # Clean build (removes build/ only)
 ```
 
 This will compile all source files and create the `opencl_host` executable in the `build/` directory.
+
+### Caching System
+
+The framework automatically caches:
+- **Kernel Binaries**: Compiled OpenCL binaries in `test_data/{algorithm}/kernels/` (avoids recompilation)
+- **Golden Samples**: C reference outputs in `test_data/{algorithm}/golden/` (for regression testing)
+
+Use `./scripts/build.sh --clean` to remove all cached data and perform a fresh build.
 
 ## Running
 
@@ -326,21 +345,41 @@ Read image from test_data/input.bin (1024 x 1024)
 === C Reference Implementation ===
 Reference time: 2.505 ms
 
+=== Golden Sample Verification ===
+No golden sample found, creating from C reference output...
+Golden sample saved (1048576 bytes): test_data/dilate3x3/golden/dilate3x3.bin
+Golden sample created successfully
+
 === Building OpenCL Kernel ===
-Built kernel 'dilate3x3' from src/dilate/cl/dilate0.cl
+Kernel compiled successfully
+Kernel binary cached (1370 bytes): test_data/dilate3x3/kernels/dilate0.bin
+Built kernel 'dilate3x3' from src/dilate/cl/dilate0.cl (cached as dilate0)
 
 === Running OpenCL Kernel ===
-GPU kernel time: 0.007 ms
+GPU kernel time: 0.002 ms
 
 === Results ===
 C Reference time: 2.505 ms
-OpenCL GPU time:  0.007 ms
-Speedup:          361.94x
+OpenCL GPU time:  0.002 ms
+Speedup:          1010.49x
 Verification:     PASSED
 Max error:        0.00
 Wrote image to test_data/output.bin (1024 x 1024)
 Output saved to: test_data/output.bin
 OpenCL cleaned up
+```
+
+On subsequent runs with cached data:
+```
+=== Golden Sample Verification ===
+Golden sample found, verifying c_ref output...
+Loaded golden sample (1048576 bytes): test_data/dilate3x3/golden/dilate3x3.bin
+✓ Verification PASSED: Output matches golden sample exactly
+
+=== Building OpenCL Kernel ===
+Found cached kernel binary for dilate0, loading...
+Loaded cached kernel binary (1370 bytes): test_data/dilate3x3/kernels/dilate0.bin
+Using cached kernel binary: dilate0
 ```
 
 ## Testing
@@ -365,12 +404,16 @@ convert -depth 8 -size 1024x1024 gray:test_data/output.bin test_data/output.png
 
 ## Cleaning
 
+To clean build artifacts and cache:
 ```bash
-cd src
-make clean
+./scripts/build.sh --clean        # Removes build/ and all caches (test_data/*/kernels/, test_data/*/golden/)
 ```
 
-This removes the entire `build/` directory, including all intermediate object files and the executable.
+To clean only build artifacts:
+```bash
+cd src
+make clean                         # Removes build/ only (keeps caches)
+```
 
 ## Requirements
 
@@ -382,4 +425,5 @@ This removes the entire `build/` directory, including all intermediate object fi
 
 - **[IMPL_PLAN.md](IMPL_PLAN.md)** - Detailed architecture and design decisions
 - **[MISRA_C_2023_COMPLIANCE.md](MISRA_C_2023_COMPLIANCE.md)** - MISRA-C:2023 compliance documentation
+- **[CACHING_FEATURE.md](CACHING_FEATURE.md)** - Kernel binary and golden sample caching implementation
 - **[STUDY.md](STUDY.md)** - Comprehensive codebase study and module documentation

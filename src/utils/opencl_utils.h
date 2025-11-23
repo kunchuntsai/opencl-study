@@ -17,8 +17,8 @@ typedef struct {
 int opencl_init(OpenCLEnv* env);
 
 /* Build kernel from source file (load and compile) */
-cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* kernel_file,
-                               const char* kernel_name);
+cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
+                               const char* kernel_file, const char* kernel_name);
 
 /* Run kernel with provided buffers and configuration */
 int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,

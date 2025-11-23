@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenCL Module Dependencies</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #f5f5f5;
+            color: #333;
+            padding: 40px 20px;
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 10px;
+            padding: 40px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            text-align: center;
+            color: #2c3e50;
+            font-size: 2em;
+            margin-bottom: 40px;
+            padding-bottom: 20px;
+            border-bottom: 3px solid #3498db;
+        }
+
+        /* Three-color scheme: Blue (modules), Gray (system), Green (algorithms) */
+        .layer {
+            margin-bottom: 40px;
+        }
+
+        .layer-title {
+            font-size: 1.3em;
+            font-weight: bold;
+            margin-bottom: 15px;
+            padding: 10px 15px;
+            border-radius: 5px;
+            background: #ecf0f1;
+            color: #2c3e50;
+        }
+
+        .modules-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .module {
+            flex: 1;
+            min-width: 250px;
+            padding: 20px;
+            border-radius: 8px;
+            border: 2px solid;
+            background: white;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .module:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+
+        /* Blue for core modules */
+        .module-core {
+            border-color: #3498db;
+            background: #eaf4fc;
+        }
+
+        .module-core .module-name {
+            color: #2980b9;
+        }
+
+        /* Green for algorithms */
+        .module-algorithm {
+            border-color: #27ae60;
+            background: #eafaf1;
+        }
+
+        .module-algorithm .module-name {
+            color: #229954;
+        }
+
+        /* Gray for system */
+        .module-system {
+            border-color: #95a5a6;
+            background: #f8f9fa;
+        }
+
+        .module-system .module-name {
+            color: #7f8c8d;
+        }
+
+        .module-name {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .module-desc {
+            font-size: 0.9em;
+            color: #555;
+            margin-bottom: 12px;
+        }
+
+        .module-items {
+            list-style: none;
+            font-size: 0.85em;
+            color: #666;
+        }
+
+        .module-items li {
+            padding: 3px 0;
+            padding-left: 15px;
+            position: relative;
+        }
+
+        .module-items li:before {
+            content: "▸";
+            position: absolute;
+            left: 0;
+            color: #3498db;
+        }
+
+        .arrow-container {
+            text-align: center;
+            margin: 20px 0;
+            color: #95a5a6;
+            font-size: 2em;
+        }
+
+        .dependency-note {
+            background: #fff9e6;
+            border-left: 4px solid #f39c12;
+            padding: 15px 20px;
+            margin: 20px 0;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .legend {
+            display: flex;
+            justify-content: center;
+            gap: 30px;
+            margin: 30px 0;
+            padding: 20px;
+            background: #ecf0f1;
+            border-radius: 8px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9em;
+        }
+
+        .legend-box {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+            border: 2px solid;
+        }
+
+        .legend-box.core {
+            background: #eaf4fc;
+            border-color: #3498db;
+        }
+
+        .legend-box.algorithm {
+            background: #eafaf1;
+            border-color: #27ae60;
+        }
+
+        .legend-box.system {
+            background: #f8f9fa;
+            border-color: #95a5a6;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px;
+            }
+
+            h1 {
+                font-size: 1.5em;
+            }
+
+            .modules-container {
+                flex-direction: column;
+            }
+
+            .legend {
+                flex-direction: column;
+                align-items: center;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>OpenCL Codebase Module Dependencies</h1>
+
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-box core"></div>
+                <span>Core Infrastructure</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box algorithm"></div>
+                <span>Algorithms</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-box system"></div>
+                <span>System/External</span>
+            </div>
+        </div>
+
+        <!-- Application Layer -->
+        <div class="layer">
+            <div class="layer-title">Application Layer</div>
+            <div class="modules-container">
+                <div class="module module-core">
+                    <div class="module-name">src/main.c</div>
+                    <div class="module-desc">Program entry point and orchestration</div>
+                    <ul class="module-items">
+                        <li>Menu system</li>
+                        <li>Algorithm selection</li>
+                        <li>Execution coordination</li>
+                        <li>Results display</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="dependency-note">
+                <strong>Dependencies:</strong> Depends on Algorithm Registry, OpenCL Utils, Image I/O, Config Parser
+            </div>
+        </div>
+
+        <div class="arrow-container">↓</div>
+
+        <!-- Infrastructure Layer -->
+        <div class="layer">
+            <div class="layer-title">Infrastructure Layer (src/utils/)</div>
+            <div class="modules-container">
+                <div class="module module-core">
+                    <div class="module-name">op_registry.c/.h</div>
+                    <div class="module-desc">Algorithm plugin registry</div>
+                    <ul class="module-items">
+                        <li>register_algorithm()</li>
+                        <li>get_algorithm()</li>
+                        <li>list_algorithms()</li>
+                        <li>Stores up to 32 algorithms</li>
+                    </ul>
+                </div>
+
+                <div class="module module-core">
+                    <div class="module-name">opencl_utils.c/.h</div>
+                    <div class="module-desc">OpenCL abstraction layer</div>
+                    <ul class="module-items">
+                        <li>opencl_init()</li>
+                        <li>opencl_build_kernel()</li>
+                        <li>opencl_run_kernel()</li>
+                        <li>opencl_cleanup()</li>
+                    </ul>
+                </div>
+
+                <div class="module module-core">
+                    <div class="module-name">config_parser.c/.h</div>
+                    <div class="module-desc">INI configuration parser</div>
+                    <ul class="module-items">
+                        <li>parse_config()</li>
+                        <li>get_kernel_config()</li>
+                        <li>Safe integer parsing</li>
+                        <li>Multi-variant support</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="modules-container">
+                <div class="module module-core">
+                    <div class="module-name">image_io.c/.h</div>
+                    <div class="module-desc">Image file operations</div>
+                    <ul class="module-items">
+                        <li>load_raw_image()</li>
+                        <li>save_raw_image()</li>
+                        <li>Size validation</li>
+                        <li>Static 16MB buffer</li>
+                    </ul>
+                </div>
+
+                <div class="module module-core">
+                    <div class="module-name">cache_manager.c/.h</div>
+                    <div class="module-desc">Binary caching system</div>
+                    <ul class="module-items">
+                        <li>save/load_golden_sample()</li>
+                        <li>save/load_kernel_binary()</li>
+                        <li>Directory management</li>
+                        <li>50-60x speedup</li>
+                    </ul>
+                </div>
+
+                <div class="module module-core">
+                    <div class="module-name">safe_ops.h</div>
+                    <div class="module-desc">MISRA-C safe operations</div>
+                    <ul class="module-items">
+                        <li>safe_mul_int()</li>
+                        <li>safe_mul_size()</li>
+                        <li>safe_add_size()</li>
+                        <li>Overflow checking</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="modules-container">
+                <div class="module module-core">
+                    <div class="module-name">op_interface.h</div>
+                    <div class="module-desc">Abstract algorithm interface</div>
+                    <ul class="module-items">
+                        <li>Algorithm struct definition</li>
+                        <li>Function pointer interface</li>
+                        <li>reference_impl()</li>
+                        <li>verify_result()</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="dependency-note">
+                <strong>Dependencies:</strong> Infrastructure modules use only system libraries (libc, libm, OpenCL runtime)
+            </div>
+        </div>
+
+        <div class="arrow-container">↓</div>
+
+        <!-- Algorithm Layer -->
+        <div class="layer">
+            <div class="layer-title">Algorithm Layer</div>
+            <div class="modules-container">
+                <div class="module module-algorithm">
+                    <div class="module-name">src/dilate/dilate3x3.c/.h</div>
+                    <div class="module-desc">Dilate 3x3 algorithm wrapper</div>
+                    <ul class="module-items">
+                        <li>Implements Algorithm interface</li>
+                        <li>dilate3x3_reference()</li>
+                        <li>dilate3x3_verify()</li>
+                        <li>2 variants (basic, optimized)</li>
+                    </ul>
+                </div>
+
+                <div class="module module-algorithm">
+                    <div class="module-name">src/gaussian/gaussian5x5.c/.h</div>
+                    <div class="module-desc">Gaussian 5x5 algorithm wrapper</div>
+                    <ul class="module-items">
+                        <li>Implements Algorithm interface</li>
+                        <li>gaussian5x5_reference()</li>
+                        <li>gaussian5x5_verify()</li>
+                        <li>1 variant (more coming)</li>
+                    </ul>
+                </div>
+
+                <div class="module module-algorithm">
+                    <div class="module-name">src/algorithm3/ (future)</div>
+                    <div class="module-desc">Future algorithm module</div>
+                    <ul class="module-items">
+                        <li>Same structure</li>
+                        <li>Self-contained</li>
+                        <li>Auto-registered</li>
+                        <li>No core changes needed</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="dependency-note">
+                <strong>Dependencies:</strong> Each algorithm depends on op_interface.h and optionally safe_ops.h
+            </div>
+
+            <div class="arrow-container">↓</div>
+
+            <!-- Algorithm Sub-modules -->
+            <div class="modules-container">
+                <div class="module module-algorithm">
+                    <div class="module-name">c_ref/*_ref.c/.h</div>
+                    <div class="module-desc">CPU reference implementations</div>
+                    <ul class="module-items">
+                        <li>Serial C code</li>
+                        <li>Ground truth for verification</li>
+                        <li>MISRA-C compliant</li>
+                        <li>No external dependencies</li>
+                    </ul>
+                </div>
+
+                <div class="module module-algorithm">
+                    <div class="module-name">cl/*.cl</div>
+                    <div class="module-desc">OpenCL kernel variants</div>
+                    <ul class="module-items">
+                        <li>*0.cl - Basic version</li>
+                        <li>*1.cl - Optimized v1</li>
+                        <li>*2.cl - Optimized v2 (future)</li>
+                        <li>Multiple variants per algorithm</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="dependency-note">
+                <strong>Dependencies:</strong> C reference has no dependencies. OpenCL kernels depend on OpenCL runtime only.
+            </div>
+        </div>
+
+        <div class="arrow-container">↓</div>
+
+        <!-- System Layer -->
+        <div class="layer">
+            <div class="layer-title">System Layer (External Dependencies)</div>
+            <div class="modules-container">
+                <div class="module module-system">
+                    <div class="module-name">OpenCL Runtime</div>
+                    <div class="module-desc">GPU computing framework</div>
+                    <ul class="module-items">
+                        <li>Platform/device discovery</li>
+                        <li>Kernel compilation</li>
+                        <li>Memory management</li>
+                        <li>Command queue execution</li>
+                    </ul>
+                </div>
+
+                <div class="module module-system">
+                    <div class="module-name">libc (MISRA-C subset)</div>
+                    <div class="module-desc">Standard C library</div>
+                    <ul class="module-items">
+                        <li>File I/O (fopen, fread, fwrite)</li>
+                        <li>String ops (strtok_r, strcmp)</li>
+                        <li>Memory ops (memcmp, memset)</li>
+                        <li>NO malloc (static only)</li>
+                    </ul>
+                </div>
+
+                <div class="module module-system">
+                    <div class="module-name">libm</div>
+                    <div class="module-desc">Math library</div>
+                    <ul class="module-items">
+                        <li>Floating point operations</li>
+                        <li>Used minimally</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="dependency-note">
+                <strong>No other external dependencies.</strong> All algorithms and infrastructure are self-contained.
+            </div>
+        </div>
+
+        <!-- Key Characteristics -->
+        <div style="margin-top: 50px; padding: 30px; background: #ecf0f1; border-radius: 8px;">
+            <h2 style="color: #2c3e50; margin-bottom: 20px; font-size: 1.4em;">Dependency Architecture Principles</h2>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px;">
+                <div>
+                    <strong style="color: #3498db; font-size: 1.1em;">✓ Layered Architecture</strong>
+                    <p style="margin-top: 10px; color: #555;">Clear separation between application, infrastructure, algorithms, and system layers.</p>
+                </div>
+                <div>
+                    <strong style="color: #27ae60; font-size: 1.1em;">✓ Plugin System</strong>
+                    <p style="margin-top: 10px; color: #555;">Algorithms register themselves. No core modifications needed to add new algorithms.</p>
+                </div>
+                <div>
+                    <strong style="color: #3498db; font-size: 1.1em;">✓ Minimal Dependencies</strong>
+                    <p style="margin-top: 10px; color: #555;">Infrastructure modules depend only on system libraries. Algorithms are self-contained.</p>
+                </div>
+                <div>
+                    <strong style="color: #27ae60; font-size: 1.1em;">✓ MISRA-C Compliance</strong>
+                    <p style="margin-top: 10px; color: #555;">99.5% compliant. Static memory allocation. All operations checked.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

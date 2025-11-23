@@ -1,4 +1,5 @@
 #include "opencl_utils.h"
+#include "cache_manager.h"
 #include "safe_ops.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,6 +12,45 @@
 
 static char kernel_source_buffer[MAX_KERNEL_SOURCE_SIZE];
 static char build_log_buffer[MAX_BUILD_LOG_SIZE];
+
+/* Helper function to extract cache name from kernel file path */
+static int extract_cache_name(const char* kernel_file, char* cache_name, size_t max_size) {
+    const char* filename_start;
+    const char* ext_start;
+    size_t name_len;
+
+    if ((kernel_file == NULL) || (cache_name == NULL) || (max_size == 0U)) {
+        return -1;
+    }
+
+    /* Find the last '/' to get filename */
+    filename_start = strrchr(kernel_file, '/');
+    if (filename_start != NULL) {
+        filename_start++;  /* Skip the '/' */
+    } else {
+        filename_start = kernel_file;  /* No path separator found */
+    }
+
+    /* Find the extension */
+    ext_start = strrchr(filename_start, '.');
+    if (ext_start != NULL) {
+        name_len = (size_t)(ext_start - filename_start);
+    } else {
+        name_len = strlen(filename_start);
+    }
+
+    /* Check if name fits in buffer */
+    if (name_len >= max_size) {
+        (void)fprintf(stderr, "Error: Cache name too long\n");
+        return -1;
+    }
+
+    /* Copy the name without extension */
+    (void)strncpy(cache_name, filename_start, name_len);
+    cache_name[name_len] = '\0';
+
+    return 0;
+}
 
 /* Helper function to read kernel source from file */
 static int read_kernel_source(const char* filename, char* buffer, size_t max_size, size_t* length) {
@@ -117,7 +157,11 @@ int opencl_init(OpenCLEnv* env) {
     env->queue = clCreateCommandQueue(env->context, env->device, props, &err);
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Error: Failed to create command queue (error code: %d)\n", err);
-        clReleaseContext(env->context);
+        /* MISRA-C:2023 Rule 17.7: Check return value */
+        err = clReleaseContext(env->context);
+        if (err != CL_SUCCESS) {
+            (void)fprintf(stderr, "Warning: Failed to release context (error: %d)\n", err);
+        }
         env->context = NULL;
         return -1;
     }
@@ -126,57 +170,91 @@ int opencl_init(OpenCLEnv* env) {
     return 0;
 }
 
-cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* kernel_file,
-                               const char* kernel_name) {
+cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
+                               const char* kernel_file, const char* kernel_name) {
     cl_int err;
     size_t source_length;
-    cl_program program;
+    cl_program program = NULL;
     cl_kernel kernel;
     size_t log_size;
     const char* source_ptr;
+    int used_cache = 0;
+    char cache_name[256];
 
-    if ((env == NULL) || (kernel_file == NULL) || (kernel_name == NULL)) {
+    if ((env == NULL) || (algorithm_id == NULL) || (kernel_file == NULL) || (kernel_name == NULL)) {
         return NULL;
     }
 
-    /* Read kernel source from file */
-    if (read_kernel_source(kernel_file, kernel_source_buffer,
-                           MAX_KERNEL_SOURCE_SIZE, &source_length) != 0) {
+    /* Extract cache name from kernel file (e.g., "dilate0" from "src/dilate/cl/dilate0.cl") */
+    if (extract_cache_name(kernel_file, cache_name, sizeof(cache_name)) != 0) {
+        (void)fprintf(stderr, "Error: Failed to extract cache name from %s\n", kernel_file);
         return NULL;
     }
 
-    /* Create program */
-    source_ptr = kernel_source_buffer;
-    program = clCreateProgramWithSource(env->context, 1U,
-                                       &source_ptr,
-                                       &source_length, &err);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Error: Failed to create program (error code: %d)\n", err);
-        return NULL;
+    /* Check if cached kernel binary exists */
+    if (cache_kernel_exists(algorithm_id, cache_name) != 0) {
+        (void)printf("Found cached kernel binary for %s, loading...\n", cache_name);
+        program = cache_load_kernel_binary(env->context, env->device, algorithm_id, cache_name);
+        if (program != NULL) {
+            used_cache = 1;
+            (void)printf("Using cached kernel binary: %s\n", cache_name);
+        } else {
+            (void)printf("Failed to load cached binary, will compile from source\n");
+        }
     }
 
-    /* Build program */
-    err = clBuildProgram(program, 1U, &env->device, NULL, NULL, NULL);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Error: Failed to build program (error code: %d)\n", err);
-
-        /* Print build log */
-        err = clGetProgramBuildInfo(program, env->device, CL_PROGRAM_BUILD_LOG,
-                                    0U, NULL, &log_size);
-        if (err == CL_SUCCESS) {
-            if (log_size <= MAX_BUILD_LOG_SIZE) {
-                err = clGetProgramBuildInfo(program, env->device, CL_PROGRAM_BUILD_LOG,
-                                            log_size, build_log_buffer, NULL);
-                if (err == CL_SUCCESS) {
-                    (void)fprintf(stderr, "Build log:\n%s\n", build_log_buffer);
-                }
-            } else {
-                (void)fprintf(stderr, "Build log too large (%zu bytes)\n", log_size);
-            }
+    /* If no cached binary or loading failed, compile from source */
+    if (used_cache == 0) {
+        /* Read kernel source from file */
+        if (read_kernel_source(kernel_file, kernel_source_buffer,
+                               MAX_KERNEL_SOURCE_SIZE, &source_length) != 0) {
+            return NULL;
         }
 
-        clReleaseProgram(program);
-        return NULL;
+        /* Create program */
+        source_ptr = kernel_source_buffer;
+        program = clCreateProgramWithSource(env->context, 1U,
+                                           &source_ptr,
+                                           &source_length, &err);
+        if (err != CL_SUCCESS) {
+            (void)fprintf(stderr, "Error: Failed to create program (error code: %d)\n", err);
+            return NULL;
+        }
+
+        /* Build program */
+        err = clBuildProgram(program, 1U, &env->device, NULL, NULL, NULL);
+        if (err != CL_SUCCESS) {
+            (void)fprintf(stderr, "Error: Failed to build program (error code: %d)\n", err);
+
+            /* Print build log */
+            err = clGetProgramBuildInfo(program, env->device, CL_PROGRAM_BUILD_LOG,
+                                        0U, NULL, &log_size);
+            if (err == CL_SUCCESS) {
+                if (log_size <= MAX_BUILD_LOG_SIZE) {
+                    err = clGetProgramBuildInfo(program, env->device, CL_PROGRAM_BUILD_LOG,
+                                                log_size, build_log_buffer, NULL);
+                    if (err == CL_SUCCESS) {
+                        (void)fprintf(stderr, "Build log:\n%s\n", build_log_buffer);
+                    }
+                } else {
+                    (void)fprintf(stderr, "Build log too large (%zu bytes)\n", log_size);
+                }
+            }
+
+            /* MISRA-C:2023 Rule 17.7: Check return value */
+            err = clReleaseProgram(program);
+            if (err != CL_SUCCESS) {
+                (void)fprintf(stderr, "Warning: Failed to release program (error: %d)\n", err);
+            }
+            return NULL;
+        }
+
+        (void)printf("Kernel compiled successfully\n");
+
+        /* Save compiled binary to cache for future runs */
+        if (cache_save_kernel_binary(program, env->device, algorithm_id, cache_name) != 0) {
+            (void)fprintf(stderr, "Warning: Failed to cache kernel binary\n");
+        }
     }
 
     /* Create kernel */
@@ -184,14 +262,24 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* kernel_file,
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Error: Failed to create kernel '%s' (error code: %d)\n",
                       kernel_name, err);
-        clReleaseProgram(program);
+        /* MISRA-C:2023 Rule 17.7: Check return value */
+        err = clReleaseProgram(program);
+        if (err != CL_SUCCESS) {
+            (void)fprintf(stderr, "Warning: Failed to release program (error: %d)\n", err);
+        }
         return NULL;
     }
 
     /* We can release the program now that the kernel is created */
-    clReleaseProgram(program);
+    /* MISRA-C:2023 Rule 17.7: Check return value */
+    err = clReleaseProgram(program);
+    if (err != CL_SUCCESS) {
+        (void)fprintf(stderr, "Warning: Failed to release program (error: %d)\n", err);
+    }
 
-    (void)printf("Built kernel '%s' from %s\n", kernel_name, kernel_file);
+    if (used_cache == 0) {
+        (void)printf("Built kernel '%s' from %s (cached as %s)\n", kernel_name, kernel_file, cache_name);
+    }
     return kernel;
 }
 

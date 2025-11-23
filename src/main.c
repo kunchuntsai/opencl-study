@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <time.h>
 #include "utils/opencl_utils.h"
+#include "utils/cache_manager.h"
 #include "utils/config_parser.h"
 #include "utils/image_io.h"
 #include "utils/op_registry.h"
@@ -82,7 +83,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* 5. Get kernel variants for selected algorithm */
+    /* 5. Initialize cache directories for this algorithm */
+    if (cache_init(algo->id) != 0) {
+        (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
+    }
+
+    /* 6. Get kernel variants for selected algorithm */
     get_variants_result = get_op_variants(&config, algo->id, variants, &variant_count);
     if ((get_variants_result != 0) || (variant_count == 0)) {
         (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
@@ -97,7 +103,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* 6. Run algorithm */
+    /* 7. Run algorithm */
     (void)printf("\n=== Running %s (variant: %s) ===\n",
                  algo->name, variants[variant_index]->variant_id);
     run_algorithm(algo, variants[variant_index], &config, &env);
@@ -157,16 +163,46 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     ref_time = (double)(ref_end - ref_start) / (double)CLOCKS_PER_SEC * 1000.0;
     (void)printf("Reference time: %.3f ms\n", ref_time);
 
-    /* Step 2: Build OpenCL kernel */
+    /* Step 2: Golden sample verification (c_ref output only) */
+    (void)printf("\n=== Golden Sample Verification ===\n");
+    if (cache_golden_exists(algo->id, NULL) != 0) {
+        /* Golden sample exists - verify c_ref against it */
+        size_t golden_differences;
+        int golden_result;
+
+        (void)printf("Golden sample found, verifying c_ref output...\n");
+        golden_result = cache_verify_golden(algo->id, NULL,
+                                            ref_output_buffer, (size_t)img_size,
+                                            &golden_differences);
+        if (golden_result < 0) {
+            (void)fprintf(stderr, "Golden verification failed\n");
+        } else if (golden_result == 0) {
+            (void)fprintf(stderr, "Warning: C reference output differs from golden sample\n");
+        }
+    } else {
+        /* No golden sample - create it from C reference output */
+        int save_result;
+
+        (void)printf("No golden sample found, creating from C reference output...\n");
+        save_result = cache_save_golden(algo->id, NULL,
+                                        ref_output_buffer, (size_t)img_size);
+        if (save_result == 0) {
+            (void)printf("Golden sample created successfully\n");
+        } else {
+            (void)fprintf(stderr, "Failed to create golden sample\n");
+        }
+    }
+
+    /* Step 3: Build OpenCL kernel */
     (void)printf("\n=== Building OpenCL Kernel ===\n");
-    kernel = opencl_build_kernel(env, kernel_cfg->kernel_file,
+    kernel = opencl_build_kernel(env, algo->id, kernel_cfg->kernel_file,
                                   kernel_cfg->kernel_function);
     if (kernel == NULL) {
         (void)fprintf(stderr, "Failed to build kernel\n");
         return;
     }
 
-    /* Step 3: Create OpenCL buffers */
+    /* Step 4: Create OpenCL buffers */
     img_size_t = (size_t)img_size;
     input_buf = clCreateBuffer(env->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                img_size_t, input, &err);
@@ -196,7 +232,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
-    /* Step 4: Run OpenCL kernel */
+    /* Step 5: Run OpenCL kernel */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
     run_result = opencl_run_kernel(env, kernel, input_buf, output_buf,
                                    config->width, config->height,
@@ -224,7 +260,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
 
     (void)printf("GPU kernel time: %.3f ms\n", gpu_time);
 
-    /* Step 5: Read back results */
+    /* Step 6: Read back results */
     err = clEnqueueReadBuffer(env->queue, output_buf, CL_TRUE, 0U,
                              img_size_t, gpu_output_buffer, 0U, NULL, NULL);
     if (err != CL_SUCCESS) {
@@ -245,7 +281,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
-    /* Step 6: Verify results */
+    /* Step 7: Verify GPU results against C reference */
     passed = algo->verify_result(gpu_output_buffer, ref_output_buffer,
                                  config->width, config->height, &max_error);
 

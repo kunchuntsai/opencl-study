@@ -1,4 +1,5 @@
 #include "gaussian5x5_ref.h"
+#include "../../utils/safe_ops.h"
 #include <stddef.h>
 
 /* Helper function to clamp coordinates to image bounds */
@@ -56,10 +57,16 @@ void gaussian5x5_ref(unsigned char* input, unsigned char* output,
     float weight;
     int pixel_val;
     int output_index;
+    int total_pixels;
     unsigned char result;
 
     if ((input == NULL) || (output == NULL) || (width <= 0) || (height <= 0)) {
         return;
+    }
+
+    /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
+    if (!safe_mul_int(width, height, &total_pixels)) {
+        return; /* Overflow detected */
     }
 
     for (y = 0; y < height; y++) {
@@ -84,7 +91,7 @@ void gaussian5x5_ref(unsigned char* input, unsigned char* output,
             output_index = y * width + x;
 
             /* MISRA-C:2023 Rule 18.1: Bounds check before write */
-            if (output_index < (width * height)) {
+            if (output_index < total_pixels) {
                 output[output_index] = result;
             }
         }

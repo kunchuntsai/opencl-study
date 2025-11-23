@@ -3,6 +3,10 @@ build/
 cmake-build-*/
 out/
 
+# Cache directories (kernel binaries and golden samples) per algorithm
+test_data/*/kernels/
+test_data/*/golden/
+
 # Compiled files
 *.o
 *.so

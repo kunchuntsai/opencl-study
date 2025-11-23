@@ -1,5 +1,6 @@
 #include "dilate3x3.h"
 #include "c_ref/dilate3x3_ref.h"
+#include "../utils/safe_ops.h"
 #include <stdio.h>
 #include <math.h>
 
@@ -22,7 +23,11 @@ int dilate3x3_verify(unsigned char* gpu_output, unsigned char* ref_output,
     }
 
     *max_error = 0.0f;
-    total_pixels = width * height;
+    /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
+    if (!safe_mul_int(width, height, &total_pixels)) {
+        (void)fprintf(stderr, "Error: Image dimensions overflow\n");
+        return 0;
+    }
 
     for (i = 0; i < total_pixels; i++) {
         diff = fabsf((float)gpu_output[i] - (float)ref_output[i]);
