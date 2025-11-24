@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 import numpy as np
 
-# Create a 1024x1024 test image with geometric patterns
-width = 1024
-height = 1024
+# Create a 1920x1080 test image with geometric patterns
+width = 1920
+height = 1080
 
 # Create blank image
 img = np.zeros((height, width), dtype=np.uint8)

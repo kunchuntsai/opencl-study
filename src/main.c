@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include "utils/opencl_utils.h"
 #include "utils/cache_manager.h"
@@ -10,10 +11,10 @@
 #include "dilate/dilate3x3.h"
 #include "gaussian/gaussian5x5.h"
 
+#define CONFIG_FILE "config/config.ini"
+
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 #define MAX_IMAGE_BUFFER_SIZE (4096 * 4096)
-
-#define CONFIG_FILE "config/config.ini"
 
 static unsigned char gpu_output_buffer[MAX_IMAGE_BUFFER_SIZE];
 static unsigned char ref_output_buffer[MAX_IMAGE_BUFFER_SIZE];
@@ -26,7 +27,6 @@ static void register_all_algorithms(void);
 int main(int argc, char** argv) {
     Config config;
     OpenCLEnv env;
-    int algo_index;
     int variant_index;
     Algorithm* algo;
     KernelConfig* variants[MAX_KERNEL_CONFIGS];
@@ -37,31 +37,23 @@ int main(int argc, char** argv) {
     long temp_index;
 
     /* Check command line arguments */
-    if ((argc != 1) && (argc != 3)) {
-        (void)fprintf(stderr, "Usage: %s [algorithm_index] [variant_index]\n", argv[0]);
-        (void)fprintf(stderr, "  algorithm_index: 0=dilate3x3, 1=gaussian5x5 (default: 0)\n");
+    if ((argc != 1) && (argc != 2)) {
+        (void)fprintf(stderr, "Usage: %s [variant_index]\n", argv[0]);
         (void)fprintf(stderr, "  variant_index:   0=v0, 1=v1, ... (default: 0)\n");
+        (void)fprintf(stderr, "  Note: Algorithm is selected from config.ini (op_id)\n");
         return 1;
     }
 
     /* Parse command line arguments - MISRA-C:2023 Rule 21.8: Avoid atoi() */
-    if (argc == 3) {
+    if (argc == 2) {
         if (!safe_strtol(argv[1], &temp_index)) {
-            (void)fprintf(stderr, "Invalid algorithm index: %s\n", argv[1]);
-            return 1;
-        }
-        algo_index = (int)temp_index;
-
-        if (!safe_strtol(argv[2], &temp_index)) {
-            (void)fprintf(stderr, "Invalid variant index: %s\n", argv[2]);
+            (void)fprintf(stderr, "Invalid variant index: %s\n", argv[1]);
             return 1;
         }
         variant_index = (int)temp_index;
     } else {
-        /* Use default values: algorithm 0, variant 0 */
-        algo_index = 0;
-        variant_index = 0;
-        (void)printf("Using default parameters: algorithm_index=0, variant_index=0\n");
+        /* Variant will be selected interactively */
+        variant_index = -1;
     }
 
     /* 1. Parse configuration */
@@ -87,32 +79,22 @@ int main(int argc, char** argv) {
     list_algorithms();
     (void)printf("\n");
 
-    /* 4. Get selected algorithm */
-    algo = get_algorithm_by_index(algo_index);
+    /* 4. Get selected algorithm based on config.op_id */
+    algo = find_algorithm(config.op_id);
     if (algo == NULL) {
-        (void)fprintf(stderr, "Error: Invalid algorithm index: %d\n", algo_index);
+        (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n", config.op_id);
         (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
         opencl_cleanup(&env);
         return 1;
     }
+    (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name, algo->id);
 
-    /* 5. Validate that selected algorithm matches config */
-    if (strcmp(algo->id, config.op_id) != 0) {
-        (void)fprintf(stderr, "Error: Algorithm mismatch!\n");
-        (void)fprintf(stderr, "  Selected algorithm: %s (ID: %s)\n", algo->name, algo->id);
-        (void)fprintf(stderr, "  Config is for:      %s\n", config.op_id);
-        (void)fprintf(stderr, "\nPlease select the algorithm that matches your config file,\n");
-        (void)fprintf(stderr, "or update the op_id in config.ini to match your selection.\n");
-        opencl_cleanup(&env);
-        return 1;
-    }
-
-    /* 6. Initialize cache directories for this algorithm */
+    /* 5. Initialize cache directories for this algorithm */
     if (cache_init(algo->id) != 0) {
         (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
     }
 
-    /* 7. Get kernel variants for selected algorithm */
+    /* 6. Get kernel variants for selected algorithm */
     get_variants_result = get_op_variants(&config, algo->id, variants, &variant_count);
     if ((get_variants_result != 0) || (variant_count == 0)) {
         (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
@@ -130,6 +112,36 @@ int main(int argc, char** argv) {
         (void)printf("\n");
     }
 
+    /* If variant_index not provided via command line, prompt user */
+    if (argc == 1) {
+        char input_buffer[32];
+        char* newline_pos;
+        (void)printf("Select variant (0-%d, default: 0): ", variant_count - 1);
+        if (fgets(input_buffer, sizeof(input_buffer), stdin) != NULL) {
+            /* Remove trailing newline if present */
+            newline_pos = strchr(input_buffer, '\n');
+            if (newline_pos != NULL) {
+                *newline_pos = '\0';
+            }
+
+            /* If empty input, use default variant 0 */
+            if (input_buffer[0] == '\0') {
+                variant_index = 0;
+            } else {
+                if (!safe_strtol(input_buffer, &temp_index)) {
+                    (void)fprintf(stderr, "Invalid variant selection\n");
+                    opencl_cleanup(&env);
+                    return 1;
+                }
+                variant_index = (int)temp_index;
+            }
+        } else {
+            (void)fprintf(stderr, "Failed to read input\n");
+            opencl_cleanup(&env);
+            return 1;
+        }
+    }
+
     if ((variant_index < 0) || (variant_index >= variant_count)) {
         (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
                       variant_index, variant_count - 1);
@@ -137,7 +149,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* 8. Run algorithm */
+    /* 7. Run algorithm */
     (void)printf("\n=== Running %s (variant: %s) ===\n",
                  algo->name, variants[variant_index]->variant_id);
     run_algorithm(algo, variants[variant_index], &config, &env);
