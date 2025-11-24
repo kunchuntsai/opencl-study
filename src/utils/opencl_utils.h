@@ -1,3 +1,19 @@
+/**
+ * @file opencl_utils.h
+ * @brief OpenCL utility functions for device initialization and kernel execution
+ *
+ * Provides high-level wrappers around OpenCL API for:
+ * - Platform and device initialization
+ * - Kernel compilation and caching
+ * - Kernel execution with timing
+ * - Resource cleanup
+ *
+ * MISRA C 2023 Compliance:
+ * - Rule 17.7: All OpenCL API return values checked
+ * - Rule 21.3: Uses static buffers for kernel source
+ * - Rule 22.x: Proper resource management and cleanup
+ */
+
 #pragma once
 
 #ifdef __APPLE__
@@ -6,21 +22,66 @@
 #include <CL/cl.h>
 #endif
 
+/**
+ * @brief OpenCL environment containing all required resources
+ *
+ * Encapsulates all OpenCL objects needed for kernel execution:
+ * platform, device, context, and command queue.
+ */
 typedef struct {
-    cl_platform_id platform;
-    cl_device_id device;
-    cl_context context;
-    cl_command_queue queue;
+    cl_platform_id platform;    /**< OpenCL platform (e.g., Apple, NVIDIA) */
+    cl_device_id device;        /**< OpenCL device (GPU/CPU) */
+    cl_context context;         /**< OpenCL context for device */
+    cl_command_queue queue;     /**< Command queue for kernel execution */
 } OpenCLEnv;
 
-/* Initialize OpenCL environment (platform, device, context, queue) */
+/**
+ * @brief Initialize OpenCL environment
+ *
+ * Initializes the OpenCL platform, device, context, and command queue.
+ * Automatically selects GPU if available, otherwise falls back to CPU.
+ * Creates a profiling-enabled command queue for performance measurement.
+ *
+ * @param[out] env OpenCL environment structure to initialize
+ * @return 0 on success, -1 on error
+ */
 int opencl_init(OpenCLEnv* env);
 
-/* Build kernel from source file (load and compile) */
+/**
+ * @brief Build OpenCL kernel from source file with caching
+ *
+ * Loads kernel source, compiles it, and creates a kernel object.
+ * Uses cache_manager to avoid recompilation:
+ * - If cached binary exists, loads from cache
+ * - Otherwise, compiles from source and saves to cache
+ *
+ * @param[in] env Initialized OpenCL environment
+ * @param[in] algorithm_id Algorithm identifier for cache organization
+ * @param[in] kernel_file Path to kernel source file (.cl)
+ * @param[in] kernel_name Name of kernel function in source
+ * @return OpenCL kernel object, or NULL on error
+ */
 cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
                                const char* kernel_file, const char* kernel_name);
 
-/* Run kernel with provided buffers and configuration */
+/**
+ * @brief Execute OpenCL kernel with timing
+ *
+ * Sets kernel arguments, enqueues kernel execution, and measures GPU time.
+ * Automatically configures kernel with input/output buffers and image dimensions.
+ *
+ * @param[in] env Initialized OpenCL environment
+ * @param[in] kernel Compiled kernel object
+ * @param[in] input_buf Input buffer containing image data
+ * @param[out] output_buf Output buffer for processed image
+ * @param[in] width Image width in pixels
+ * @param[in] height Image height in pixels
+ * @param[in] global_work_size Global work dimensions (array of size work_dim)
+ * @param[in] local_work_size Local work group size (NULL for automatic)
+ * @param[in] work_dim Number of work dimensions (1, 2, or 3)
+ * @param[out] gpu_time_ms Execution time in milliseconds
+ * @return 0 on success, -1 on error
+ */
 int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
                       cl_mem input_buf, cl_mem output_buf,
                       int width, int height,
@@ -29,5 +90,12 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
                       int work_dim,
                       double* gpu_time_ms);
 
-/* Cleanup OpenCL resources */
+/**
+ * @brief Clean up OpenCL resources
+ *
+ * Releases all OpenCL resources in the environment structure:
+ * command queue, context, device, and platform.
+ *
+ * @param[in,out] env OpenCL environment to clean up
+ */
 void opencl_cleanup(OpenCLEnv* env);

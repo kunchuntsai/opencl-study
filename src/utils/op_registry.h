@@ -1,21 +1,73 @@
+/**
+ * @file op_registry.h
+ * @brief Algorithm registry for dynamic algorithm discovery
+ *
+ * Provides a central registry for all image processing algorithms.
+ * Algorithms register themselves at startup, allowing the framework
+ * to discover and execute any algorithm by ID.
+ *
+ * Registry pattern enables:
+ * - Adding new algorithms without modifying main code
+ * - Runtime algorithm selection
+ * - Algorithm enumeration for UI
+ *
+ * MISRA C 2023 Compliance:
+ * - Rule 8.7: Static storage with file scope
+ * - Rule 18.1: Bounds checking on registry access
+ */
+
 #pragma once
 
 #include "op_interface.h"
 
-/* Maximum number of algorithms that can be registered */
+/** Maximum number of algorithms that can be registered */
 #define MAX_ALGORITHMS 32
 
-/* Registration function (called at startup) */
+/**
+ * @brief Register an algorithm in the global registry
+ *
+ * Adds an algorithm to the registry, making it available for lookup
+ * and execution. Called at startup by each algorithm module.
+ *
+ * @param[in] op Pointer to algorithm structure (must remain valid)
+ *
+ * @note Fails silently if MAX_ALGORITHMS is exceeded
+ * @note Not thread-safe - should only be called during initialization
+ */
 void register_algorithm(Algorithm* op);
 
-/* Lookup function by ID */
+/**
+ * @brief Find algorithm by unique identifier
+ *
+ * Searches the registry for an algorithm matching the given ID.
+ *
+ * @param[in] op_id Algorithm identifier (e.g., "dilate3x3")
+ * @return Pointer to algorithm, or NULL if not found
+ */
 Algorithm* find_algorithm(const char* op_id);
 
-/* Get algorithm by index (for menu display) */
+/**
+ * @brief Get algorithm by index
+ *
+ * Retrieves algorithm at specified index in registry.
+ * Used for menu display and iteration.
+ *
+ * @param[in] index Zero-based index (0 to get_algorithm_count()-1)
+ * @return Pointer to algorithm, or NULL if index out of range
+ */
 Algorithm* get_algorithm_by_index(int index);
 
-/* Get total number of registered algorithms */
+/**
+ * @brief Get number of registered algorithms
+ *
+ * @return Total count of algorithms in registry
+ */
 int get_algorithm_count(void);
 
-/* List all available algorithms */
+/**
+ * @brief List all registered algorithms to stdout
+ *
+ * Prints a formatted list of all available algorithms with
+ * their indices, names, and IDs.
+ */
 void list_algorithms(void);
