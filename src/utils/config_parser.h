@@ -5,7 +5,6 @@
 #define MAX_KERNEL_CONFIGS 32
 
 typedef struct {
-    char op_id[32];             /* e.g., "dilate3x3" */
     char variant_id[32];        /* e.g., "v0", "v1" */
     char kernel_file[256];
     char kernel_function[64];
@@ -15,10 +14,13 @@ typedef struct {
 } KernelConfig;
 
 typedef struct {
+    char op_id[32];
     char input_image[256];
     char output_image[256];
-    int width;
-    int height;
+    int src_width;
+    int src_height;
+    int dst_width;
+    int dst_height;
     int num_kernels;
     KernelConfig kernels[MAX_KERNEL_CONFIGS];
 } Config;

@@ -56,7 +56,9 @@ void list_algorithms(void) {
 
     for (i = 0; i < algorithm_count; i++) {
         if (registered_algorithms[i] != NULL) {
-            (void)printf("%d. %s\n", i + 1, registered_algorithms[i]->name);
+            (void)printf("  %d - %s (ID: %s)\n", i,
+                         registered_algorithms[i]->name,
+                         registered_algorithms[i]->id);
         }
     }
 }

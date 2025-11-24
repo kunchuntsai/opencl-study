@@ -1,3 +1,6 @@
+/* POSIX feature test macro for strtok_r */
+#define _POSIX_C_SOURCE 200809L
+
 #include "config_parser.h"
 #include "safe_ops.h"
 #include <stdio.h>
@@ -33,6 +36,35 @@ static char* trim(char* str) {
     *(end + 1) = '\0';
 
     return str;
+}
+
+/* Parse kernel section name to extract variant_id */
+/* Format: "kernel.<variant_id>" */
+static int parse_kernel_section(const char* section, char* variant_id,
+                                size_t variant_id_size) {
+    const char* first_dot;
+    size_t variant_len;
+
+    if ((section == NULL) || (variant_id == NULL)) {
+        return -1;
+    }
+
+    /* Skip "kernel." prefix */
+    if (strncmp(section, "kernel.", 7U) != 0) {
+        return -1;
+    }
+
+    first_dot = section + 7;  /* Points to start of variant_id */
+
+    /* Extract variant_id */
+    variant_len = strlen(first_dot);
+    if ((variant_len == 0U) || (variant_len >= variant_id_size)) {
+        return -1;  /* variant_id empty or too long */
+    }
+    (void)strncpy(variant_id, first_dot, variant_id_size - 1U);
+    variant_id[variant_id_size - 1U] = '\0';
+
+    return 0;
 }
 
 /* Parse a size_t array from a string like "1024,1024" or "1024" */
@@ -118,6 +150,15 @@ int parse_config(const char* filename, Config* config) {
                         (void)fclose(fp);
                         return -1;
                     }
+                    /* Parse variant_id from section name */
+                    if (parse_kernel_section(section,
+                                            config->kernels[kernel_index].variant_id,
+                                            sizeof(config->kernels[kernel_index].variant_id)) != 0) {
+                        (void)fprintf(stderr, "Error: Invalid kernel section name format: %s\n", section);
+                        (void)fprintf(stderr, "Expected format: kernel.<variant_id>\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
                 }
             }
             continue;
@@ -135,25 +176,44 @@ int parse_config(const char* filename, Config* config) {
 
         /* Parse based on section */
         if (strcmp(section, "image") == 0) {
-            if (strcmp(key, "input") == 0) {
+            if (strcmp(key, "op_id") == 0) {
+                (void)strncpy(config->op_id, value, sizeof(config->op_id) - 1U);
+                config->op_id[sizeof(config->op_id) - 1U] = '\0';
+            } else if (strcmp(key, "input") == 0) {
                 (void)strncpy(config->input_image, value, sizeof(config->input_image) - 1U);
                 config->input_image[sizeof(config->input_image) - 1U] = '\0';
             } else if (strcmp(key, "output") == 0) {
                 (void)strncpy(config->output_image, value, sizeof(config->output_image) - 1U);
                 config->output_image[sizeof(config->output_image) - 1U] = '\0';
-            } else if (strcmp(key, "width") == 0) {
+            } else if (strcmp(key, "src_width") == 0) {
                 if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
-                    config->width = (int)temp_long;
+                    config->src_width = (int)temp_long;
                 } else {
-                    (void)fprintf(stderr, "Error: Invalid width value: %s\n", value);
+                    (void)fprintf(stderr, "Error: Invalid src_width value: %s\n", value);
                     (void)fclose(fp);
                     return -1;
                 }
-            } else if (strcmp(key, "height") == 0) {
+            } else if (strcmp(key, "src_height") == 0) {
                 if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
-                    config->height = (int)temp_long;
+                    config->src_height = (int)temp_long;
                 } else {
-                    (void)fprintf(stderr, "Error: Invalid height value: %s\n", value);
+                    (void)fprintf(stderr, "Error: Invalid src_height value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "dst_width") == 0) {
+                if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
+                    config->dst_width = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid dst_width value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "dst_height") == 0) {
+                if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
+                    config->dst_height = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid dst_height value: %s\n", value);
                     (void)fclose(fp);
                     return -1;
                 }
@@ -163,13 +223,7 @@ int parse_config(const char* filename, Config* config) {
         } else if ((strncmp(section, "kernel.", 7U) == 0) && (kernel_index >= 0)) {
             KernelConfig* kc = &config->kernels[kernel_index];
 
-            if (strcmp(key, "op_id") == 0) {
-                (void)strncpy(kc->op_id, value, sizeof(kc->op_id) - 1U);
-                kc->op_id[sizeof(kc->op_id) - 1U] = '\0';
-            } else if (strcmp(key, "variant_id") == 0) {
-                (void)strncpy(kc->variant_id, value, sizeof(kc->variant_id) - 1U);
-                kc->variant_id[sizeof(kc->variant_id) - 1U] = '\0';
-            } else if (strcmp(key, "kernel_file") == 0) {
+            if (strcmp(key, "kernel_file") == 0) {
                 (void)strncpy(kc->kernel_file, value, sizeof(kc->kernel_file) - 1U);
                 kc->kernel_file[sizeof(kc->kernel_file) - 1U] = '\0';
             } else if (strcmp(key, "kernel_function") == 0) {
@@ -204,33 +258,42 @@ int parse_config(const char* filename, Config* config) {
     }
 
     (void)fclose(fp);
-    (void)printf("Parsed config file: %s (%d kernel configurations)\n",
-                 filename, config->num_kernels);
+
+    /* Validate that op_id was specified */
+    if (config->op_id[0] == '\0') {
+        (void)fprintf(stderr, "Error: op_id not specified in [image] section\n");
+        return -1;
+    }
+
+    (void)printf("Parsed config file: %s (op_id: %s, %d kernel configurations)\n",
+                 filename, config->op_id, config->num_kernels);
     return 0;
 }
 
 /* MISRA-C:2023 Rule 8.14: Removed static variable for reentrancy */
 int get_op_variants(const Config* config, const char* op_id,
                     KernelConfig* variants[], int* count) {
-    int variant_count = 0;
     int i;
 
     if ((config == NULL) || (op_id == NULL) || (variants == NULL) || (count == NULL)) {
         return -1;
     }
 
-    for (i = 0; i < config->num_kernels; i++) {
-        if (strcmp(config->kernels[i].op_id, op_id) == 0) {
-            if (variant_count < MAX_KERNEL_CONFIGS) {
-                /* Casting away const for backwards compatibility */
-                /* In a stricter implementation, Config should not be const */
-                /* or variants should be const KernelConfig* */
-                variants[variant_count] = (KernelConfig*)&config->kernels[i];
-                variant_count++;
-            }
-        }
+    /* Check if the config's op_id matches the requested op_id */
+    if (strcmp(config->op_id, op_id) != 0) {
+        /* Operation not found in this config */
+        *count = 0;
+        return 0;
     }
 
-    *count = variant_count;
+    /* All kernels in the config are variants of this operation */
+    for (i = 0; i < config->num_kernels; i++) {
+        /* Casting away const for backwards compatibility */
+        /* In a stricter implementation, Config should not be const */
+        /* or variants should be const KernelConfig* */
+        variants[i] = (KernelConfig*)&config->kernels[i];
+    }
+
+    *count = config->num_kernels;
     return 0;
 }

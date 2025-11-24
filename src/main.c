@@ -37,25 +37,32 @@ int main(int argc, char** argv) {
     long temp_index;
 
     /* Check command line arguments */
-    if (argc != 3) {
-        (void)fprintf(stderr, "Usage: %s <algorithm_index> <variant_index>\n", argv[0]);
-        (void)fprintf(stderr, "  algorithm_index: 0=dilate3x3, 1=gaussian5x5\n");
-        (void)fprintf(stderr, "  variant_index:   0=v0, 1=v1, ...\n");
+    if ((argc != 1) && (argc != 3)) {
+        (void)fprintf(stderr, "Usage: %s [algorithm_index] [variant_index]\n", argv[0]);
+        (void)fprintf(stderr, "  algorithm_index: 0=dilate3x3, 1=gaussian5x5 (default: 0)\n");
+        (void)fprintf(stderr, "  variant_index:   0=v0, 1=v1, ... (default: 0)\n");
         return 1;
     }
 
     /* Parse command line arguments - MISRA-C:2023 Rule 21.8: Avoid atoi() */
-    if (!safe_strtol(argv[1], &temp_index)) {
-        (void)fprintf(stderr, "Invalid algorithm index: %s\n", argv[1]);
-        return 1;
-    }
-    algo_index = (int)temp_index;
+    if (argc == 3) {
+        if (!safe_strtol(argv[1], &temp_index)) {
+            (void)fprintf(stderr, "Invalid algorithm index: %s\n", argv[1]);
+            return 1;
+        }
+        algo_index = (int)temp_index;
 
-    if (!safe_strtol(argv[2], &temp_index)) {
-        (void)fprintf(stderr, "Invalid variant index: %s\n", argv[2]);
-        return 1;
+        if (!safe_strtol(argv[2], &temp_index)) {
+            (void)fprintf(stderr, "Invalid variant index: %s\n", argv[2]);
+            return 1;
+        }
+        variant_index = (int)temp_index;
+    } else {
+        /* Use default values: algorithm 0, variant 0 */
+        algo_index = 0;
+        variant_index = 0;
+        (void)printf("Using default parameters: algorithm_index=0, variant_index=0\n");
     }
-    variant_index = (int)temp_index;
 
     /* 1. Parse configuration */
     parse_result = parse_config(CONFIG_FILE, &config);
@@ -75,20 +82,37 @@ int main(int argc, char** argv) {
     /* 3. Register all algorithms */
     register_all_algorithms();
 
+    /* Display available algorithms */
+    (void)printf("\n=== Available Algorithms ===\n");
+    list_algorithms();
+    (void)printf("\n");
+
     /* 4. Get selected algorithm */
     algo = get_algorithm_by_index(algo_index);
     if (algo == NULL) {
-        (void)fprintf(stderr, "Invalid algorithm index: %d\n", algo_index);
+        (void)fprintf(stderr, "Error: Invalid algorithm index: %d\n", algo_index);
+        (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
         opencl_cleanup(&env);
         return 1;
     }
 
-    /* 5. Initialize cache directories for this algorithm */
+    /* 5. Validate that selected algorithm matches config */
+    if (strcmp(algo->id, config.op_id) != 0) {
+        (void)fprintf(stderr, "Error: Algorithm mismatch!\n");
+        (void)fprintf(stderr, "  Selected algorithm: %s (ID: %s)\n", algo->name, algo->id);
+        (void)fprintf(stderr, "  Config is for:      %s\n", config.op_id);
+        (void)fprintf(stderr, "\nPlease select the algorithm that matches your config file,\n");
+        (void)fprintf(stderr, "or update the op_id in config.ini to match your selection.\n");
+        opencl_cleanup(&env);
+        return 1;
+    }
+
+    /* 6. Initialize cache directories for this algorithm */
     if (cache_init(algo->id) != 0) {
         (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
     }
 
-    /* 6. Get kernel variants for selected algorithm */
+    /* 7. Get kernel variants for selected algorithm */
     get_variants_result = get_op_variants(&config, algo->id, variants, &variant_count);
     if ((get_variants_result != 0) || (variant_count == 0)) {
         (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
@@ -96,14 +120,24 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+    /* Display available variants */
+    (void)printf("=== Available Variants for %s ===\n", algo->name);
+    {
+        int i;
+        for (i = 0; i < variant_count; i++) {
+            (void)printf("  %d - %s\n", i, variants[i]->variant_id);
+        }
+        (void)printf("\n");
+    }
+
     if ((variant_index < 0) || (variant_index >= variant_count)) {
-        (void)fprintf(stderr, "Invalid variant index: %d (available: 0-%d)\n",
+        (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
                       variant_index, variant_count - 1);
         opencl_cleanup(&env);
         return 1;
     }
 
-    /* 7. Run algorithm */
+    /* 8. Run algorithm */
     (void)printf("\n=== Running %s (variant: %s) ===\n",
                  algo->name, variants[variant_index]->variant_id);
     run_algorithm(algo, variants[variant_index], &config, &env);
@@ -137,14 +171,14 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
     /* Load input image */
-    input = read_image(config->input_image, config->width, config->height);
+    input = read_image(config->input_image, config->src_width, config->src_height);
     if (input == NULL) {
         (void)fprintf(stderr, "Failed to load input image\n");
         return;
     }
 
     /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-    if (!safe_mul_int(config->width, config->height, &img_size)) {
+    if (!safe_mul_int(config->src_width, config->src_height, &img_size)) {
         (void)fprintf(stderr, "Image size overflow\n");
         return;
     }
@@ -158,7 +192,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     /* Step 1: Run C reference implementation */
     (void)printf("\n=== C Reference Implementation ===\n");
     ref_start = clock();
-    algo->reference_impl(input, ref_output_buffer, config->width, config->height);
+    algo->reference_impl(input, ref_output_buffer, config->src_width, config->src_height);
     ref_end = clock();
     ref_time = (double)(ref_end - ref_start) / (double)CLOCKS_PER_SEC * 1000.0;
     (void)printf("Reference time: %.3f ms\n", ref_time);
@@ -235,7 +269,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     /* Step 5: Run OpenCL kernel */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
     run_result = opencl_run_kernel(env, kernel, input_buf, output_buf,
-                                   config->width, config->height,
+                                   config->src_width, config->src_height,
                                    kernel_cfg->global_work_size,
                                    kernel_cfg->local_work_size,
                                    kernel_cfg->work_dim,
@@ -283,7 +317,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
 
     /* Step 7: Verify GPU results against C reference */
     passed = algo->verify_result(gpu_output_buffer, ref_output_buffer,
-                                 config->width, config->height, &max_error);
+                                 config->src_width, config->src_height, &max_error);
 
     /* Display results */
     (void)printf("\n=== Results ===\n");
@@ -295,7 +329,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
 
     /* Save output */
     write_result = write_image(config->output_image, gpu_output_buffer,
-                              config->width, config->height);
+                              config->src_width, config->src_height);
     if (write_result == 0) {
         (void)printf("Output saved to: %s\n", config->output_image);
     } else {

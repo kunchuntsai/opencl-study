@@ -1,6 +1,18 @@
 CC = gcc
 CFLAGS = -Wall -O2 -std=c99 -I.
-LDFLAGS = -framework OpenCL -lm
+
+# Platform detection
+UNAME_S := $(shell uname -s)
+ifeq ($(UNAME_S),Darwin)
+    # macOS
+    LDFLAGS = -framework OpenCL -lm
+else ifeq ($(UNAME_S),Linux)
+    # Linux
+    LDFLAGS = -lOpenCL -lm
+else
+    # Default to Linux-style flags
+    LDFLAGS = -lOpenCL -lm
+endif
 
 # Directories
 BUILD_DIR = ../build
