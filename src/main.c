@@ -19,41 +19,6 @@
 static unsigned char gpu_output_buffer[MAX_IMAGE_BUFFER_SIZE];
 static unsigned char ref_output_buffer[MAX_IMAGE_BUFFER_SIZE];
 
-/* Helper function to create OpenCL buffer with error checking */
-static inline cl_mem create_buffer_checked(cl_context context, cl_mem_flags flags,
-                                           size_t size, void* host_ptr,
-                                           const char* buffer_name) {
-    cl_int err;
-    cl_mem buffer = clCreateBuffer(context, flags, size, host_ptr, &err);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Failed to create %s buffer (error code: %d)\n",
-                      buffer_name, err);
-        return NULL;
-    }
-    return buffer;
-}
-
-/* Helper function to release OpenCL memory object with error checking */
-static inline void release_mem_object_checked(cl_mem mem_obj, const char* name) {
-    if (mem_obj != NULL) {
-        cl_int err = clReleaseMemObject(mem_obj);
-        if (err != CL_SUCCESS) {
-            (void)fprintf(stderr, "Warning: Failed to release %s (error: %d)\n",
-                          name, err);
-        }
-    }
-}
-
-/* Helper function to release OpenCL kernel with error checking */
-static inline void release_kernel_checked(cl_kernel kernel) {
-    if (kernel != NULL) {
-        cl_int err = clReleaseKernel(kernel);
-        if (err != CL_SUCCESS) {
-            (void)fprintf(stderr, "Warning: Failed to release kernel (error: %d)\n", err);
-        }
-    }
-}
-
 /* Forward declarations */
 static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                          const Config* config, OpenCLEnv* env);
@@ -285,18 +250,18 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
 
     /* Step 4: Create OpenCL buffers */
     img_size_t = (size_t)img_size;
-    input_buf = create_buffer_checked(env->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                      img_size_t, input, "input");
+    input_buf = opencl_create_buffer(env->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                     img_size_t, input, "input");
     if (input_buf == NULL) {
-        release_kernel_checked(kernel);
+        opencl_release_kernel(kernel);
         return;
     }
 
-    output_buf = create_buffer_checked(env->context, CL_MEM_WRITE_ONLY,
-                                       img_size_t, NULL, "output");
+    output_buf = opencl_create_buffer(env->context, CL_MEM_WRITE_ONLY,
+                                      img_size_t, NULL, "output");
     if (output_buf == NULL) {
-        release_mem_object_checked(input_buf, "input buffer");
-        release_kernel_checked(kernel);
+        opencl_release_mem_object(input_buf, "input buffer");
+        opencl_release_kernel(kernel);
         return;
     }
 
@@ -310,9 +275,9 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                                    &gpu_time);
     if (run_result != 0) {
         (void)fprintf(stderr, "Failed to run kernel\n");
-        release_mem_object_checked(output_buf, "output buffer");
-        release_mem_object_checked(input_buf, "input buffer");
-        release_kernel_checked(kernel);
+        opencl_release_mem_object(output_buf, "output buffer");
+        opencl_release_mem_object(input_buf, "input buffer");
+        opencl_release_kernel(kernel);
         return;
     }
 
@@ -323,9 +288,9 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                              img_size_t, gpu_output_buffer, 0U, NULL, NULL);
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Failed to read output buffer (error code: %d)\n", err);
-        release_mem_object_checked(output_buf, "output buffer");
-        release_mem_object_checked(input_buf, "input buffer");
-        release_kernel_checked(kernel);
+        opencl_release_mem_object(output_buf, "output buffer");
+        opencl_release_mem_object(input_buf, "input buffer");
+        opencl_release_kernel(kernel);
         return;
     }
 
@@ -351,9 +316,9 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
     /* Cleanup - MISRA-C:2023 Rule 22.1: Proper resource management */
-    release_mem_object_checked(output_buf, "output buffer");
-    release_mem_object_checked(input_buf, "input buffer");
-    release_kernel_checked(kernel);
+    opencl_release_mem_object(output_buf, "output buffer");
+    opencl_release_mem_object(input_buf, "input buffer");
+    opencl_release_kernel(kernel);
 }
 
 static void register_all_algorithms(void) {
