@@ -13,6 +13,18 @@
 static char kernel_source_buffer[MAX_KERNEL_SOURCE_SIZE];
 static char build_log_buffer[MAX_BUILD_LOG_SIZE];
 
+/* Helper function to set kernel argument with error checking */
+static inline int set_kernel_arg(cl_kernel kernel, cl_uint arg_index,
+                                  size_t arg_size, const void* arg_value) {
+    cl_int err = clSetKernelArg(kernel, arg_index, arg_size, arg_value);
+    if (err != CL_SUCCESS) {
+        (void)fprintf(stderr, "Failed to set kernel arg %u (error code: %d)\n",
+                      arg_index, err);
+        return -1;
+    }
+    return 0;
+}
+
 /* Helper function to extract cache name from kernel file path */
 static int extract_cache_name(const char* kernel_file, char* cache_name, size_t max_size) {
     const char* filename_start;
@@ -300,27 +312,23 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
     }
 
     /* Set kernel arguments */
-    err = clSetKernelArg(kernel, 0U, sizeof(cl_mem), &input_buf);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Failed to set kernel arg 0 (error code: %d)\n", err);
+    cl_uint arg_idx = 0U;
+    if (set_kernel_arg(kernel, arg_idx, sizeof(cl_mem), &input_buf) != 0) {
         return -1;
     }
+    arg_idx++;
 
-    err = clSetKernelArg(kernel, 1U, sizeof(cl_mem), &output_buf);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Failed to set kernel arg 1 (error code: %d)\n", err);
+    if (set_kernel_arg(kernel, arg_idx, sizeof(cl_mem), &output_buf) != 0) {
         return -1;
     }
+    arg_idx++;
 
-    err = clSetKernelArg(kernel, 2U, sizeof(int), &width);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Failed to set kernel arg 2 (error code: %d)\n", err);
+    if (set_kernel_arg(kernel, arg_idx, sizeof(int), &width) != 0) {
         return -1;
     }
+    arg_idx++;
 
-    err = clSetKernelArg(kernel, 3U, sizeof(int), &height);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Failed to set kernel arg 3 (error code: %d)\n", err);
+    if (set_kernel_arg(kernel, arg_idx, sizeof(int), &height) != 0) {
         return -1;
     }
 
