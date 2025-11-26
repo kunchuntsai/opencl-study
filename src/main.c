@@ -9,17 +9,18 @@
 #include "utils/op_registry.h"
 #include "utils/safe_ops.h"
 
-#define CONFIG_FILE "config/config.ini"
-
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
-#define MAX_IMAGE_BUFFER_SIZE (4096 * 4096)
+#define MAX_IMAGE_SIZE (4096 * 4096)
+#define MAX_PATH_LENGTH 512
 
-static unsigned char gpu_output_buffer[MAX_IMAGE_BUFFER_SIZE];
-static unsigned char ref_output_buffer[MAX_IMAGE_BUFFER_SIZE];
+static unsigned char gpu_output_buffer[MAX_IMAGE_SIZE];
+static unsigned char ref_output_buffer[MAX_IMAGE_SIZE];
 
 /* Forward declarations */
 static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                          const Config* config, OpenCLEnv* env);
+static int resolve_config_path(const char* input, char* output, size_t output_size);
+static int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size);
 
 int main(int argc, char** argv) {
     Config config;
@@ -32,32 +33,82 @@ int main(int argc, char** argv) {
     int opencl_result;
     int get_variants_result;
     long temp_index;
+    char config_path[MAX_PATH_LENGTH];
+    const char* config_input;
+
+    /* Check for help flags */
+    if ((argc == 2) && ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "help") == 0))) {
+        (void)printf("Usage: %s <algorithm|config_file> [variant_index]\n", argv[0]);
+        (void)printf("\n");
+        (void)printf("Arguments:\n");
+        (void)printf("  algorithm:       Algorithm name (e.g., dilate3x3, gaussian5x5)\n");
+        (void)printf("                   Automatically loads config/<algorithm>.ini\n");
+        (void)printf("  config_file:     Explicit path to config file (e.g., config/custom.ini)\n");
+        (void)printf("  variant_index:   Kernel variant: 0=v0, 1=v1, ... (default: interactive)\n");
+        (void)printf("\n");
+        (void)printf("Examples:\n");
+        (void)printf("  %s dilate3x3 0          # Use config/dilate3x3.ini, variant 0\n", argv[0]);
+        (void)printf("  %s gaussian5x5          # Use config/gaussian5x5.ini, interactive variant\n", argv[0]);
+        (void)printf("  %s config/my.ini 1      # Use custom config file, variant 1\n", argv[0]);
+        (void)printf("\n");
+        (void)printf("Available Algorithms:\n");
+        list_algorithms();
+        return 0;
+    }
 
     /* Check command line arguments */
-    if ((argc != 1) && (argc != 2)) {
-        (void)fprintf(stderr, "Usage: %s [variant_index]\n", argv[0]);
-        (void)fprintf(stderr, "  variant_index:   0=v0, 1=v1, ... (default: 0)\n");
-        (void)fprintf(stderr, "  Note: Algorithm is selected from config.ini (op_id)\n");
+    if (argc > 3) {
+        (void)fprintf(stderr, "Error: Too many arguments\n");
+        (void)fprintf(stderr, "Usage: %s [algorithm|config_file] [variant_index]\n", argv[0]);
+        (void)fprintf(stderr, "Run '%s --help' for more information\n", argv[0]);
         return 1;
     }
 
     /* Parse command line arguments - MISRA-C:2023 Rule 21.8: Avoid atoi() */
-    if (argc == 2) {
-        if (!safe_strtol(argv[1], &temp_index)) {
-            (void)fprintf(stderr, "Invalid variant index: %s\n", argv[1]);
+    if (argc < 2) {
+        (void)fprintf(stderr, "Error: Algorithm name required\n");
+        (void)fprintf(stderr, "Usage: %s <algorithm> [variant_index]\n", argv[0]);
+        (void)fprintf(stderr, "\nAvailable algorithms:\n");
+        list_algorithms();
+        (void)fprintf(stderr, "\nExamples:\n");
+        (void)fprintf(stderr, "  %s dilate3x3 0      # Run dilate with variant 0\n", argv[0]);
+        (void)fprintf(stderr, "  %s gaussian5x5      # Run gaussian, select variant interactively\n", argv[0]);
+        (void)fprintf(stderr, "\nRun '%s --help' for more information\n", argv[0]);
+        return 1;
+    }
+
+    /* Argument 1: Algorithm name or config path (required) */
+    config_input = argv[1];
+
+    /* Argument 2: Variant index (optional, default: interactive) */
+    if (argc == 3) {
+        if (!safe_strtol(argv[2], &temp_index)) {
+            (void)fprintf(stderr, "Invalid variant index: %s\n", argv[2]);
             return 1;
         }
         variant_index = (int)temp_index;
     } else {
-        /* Variant will be selected interactively */
         variant_index = -1;
     }
 
-    /* 1. Parse configuration */
-    parse_result = parse_config(CONFIG_FILE, &config);
-    if (parse_result != 0) {
-        (void)fprintf(stderr, "Failed to parse %s\n", CONFIG_FILE);
+    /* Resolve config path (handles both algorithm names and explicit paths) */
+    if (resolve_config_path(config_input, config_path, sizeof(config_path)) != 0) {
+        (void)fprintf(stderr, "Failed to resolve config path: %s\n", config_input);
         return 1;
+    }
+
+    /* 1. Parse configuration */
+    parse_result = parse_config(config_path, &config);
+    if (parse_result != 0) {
+        (void)fprintf(stderr, "Failed to parse %s\n", config_path);
+        return 1;
+    }
+
+    /* Auto-derive op_id from filename if not specified in config */
+    if ((config.op_id[0] == '\0') || (strcmp(config.op_id, "config") == 0)) {
+        if (extract_op_id_from_path(config_path, config.op_id, sizeof(config.op_id)) != 0) {
+            (void)fprintf(stderr, "Warning: Could not derive op_id from filename\n");
+        }
     }
 
     /* 2. Initialize OpenCL */
@@ -331,4 +382,99 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     opencl_release_mem_object(output_buf, "output buffer");
     opencl_release_mem_object(input_buf, "input buffer");
     opencl_release_kernel(kernel);
+}
+
+/**
+ * @brief Resolve config path from algorithm name or explicit path
+ *
+ * Handles three cases:
+ * 1. Algorithm name (e.g., "dilate3x3") -> "config/dilate3x3.ini"
+ * 2. Explicit relative path (e.g., "config/custom.ini") -> unchanged
+ * 3. Explicit absolute path (e.g., "/path/to/config.ini") -> unchanged
+ *
+ * @param[in] input User input (algorithm name or path)
+ * @param[out] output Resolved config file path
+ * @param[in] output_size Size of output buffer
+ * @return 0 on success, -1 on error
+ */
+static int resolve_config_path(const char* input, char* output, size_t output_size) {
+    FILE* test_file;
+
+    if ((input == NULL) || (output == NULL) || (output_size == 0U)) {
+        return -1;
+    }
+
+    /* Check if input already has .ini extension or contains path separators */
+    if ((strstr(input, ".ini") != NULL) || (strchr(input, '/') != NULL)) {
+        /* Treat as explicit path */
+        if (strlen(input) >= output_size) {
+            return -1;
+        }
+        (void)strncpy(output, input, output_size - 1U);
+        output[output_size - 1U] = '\0';
+    } else {
+        /* Treat as algorithm name - construct config/<name>.ini */
+        int written;
+        written = snprintf(output, output_size, "config/%s.ini", input);
+        if ((written < 0) || ((size_t)written >= output_size)) {
+            return -1;
+        }
+    }
+
+    /* Verify file exists */
+    test_file = fopen(output, "r");
+    if (test_file == NULL) {
+        (void)fprintf(stderr, "Config file not found: %s\n", output);
+        return -1;
+    }
+    (void)fclose(test_file);
+
+    return 0;
+}
+
+/**
+ * @brief Extract op_id from config file path
+ *
+ * Extracts the base filename without extension to use as op_id.
+ * Example: "config/dilate3x3.ini" -> "dilate3x3"
+ *
+ * @param[in] config_path Path to config file
+ * @param[out] op_id Extracted algorithm identifier
+ * @param[in] op_id_size Size of op_id buffer
+ * @return 0 on success, -1 on error
+ */
+static int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size) {
+    const char* last_slash;
+    const char* last_dot;
+    const char* filename;
+    size_t name_len;
+
+    if ((config_path == NULL) || (op_id == NULL) || (op_id_size == 0U)) {
+        return -1;
+    }
+
+    /* Find filename (after last slash) */
+    last_slash = strrchr(config_path, '/');
+    filename = (last_slash != NULL) ? (last_slash + 1) : config_path;
+
+    /* Find extension (last dot) */
+    last_dot = strrchr(filename, '.');
+    if (last_dot == NULL) {
+        /* No extension, use entire filename */
+        if (strlen(filename) >= op_id_size) {
+            return -1;
+        }
+        (void)strncpy(op_id, filename, op_id_size - 1U);
+        op_id[op_id_size - 1U] = '\0';
+    } else {
+        /* Extract name before extension */
+        name_len = (size_t)(last_dot - filename);
+        if (name_len >= op_id_size) {
+            return -1;
+        }
+        (void)strncpy(op_id, filename, name_len);
+        op_id[name_len] = '\0';
+    }
+
+    return 0;
 }

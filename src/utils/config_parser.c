@@ -259,14 +259,14 @@ int parse_config(const char* filename, Config* config) {
 
     (void)fclose(fp);
 
-    /* Validate that op_id was specified */
-    if (config->op_id[0] == '\0') {
-        (void)fprintf(stderr, "Error: op_id not specified in [image] section\n");
-        return -1;
+    /* Note: op_id is now optional - can be auto-derived from filename in main.c */
+    if (config->op_id[0] != '\0') {
+        (void)printf("Parsed config file: %s (op_id: %s, %d kernel configurations)\n",
+                     filename, config->op_id, config->num_kernels);
+    } else {
+        (void)printf("Parsed config file: %s (%d kernel configurations)\n",
+                     filename, config->num_kernels);
     }
-
-    (void)printf("Parsed config file: %s (op_id: %s, %d kernel configurations)\n",
-                 filename, config->op_id, config->num_kernels);
     return 0;
 }
 
