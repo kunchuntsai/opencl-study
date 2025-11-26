@@ -102,8 +102,8 @@ void list_algorithms(void);
  *
  * @param op_id Algorithm identifier (must match config.ini op_id field)
  * @param display_name Human-readable name shown in UI
- * @param ref_func C reference implementation function pointer
- * @param verify_func GPU output verification function pointer
+ * @param ref_func C reference implementation: void func(const OpParams*)
+ * @param verify_func GPU verification: int func(const OpParams*, float*)
  */
 #define REGISTER_ALGORITHM(op_id, display_name, ref_func, verify_func) \
     static Algorithm op_id##_algorithm = { \

@@ -37,8 +37,7 @@ static unsigned char get_pixel_safe(const unsigned char* input, int x, int y,
     return input[index];
 }
 
-void dilate3x3_ref(unsigned char* input, unsigned char* output,
-                   int width, int height) {
+void dilate3x3_ref(const OpParams* params) {
     int y;
     int x;
     int dy;
@@ -49,6 +48,20 @@ void dilate3x3_ref(unsigned char* input, unsigned char* output,
     unsigned char val;
     int output_index;
     int total_pixels;
+    int width;
+    int height;
+    unsigned char* input;
+    unsigned char* output;
+
+    if (params == NULL) {
+        return;
+    }
+
+    /* Extract parameters */
+    input = params->input;
+    output = params->output;
+    width = params->src_width;
+    height = params->src_height;
 
     if ((input == NULL) || (output == NULL) || (width <= 0) || (height <= 0)) {
         return;
@@ -89,9 +102,12 @@ void dilate3x3_ref(unsigned char* input, unsigned char* output,
 }
 
 /* Verification: check if GPU and reference outputs match exactly */
-static int dilate3x3_verify(unsigned char* gpu_output, unsigned char* ref_output,
-                            int width, int height, float* max_error) {
-    return verify_exact_match(gpu_output, ref_output, width, height, max_error);
+static int dilate3x3_verify(const OpParams* params, float* max_error) {
+    if (params == NULL) {
+        return 0;
+    }
+    return verify_exact_match(params->gpu_output, params->ref_output,
+                             params->dst_width, params->dst_height, max_error);
 }
 
 /* Auto-register algorithm using macro - eliminates boilerplate */

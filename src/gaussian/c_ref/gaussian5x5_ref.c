@@ -37,8 +37,7 @@ static int get_pixel_safe(const unsigned char* input, int x, int y,
     return (int)input[index];
 }
 
-void gaussian5x5_ref(unsigned char* input, unsigned char* output,
-                     int width, int height) {
+void gaussian5x5_ref(const OpParams* params) {
     /* Gaussian 5x5 kernel (normalized) */
     /* MISRA-C:2023 Rule 9.5: Explicit array initialization */
     static const float kernel[5][5] = {
@@ -61,6 +60,20 @@ void gaussian5x5_ref(unsigned char* input, unsigned char* output,
     int output_index;
     int total_pixels;
     unsigned char result;
+    int width;
+    int height;
+    unsigned char* input;
+    unsigned char* output;
+
+    if (params == NULL) {
+        return;
+    }
+
+    /* Extract parameters */
+    input = params->input;
+    output = params->output;
+    width = params->src_width;
+    height = params->src_height;
 
     if ((input == NULL) || (output == NULL) || (width <= 0) || (height <= 0)) {
         return;
@@ -101,10 +114,14 @@ void gaussian5x5_ref(unsigned char* input, unsigned char* output,
 }
 
 /* Verification with tolerance for floating-point differences */
-static int gaussian5x5_verify(unsigned char* gpu_output, unsigned char* ref_output,
-                              int width, int height, float* max_error) {
+static int gaussian5x5_verify(const OpParams* params, float* max_error) {
+    if (params == NULL) {
+        return 0;
+    }
     /* Allow 1 intensity level difference due to rounding, pass if < 0.1% pixels differ */
-    return verify_with_tolerance(gpu_output, ref_output, width, height, 1.0f, 0.001f, max_error);
+    return verify_with_tolerance(params->gpu_output, params->ref_output,
+                                params->dst_width, params->dst_height,
+                                1.0f, 0.001f, max_error);
 }
 
 /* Auto-register algorithm using macro - eliminates boilerplate */

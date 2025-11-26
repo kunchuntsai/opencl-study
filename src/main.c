@@ -200,7 +200,17 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     /* Step 1: Run C reference implementation */
     (void)printf("\n=== C Reference Implementation ===\n");
     ref_start = clock();
-    algo->reference_impl(input, ref_output_buffer, config->src_width, config->src_height);
+    {
+        OpParams ref_params = {0};
+        ref_params.input = input;
+        ref_params.output = ref_output_buffer;
+        ref_params.src_width = config->src_width;
+        ref_params.src_height = config->src_height;
+        ref_params.dst_width = config->src_width;  /* Most algorithms keep same size */
+        ref_params.dst_height = config->src_height;
+        ref_params.border_mode = BORDER_CLAMP;
+        algo->reference_impl(&ref_params);
+    }
     ref_end = clock();
     ref_time = (double)(ref_end - ref_start) / (double)CLOCKS_PER_SEC * 1000.0;
     (void)printf("Reference time: %.3f ms\n", ref_time);
@@ -291,8 +301,14 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
     /* Step 7: Verify GPU results against C reference */
-    passed = algo->verify_result(gpu_output_buffer, ref_output_buffer,
-                                 config->src_width, config->src_height, &max_error);
+    {
+        OpParams verify_params = {0};
+        verify_params.gpu_output = gpu_output_buffer;
+        verify_params.ref_output = ref_output_buffer;
+        verify_params.dst_width = config->src_width;
+        verify_params.dst_height = config->src_height;
+        passed = algo->verify_result(&verify_params, &max_error);
+    }
 
     /* Display results */
     (void)printf("\n=== Results ===\n");
