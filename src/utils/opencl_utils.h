@@ -91,6 +91,44 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
                       double* gpu_time_ms);
 
 /**
+ * @brief Create OpenCL buffer with error checking
+ *
+ * Wraps clCreateBuffer with automatic error checking and logging.
+ * Provides clear error messages including the buffer name for debugging.
+ *
+ * @param[in] context OpenCL context
+ * @param[in] flags Memory flags (CL_MEM_READ_ONLY, CL_MEM_WRITE_ONLY, etc.)
+ * @param[in] size Buffer size in bytes
+ * @param[in] host_ptr Host pointer for initialization (can be NULL)
+ * @param[in] buffer_name Descriptive name for error messages
+ * @return OpenCL buffer object, or NULL on error
+ */
+cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags,
+                             size_t size, void* host_ptr,
+                             const char* buffer_name);
+
+/**
+ * @brief Release OpenCL memory object with error checking
+ *
+ * Safely releases an OpenCL memory object with error checking.
+ * Handles NULL pointers gracefully and logs warnings on failure.
+ *
+ * @param[in] mem_obj OpenCL memory object to release (can be NULL)
+ * @param[in] name Descriptive name for error messages
+ */
+void opencl_release_mem_object(cl_mem mem_obj, const char* name);
+
+/**
+ * @brief Release OpenCL kernel with error checking
+ *
+ * Safely releases an OpenCL kernel with error checking.
+ * Handles NULL pointers gracefully and logs warnings on failure.
+ *
+ * @param[in] kernel OpenCL kernel to release (can be NULL)
+ */
+void opencl_release_kernel(cl_kernel kernel);
+
+/**
  * @brief Clean up OpenCL resources
  *
  * Releases all OpenCL resources in the environment structure:

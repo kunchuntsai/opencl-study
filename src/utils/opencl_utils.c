@@ -381,6 +381,49 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
 /* MISRA-C:2023 Rule 2.2: Removed dead code (function was never called) */
 /* The opencl_execute_kernel function has been removed as it was unused */
 
+cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags,
+                             size_t size, void* host_ptr,
+                             const char* buffer_name) {
+    cl_int err;
+    cl_mem buffer;
+
+    if ((context == NULL) || (buffer_name == NULL)) {
+        (void)fprintf(stderr, "Error: Invalid parameters to opencl_create_buffer\n");
+        return NULL;
+    }
+
+    buffer = clCreateBuffer(context, flags, size, host_ptr, &err);
+    if (err != CL_SUCCESS) {
+        (void)fprintf(stderr, "Failed to create %s buffer (error code: %d)\n",
+                      buffer_name, err);
+        return NULL;
+    }
+    return buffer;
+}
+
+void opencl_release_mem_object(cl_mem mem_obj, const char* name) {
+    cl_int err;
+
+    if (mem_obj != NULL) {
+        err = clReleaseMemObject(mem_obj);
+        if (err != CL_SUCCESS) {
+            (void)fprintf(stderr, "Warning: Failed to release %s (error: %d)\n",
+                          (name != NULL) ? name : "memory object", err);
+        }
+    }
+}
+
+void opencl_release_kernel(cl_kernel kernel) {
+    cl_int err;
+
+    if (kernel != NULL) {
+        err = clReleaseKernel(kernel);
+        if (err != CL_SUCCESS) {
+            (void)fprintf(stderr, "Warning: Failed to release kernel (error: %d)\n", err);
+        }
+    }
+}
+
 void opencl_cleanup(OpenCLEnv* env) {
     cl_int err;
 
