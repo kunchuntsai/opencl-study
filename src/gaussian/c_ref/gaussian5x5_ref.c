@@ -1,5 +1,7 @@
-#include "gaussian5x5_ref.h"
 #include "../../utils/safe_ops.h"
+#include "../../utils/op_interface.h"
+#include "../../utils/op_registry.h"
+#include "../../utils/verify.h"
 #include <stddef.h>
 
 /* Helper function to clamp coordinates to image bounds */
@@ -97,3 +99,13 @@ void gaussian5x5_ref(unsigned char* input, unsigned char* output,
         }
     }
 }
+
+/* Verification with tolerance for floating-point differences */
+static int gaussian5x5_verify(unsigned char* gpu_output, unsigned char* ref_output,
+                              int width, int height, float* max_error) {
+    /* Allow 1 intensity level difference due to rounding, pass if < 0.1% pixels differ */
+    return verify_with_tolerance(gpu_output, ref_output, width, height, 1.0f, 0.001f, max_error);
+}
+
+/* Auto-register algorithm using macro - eliminates boilerplate */
+REGISTER_ALGORITHM(gaussian5x5, "Gaussian 5x5", gaussian5x5_ref, gaussian5x5_verify)

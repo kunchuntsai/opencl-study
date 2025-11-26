@@ -1,5 +1,7 @@
-#include "dilate3x3_ref.h"
 #include "../../utils/safe_ops.h"
+#include "../../utils/op_interface.h"
+#include "../../utils/op_registry.h"
+#include "../../utils/verify.h"
 #include <stddef.h>
 
 /* Helper function to clamp coordinates to image bounds */
@@ -85,3 +87,12 @@ void dilate3x3_ref(unsigned char* input, unsigned char* output,
         }
     }
 }
+
+/* Verification: check if GPU and reference outputs match exactly */
+static int dilate3x3_verify(unsigned char* gpu_output, unsigned char* ref_output,
+                            int width, int height, float* max_error) {
+    return verify_exact_match(gpu_output, ref_output, width, height, max_error);
+}
+
+/* Auto-register algorithm using macro - eliminates boilerplate */
+REGISTER_ALGORITHM(dilate3x3, "Dilate 3x3", dilate3x3_ref, dilate3x3_verify)

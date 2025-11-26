@@ -8,8 +8,6 @@
 #include "utils/image_io.h"
 #include "utils/op_registry.h"
 #include "utils/safe_ops.h"
-#include "dilate/dilate3x3.h"
-#include "gaussian/gaussian5x5.h"
 
 #define CONFIG_FILE "config/config.ini"
 
@@ -22,7 +20,6 @@ static unsigned char ref_output_buffer[MAX_IMAGE_BUFFER_SIZE];
 /* Forward declarations */
 static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                          const Config* config, OpenCLEnv* env);
-static void register_all_algorithms(void);
 
 int main(int argc, char** argv) {
     Config config;
@@ -71,8 +68,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* 3. Register all algorithms */
-    register_all_algorithms();
+    /* 3. Algorithms auto-register via constructor attributes in c_ref/ *.c files */
 
     /* Display available algorithms */
     (void)printf("\n=== Available Algorithms ===\n");
@@ -319,20 +315,4 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     opencl_release_mem_object(output_buf, "output buffer");
     opencl_release_mem_object(input_buf, "input buffer");
     opencl_release_kernel(kernel);
-}
-
-static void register_all_algorithms(void) {
-    /* Array of all available algorithms */
-    Algorithm* const algorithms[] = {
-        &dilate3x3_algorithm,
-        &gaussian5x5_algorithm,
-        NULL  /* Sentinel value to mark end of array */
-    };
-
-    /* Register each algorithm in the array */
-    int i = 0;
-    while (algorithms[i] != NULL) {
-        register_algorithm(algorithms[i]);
-        i++;
-    }
 }

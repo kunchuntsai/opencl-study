@@ -57,12 +57,4 @@ typedef struct {
      */
     int (*verify_result)(unsigned char* gpu_output, unsigned char* ref_output,
                         int width, int height, float* max_error);
-
-    /**
-     * @brief Print algorithm information (optional)
-     *
-     * Displays algorithm-specific details and description.
-     * Can be NULL if not needed.
-     */
-    void (*print_info)(void);
 } Algorithm;

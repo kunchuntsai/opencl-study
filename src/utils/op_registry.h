@@ -71,3 +71,49 @@ int get_algorithm_count(void);
  * their indices, names, and IDs.
  */
 void list_algorithms(void);
+
+/**
+ * @brief Macro to define and auto-register an algorithm
+ *
+ * Convenience macro that eliminates registration boilerplate.
+ * Creates an Algorithm struct and registers it before main() runs.
+ *
+ * Usage: REGISTER_ALGORITHM(op_id, "Display Name", ref_function, verify_function)
+ *
+ * Example:
+ *   REGISTER_ALGORITHM(dilate3x3, "Dilate 3x3", dilate3x3_ref, dilate3x3_verify)
+ *
+ * To add a new algorithm:
+ * 1. Implement the reference function (e.g., myalgo_ref)
+ * 2. Implement the verify function (e.g., myalgo_verify)
+ * 3. At the end of your .c file, add one line:
+ *    REGISTER_ALGORITHM(myalgo, "My Algorithm", myalgo_ref, myalgo_verify)
+ * 4. In config.ini, set: op_id = myalgo
+ *
+ * The macro generates:
+ * - An Algorithm struct with the given parameters
+ * - A constructor function that auto-registers before main()
+ * - Uses op_id as both the string identifier and variable name
+ *
+ * IMPORTANT: The op_id parameter must match the op_id value in config.ini
+ * Example consistency:
+ *   Code:   REGISTER_ALGORITHM(dilate3x3, ...)
+ *   Config: op_id = dilate3x3
+ *
+ * @param op_id Algorithm identifier (must match config.ini op_id field)
+ * @param display_name Human-readable name shown in UI
+ * @param ref_func C reference implementation function pointer
+ * @param verify_func GPU output verification function pointer
+ */
+#define REGISTER_ALGORITHM(op_id, display_name, ref_func, verify_func) \
+    static Algorithm op_id##_algorithm = { \
+        .name = display_name, \
+        .id = #op_id, \
+        .reference_impl = ref_func, \
+        .verify_result = verify_func \
+    }; \
+    \
+    __attribute__((constructor)) \
+    static void op_id##_init(void) { \
+        register_algorithm(&op_id##_algorithm); \
+    }
