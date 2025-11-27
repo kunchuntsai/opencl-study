@@ -3,6 +3,7 @@
 #include "../../utils/op_registry.h"
 #include "../../utils/verify.h"
 #include <stddef.h>
+#include <stdlib.h>
 
 /* Helper function to clamp coordinates to image bounds */
 static int clamp_coord(int coord, int max_coord) {
@@ -114,7 +115,7 @@ void gaussian5x5_ref(const OpParams* params) {
 }
 
 /* Verification with tolerance for floating-point differences */
-static int gaussian5x5_verify(const OpParams* params, float* max_error) {
+int gaussian5x5_verify(const OpParams* params, float* max_error) {
     if (params == NULL) {
         return 0;
     }
@@ -124,5 +125,121 @@ static int gaussian5x5_verify(const OpParams* params, float* max_error) {
                                 1.0f, 0.001f, max_error);
 }
 
-/* Auto-register algorithm using macro - eliminates boilerplate */
-REGISTER_ALGORITHM(gaussian5x5, "Gaussian 5x5", gaussian5x5_ref, gaussian5x5_verify)
+/* Algorithm-specific buffers structure */
+typedef struct {
+    cl_mem weights_buf;  /* Buffer holding the Gaussian kernel weights */
+} Gaussian5x5Buffers;
+
+/* Create algorithm-specific buffers - demonstrates CreateBuffersFunc usage */
+void* gaussian5x5_create_buffers(cl_context context,
+                                 const OpParams* params,
+                                 const unsigned char* input,
+                                 size_t img_size) {
+    Gaussian5x5Buffers* buffers;
+    cl_int err;
+
+    /* Gaussian 5x5 kernel weights (same as in the C reference) */
+    static const float kernel_weights[25] = {
+        1.0f, 4.0f, 6.0f, 4.0f, 1.0f,
+        4.0f, 16.0f, 24.0f, 16.0f, 4.0f,
+        6.0f, 24.0f, 36.0f, 24.0f, 6.0f,
+        4.0f, 16.0f, 24.0f, 16.0f, 4.0f,
+        1.0f, 4.0f, 6.0f, 4.0f, 1.0f
+    };
+
+    /* Unused parameters - kept for interface compliance */
+    (void)params;
+    (void)input;
+    (void)img_size;
+
+    if (context == NULL) {
+        return NULL;
+    }
+
+    /* Allocate buffers structure */
+    buffers = (Gaussian5x5Buffers*)malloc(sizeof(Gaussian5x5Buffers));
+    if (buffers == NULL) {
+        return NULL;
+    }
+
+    /* Create read-only buffer for kernel weights */
+    buffers->weights_buf = clCreateBuffer(context,
+                                         CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                         sizeof(kernel_weights),
+                                         (void*)kernel_weights,
+                                         &err);
+    if (err != CL_SUCCESS || buffers->weights_buf == NULL) {
+        free(buffers);
+        return NULL;
+    }
+
+    return buffers;
+}
+
+/* Destroy algorithm-specific buffers - demonstrates DestroyBuffersFunc usage */
+void gaussian5x5_destroy_buffers(void* algo_buffers) {
+    Gaussian5x5Buffers* buffers;
+
+    if (algo_buffers == NULL) {
+        return;
+    }
+
+    buffers = (Gaussian5x5Buffers*)algo_buffers;
+
+    /* Release OpenCL buffer */
+    if (buffers->weights_buf != NULL) {
+        (void)clReleaseMemObject(buffers->weights_buf);
+    }
+
+    /* Free structure */
+    free(buffers);
+}
+
+/* Kernel argument setter - sets 5 arguments including weights buffer */
+int gaussian5x5_set_kernel_args(cl_kernel kernel,
+                                       cl_mem input_buf,
+                                       cl_mem output_buf,
+                                       const OpParams* params,
+                                       void* algo_buffers) {
+    cl_uint arg_idx = 0U;
+    Gaussian5x5Buffers* buffers;
+
+    if ((kernel == NULL) || (params == NULL) || (algo_buffers == NULL)) {
+        return -1;
+    }
+
+    buffers = (Gaussian5x5Buffers*)algo_buffers;
+
+    /* Set all 5 kernel arguments:
+     * 0: input buffer
+     * 1: output buffer
+     * 2: weights buffer (algorithm-specific)
+     * 3: width
+     * 4: height
+     */
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
+        return -1;
+    }
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
+        return -1;
+    }
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &buffers->weights_buf) != CL_SUCCESS) {
+        return -1;
+    }
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
+        return -1;
+    }
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
+ * NOTE: Registration of this algorithm happens in auto_registry.c
+ * The auto-generation script has been configured to use the custom buffer functions
+ * (gaussian5x5_create_buffers and gaussian5x5_destroy_buffers) instead of NULL.
+ *
+ * See src/utils/auto_registry.c for the registration code.
+ */

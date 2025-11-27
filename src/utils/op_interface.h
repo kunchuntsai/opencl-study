@@ -16,6 +16,13 @@
 
 #include <stddef.h>
 
+/* Forward declare OpenCL types to avoid including OpenCL headers here */
+#ifdef __APPLE__
+#include <OpenCL/opencl.h>
+#else
+#include <CL/cl.h>
+#endif
+
 /** Border handling modes */
 typedef enum {
     BORDER_CLAMP = 0,      /**< Clamp to edge (replicate edge pixels) */
@@ -65,6 +72,56 @@ typedef struct {
 } OpParams;
 
 /**
+ * @brief Algorithm-specific buffer creation callback
+ *
+ * Creates all OpenCL buffers needed by this algorithm beyond
+ * standard input/output buffers. For example:
+ * - Temporary/intermediate buffers
+ * - Lookup tables (LUT)
+ * - Convolution weights
+ * - Local memory specifications
+ *
+ * @param[in] context OpenCL context
+ * @param[in] params Operation parameters (dimensions, algo-specific data)
+ * @param[in] input Input data (for initializing buffers if needed)
+ * @param[in] img_size Image size in bytes
+ * @return Opaque pointer to algorithm-specific buffer structure, or NULL on error
+ */
+typedef void* (*CreateBuffersFunc)(cl_context context,
+                                   const OpParams* params,
+                                   const unsigned char* input,
+                                   size_t img_size);
+
+/**
+ * @brief Algorithm-specific buffer cleanup callback
+ *
+ * Releases all OpenCL buffers created by CreateBuffersFunc.
+ *
+ * @param[in] algo_buffers Opaque buffer pointer from CreateBuffersFunc
+ */
+typedef void (*DestroyBuffersFunc)(void* algo_buffers);
+
+/**
+ * @brief Kernel argument setter callback
+ *
+ * Sets all kernel arguments including standard buffers (input/output)
+ * and algorithm-specific buffers. Called after buffer creation,
+ * before kernel execution.
+ *
+ * @param[in] kernel OpenCL kernel to set arguments for
+ * @param[in] input_buf Input buffer
+ * @param[in] output_buf Output buffer
+ * @param[in] params Operation parameters containing dimensions
+ * @param[in] algo_buffers Algorithm-specific buffers from CreateBuffersFunc
+ * @return 0 on success, -1 on error
+ */
+typedef int (*SetKernelArgsFunc)(cl_kernel kernel,
+                                 cl_mem input_buf,
+                                 cl_mem output_buf,
+                                 const OpParams* params,
+                                 void* algo_buffers);
+
+/**
  * @brief Algorithm interface for image processing operations
  *
  * Each algorithm (dilate, gaussian, etc.) implements this interface
@@ -109,4 +166,40 @@ typedef struct {
      * @return 1 if verification passed, 0 if failed
      */
     int (*verify_result)(const OpParams* params, float* max_error);
+
+    /**
+     * @brief Create algorithm-specific OpenCL buffers (optional)
+     *
+     * If NULL, algorithm only uses standard input/output buffers.
+     * If provided, this function creates any additional buffers needed
+     * by the algorithm (temp buffers, LUTs, weights, etc.)
+     *
+     * @see CreateBuffersFunc
+     */
+    CreateBuffersFunc create_buffers;
+
+    /**
+     * @brief Destroy algorithm-specific OpenCL buffers (optional)
+     *
+     * If NULL, no algorithm-specific cleanup needed.
+     * If provided, this function releases all buffers created by create_buffers.
+     *
+     * @see DestroyBuffersFunc
+     */
+    DestroyBuffersFunc destroy_buffers;
+
+    /**
+     * @brief Set kernel arguments (REQUIRED)
+     *
+     * Every algorithm MUST provide this callback to set its kernel arguments.
+     * This ensures each algorithm explicitly declares what arguments it needs.
+     *
+     * The function should set all kernel arguments in order, including:
+     * - Standard buffers (input, output)
+     * - Algorithm-specific buffers (from create_buffers)
+     * - Scalar parameters (width, height, stride, etc.)
+     *
+     * @see SetKernelArgsFunc
+     */
+    SetKernelArgsFunc set_kernel_args;
 } Algorithm;

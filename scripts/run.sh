@@ -9,10 +9,10 @@ if [ ! -f "build/opencl_host" ]; then
     exit 1
 fi
 
-# If argument provided, use it as variant index
+# If argument provided, pass all arguments to opencl_host
 if [ $# -ge 1 ]; then
-    echo "Running with variant $1 (algorithm from config.ini)..."
-    ./build/opencl_host "$1"
+    echo "Running with arguments: $@"
+    ./build/opencl_host "$@"
     exit $?
 fi
 

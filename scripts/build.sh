@@ -44,6 +44,14 @@ clean_all() {
 }
 
 build_project() {
+    # Generate auto-registry before building
+    "$SCRIPT_DIR/generate_registry.sh"
+    if [ $? -ne 0 ]; then
+        echo "Failed to generate algorithm registry!"
+        exit 1
+    fi
+    echo ""
+
     echo "=== Building OpenCL Image Processing Framework ==="
 
     cd "$SRC_DIR"

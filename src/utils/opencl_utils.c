@@ -1,6 +1,7 @@
 #include "opencl_utils.h"
 #include "cache_manager.h"
 #include "safe_ops.h"
+#include "op_interface.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,18 +13,6 @@
 
 static char kernel_source_buffer[MAX_KERNEL_SOURCE_SIZE];
 static char build_log_buffer[MAX_BUILD_LOG_SIZE];
-
-/* Helper function to set kernel argument with error checking */
-static inline int set_kernel_arg(cl_kernel kernel, cl_uint arg_index,
-                                  size_t arg_size, const void* arg_value) {
-    cl_int err = clSetKernelArg(kernel, arg_index, arg_size, arg_value);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Failed to set kernel arg %u (error code: %d)\n",
-                      arg_index, err);
-        return -1;
-    }
-    return 0;
-}
 
 /* Helper function to extract cache name from kernel file path */
 static int extract_cache_name(const char* kernel_file, char* cache_name, size_t max_size) {
@@ -296,8 +285,10 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
 }
 
 int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
+                      const Algorithm* algo,
                       cl_mem input_buf, cl_mem output_buf,
-                      int width, int height,
+                      const OpParams* params,
+                      void* algo_buffers,
                       const size_t* global_work_size,
                       const size_t* local_work_size,
                       int work_dim,
@@ -307,28 +298,20 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
     cl_ulong time_start;
     cl_ulong time_end;
 
-    if ((env == NULL) || (kernel == NULL) || (gpu_time_ms == NULL)) {
+    if ((env == NULL) || (kernel == NULL) || (params == NULL) || (gpu_time_ms == NULL)) {
         return -1;
     }
 
-    /* Set kernel arguments */
-    cl_uint arg_idx = 0U;
-    if (set_kernel_arg(kernel, arg_idx, sizeof(cl_mem), &input_buf) != 0) {
+    /* Validate algorithm provides argument setter */
+    if ((algo == NULL) || (algo->set_kernel_args == NULL)) {
+        (void)fprintf(stderr, "Error: Algorithm must provide set_kernel_args callback\n");
         return -1;
     }
-    arg_idx++;
 
-    if (set_kernel_arg(kernel, arg_idx, sizeof(cl_mem), &output_buf) != 0) {
-        return -1;
-    }
-    arg_idx++;
-
-    if (set_kernel_arg(kernel, arg_idx, sizeof(int), &width) != 0) {
-        return -1;
-    }
-    arg_idx++;
-
-    if (set_kernel_arg(kernel, arg_idx, sizeof(int), &height) != 0) {
+    /* Set kernel arguments using algorithm-specific setter */
+    if (algo->set_kernel_args(kernel, input_buf, output_buf,
+                             params, algo_buffers) != 0) {
+        (void)fprintf(stderr, "Failed to set kernel arguments\n");
         return -1;
     }
 

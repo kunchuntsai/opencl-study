@@ -102,7 +102,7 @@ void dilate3x3_ref(const OpParams* params) {
 }
 
 /* Verification: check if GPU and reference outputs match exactly */
-static int dilate3x3_verify(const OpParams* params, float* max_error) {
+int dilate3x3_verify(const OpParams* params, float* max_error) {
     if (params == NULL) {
         return 0;
     }
@@ -110,5 +110,34 @@ static int dilate3x3_verify(const OpParams* params, float* max_error) {
                              params->dst_width, params->dst_height, max_error);
 }
 
-/* Auto-register algorithm using macro - eliminates boilerplate */
-REGISTER_ALGORITHM(dilate3x3, "Dilate 3x3", dilate3x3_ref, dilate3x3_verify)
+/* Kernel argument setter - sets 4 standard arguments */
+int dilate3x3_set_kernel_args(cl_kernel kernel,
+                                     cl_mem input_buf,
+                                     cl_mem output_buf,
+                                     const OpParams* params,
+                                     void* algo_buffers) {
+    cl_uint arg_idx = 0U;
+
+    /* Unused parameter - dilate doesn't need extra buffers */
+    (void)algo_buffers;
+
+    if ((kernel == NULL) || (params == NULL)) {
+        return -1;
+    }
+
+    /* Set all 4 kernel arguments */
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
+        return -1;
+    }
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
+        return -1;
+    }
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
+        return -1;
+    }
+    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
+        return -1;
+    }
+
+    return 0;
+}

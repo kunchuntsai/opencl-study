@@ -214,6 +214,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     cl_kernel kernel;
     cl_mem input_buf = NULL;
     cl_mem output_buf = NULL;
+    void* algo_buffers = NULL;  /* Algorithm-specific buffers */
     clock_t ref_start;
     clock_t ref_end;
     double ref_time;
@@ -243,7 +244,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
     /* Check if image fits in static buffers */
-    if (img_size > MAX_IMAGE_BUFFER_SIZE) {
+    if (img_size > MAX_IMAGE_SIZE) {
         (void)fprintf(stderr, "Image too large for static buffers\n");
         return;
     }
@@ -305,7 +306,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
-    /* Step 4: Create OpenCL buffers */
+    /* Step 4: Create STANDARD OpenCL buffers (input, output) */
     img_size_t = (size_t)img_size;
     input_buf = opencl_create_buffer(env->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
                                      img_size_t, input, "input");
@@ -322,20 +323,42 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
-    /* Step 5: Run OpenCL kernel */
+    /* Step 4b: Create ALGORITHM-SPECIFIC buffers (if needed) */
+    if (algo->create_buffers != NULL) {
+        OpParams buffer_params = {0};
+        buffer_params.input = input;
+        buffer_params.src_width = config->src_width;
+        buffer_params.src_height = config->src_height;
+        buffer_params.src_stride = 0;  /* Packed */
+
+        algo_buffers = algo->create_buffers(env->context, &buffer_params,
+                                          input, img_size_t);
+        if (algo_buffers == NULL) {
+            (void)fprintf(stderr, "Failed to create algorithm-specific buffers\n");
+            opencl_release_mem_object(output_buf, "output buffer");
+            opencl_release_mem_object(input_buf, "input buffer");
+            opencl_release_kernel(kernel);
+            return;
+        }
+    }
+
+    /* Step 5: Run OpenCL kernel (algorithm handles argument setting) */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
-    run_result = opencl_run_kernel(env, kernel, input_buf, output_buf,
-                                   config->src_width, config->src_height,
-                                   kernel_cfg->global_work_size,
-                                   kernel_cfg->local_work_size,
-                                   kernel_cfg->work_dim,
-                                   &gpu_time);
+    {
+        OpParams params = {0};
+        params.src_width = config->src_width;
+        params.src_height = config->src_height;
+
+        run_result = opencl_run_kernel(env, kernel, algo,
+                                      input_buf, output_buf, &params, algo_buffers,
+                                      kernel_cfg->global_work_size,
+                                      kernel_cfg->local_work_size,
+                                      kernel_cfg->work_dim,
+                                      &gpu_time);
+    }
     if (run_result != 0) {
         (void)fprintf(stderr, "Failed to run kernel\n");
-        opencl_release_mem_object(output_buf, "output buffer");
-        opencl_release_mem_object(input_buf, "input buffer");
-        opencl_release_kernel(kernel);
-        return;
+        goto cleanup;
     }
 
     (void)printf("GPU kernel time: %.3f ms\n", gpu_time);
@@ -345,10 +368,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                              img_size_t, gpu_output_buffer, 0U, NULL, NULL);
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Failed to read output buffer (error code: %d)\n", err);
-        opencl_release_mem_object(output_buf, "output buffer");
-        opencl_release_mem_object(input_buf, "input buffer");
-        opencl_release_kernel(kernel);
-        return;
+        goto cleanup;
     }
 
     /* Step 7: Verify GPU results against C reference */
@@ -378,7 +398,13 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         (void)fprintf(stderr, "Failed to save output image\n");
     }
 
-    /* Cleanup - MISRA-C:2023 Rule 22.1: Proper resource management */
+cleanup:
+    /* Cleanup algorithm-specific buffers */
+    if ((algo != NULL) && (algo->destroy_buffers != NULL) && (algo_buffers != NULL)) {
+        algo->destroy_buffers(algo_buffers);
+    }
+
+    /* Cleanup standard buffers - MISRA-C:2023 Rule 22.1: Proper resource management */
     opencl_release_mem_object(output_buf, "output buffer");
     opencl_release_mem_object(input_buf, "input buffer");
     opencl_release_kernel(kernel);
