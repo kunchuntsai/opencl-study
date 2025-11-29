@@ -4,7 +4,7 @@
 #include <time.h>
 #include "utils/opencl_utils.h"
 #include "utils/cache_manager.h"
-#include "utils/config_parser.h"
+#include "utils/config.h"
 #include "utils/image_io.h"
 #include "utils/op_registry.h"
 #include "utils/safe_ops.h"
@@ -111,14 +111,6 @@ int main(int argc, char** argv) {
         }
     }
 
-    /* 2. Initialize OpenCL */
-    (void)printf("=== OpenCL Initialization ===\n");
-    opencl_result = opencl_init(&env);
-    if (opencl_result != 0) {
-        (void)fprintf(stderr, "Failed to initialize OpenCL\n");
-        return 1;
-    }
-
     /* 3. Algorithms auto-register via constructor attributes in c_ref/ *.c files */
 
     /* Display available algorithms */
@@ -131,21 +123,14 @@ int main(int argc, char** argv) {
     if (algo == NULL) {
         (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n", config.op_id);
         (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
-        opencl_cleanup(&env);
         return 1;
     }
     (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name, algo->id);
-
-    /* 5. Initialize cache directories for this algorithm */
-    if (cache_init(algo->id) != 0) {
-        (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
-    }
 
     /* 6. Get kernel variants for selected algorithm */
     get_variants_result = get_op_variants(&config, algo->id, variants, &variant_count);
     if ((get_variants_result != 0) || (variant_count == 0)) {
         (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
-        opencl_cleanup(&env);
         return 1;
     }
 
@@ -177,14 +162,12 @@ int main(int argc, char** argv) {
             } else {
                 if (!safe_strtol(input_buffer, &temp_index)) {
                     (void)fprintf(stderr, "Invalid variant selection\n");
-                    opencl_cleanup(&env);
                     return 1;
                 }
                 variant_index = (int)temp_index;
             }
         } else {
             (void)fprintf(stderr, "Failed to read input\n");
-            opencl_cleanup(&env);
             return 1;
         }
     }
@@ -192,8 +175,20 @@ int main(int argc, char** argv) {
     if ((variant_index < 0) || (variant_index >= variant_count)) {
         (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
                       variant_index, variant_count - 1);
-        opencl_cleanup(&env);
         return 1;
+    }
+
+    /* 2. Initialize OpenCL */
+    (void)printf("=== OpenCL Initialization ===\n");
+    opencl_result = opencl_init(&env);
+    if (opencl_result != 0) {
+        (void)fprintf(stderr, "Failed to initialize OpenCL\n");
+        return 1;
+    }
+
+    /* 5. Initialize cache directories for this algorithm */
+    if (cache_init(algo->id) != 0) {
+        (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
     }
 
     /* 7. Run algorithm */
@@ -206,6 +201,13 @@ int main(int argc, char** argv) {
     return 0;
 }
 
+/* Structure to hold Gaussian kernel buffers */
+typedef struct {
+    cl_mem kernel_x_buf;
+    cl_mem kernel_y_buf;
+    cl_mem tmp_buffer;
+} Gaussian5x5Buffers;
+
 static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                          const Config* config, OpenCLEnv* env) {
     cl_int err;
@@ -214,6 +216,10 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     cl_kernel kernel;
     cl_mem input_buf = NULL;
     cl_mem output_buf = NULL;
+    cl_mem kernel_x_buf = NULL;
+    cl_mem kernel_y_buf = NULL;
+    cl_mem tmp_global_buffer = NULL;
+    Gaussian5x5Buffers gaussian_buffers = {0};
     clock_t ref_start;
     clock_t ref_end;
     double ref_time;
@@ -222,7 +228,9 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     int passed;
     int write_result;
     size_t img_size_t;
+    size_t tmp_global_buffer_size;
     int run_result;
+    OpParams op_params = {0};  /* Common params reused throughout */
 
     if ((algo == NULL) || (kernel_cfg == NULL) || (config == NULL) || (env == NULL)) {
         (void)fprintf(stderr, "Error: NULL parameter in run_algorithm\n");
@@ -248,20 +256,19 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
+    /* Initialize common OpParams fields */
+    op_params.src_width = config->src_width;
+    op_params.src_height = config->src_height;
+    op_params.dst_width = config->src_width;  /* Most algorithms keep same size */
+    op_params.dst_height = config->src_height;
+    op_params.border_mode = BORDER_CLAMP;
+
     /* Step 1: Run C reference implementation */
     (void)printf("\n=== C Reference Implementation ===\n");
     ref_start = clock();
-    {
-        OpParams ref_params = {0};
-        ref_params.input = input;
-        ref_params.output = ref_output_buffer;
-        ref_params.src_width = config->src_width;
-        ref_params.src_height = config->src_height;
-        ref_params.dst_width = config->src_width;  /* Most algorithms keep same size */
-        ref_params.dst_height = config->src_height;
-        ref_params.border_mode = BORDER_CLAMP;
-        algo->reference_impl(&ref_params);
-    }
+    op_params.input = input;
+    op_params.output = ref_output_buffer;
+    algo->reference_impl(&op_params);
     ref_end = clock();
     ref_time = (double)(ref_end - ref_start) / (double)CLOCKS_PER_SEC * 1000.0;
     (void)printf("Reference time: %.3f ms\n", ref_time);
@@ -322,20 +329,84 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
+    /* Step 4b: Load algorithm-specific weight files (for Gaussian) */
+    if (strcmp(algo->id, "gaussian5x5") == 0) {
+        unsigned char* kernel_x_data;
+        unsigned char* kernel_y_data;
+        float* kernel_x;
+        float* kernel_y;
+
+        /* Step 4c: Create temporary global buffer (300MB) for Gaussian intermediate results */
+        tmp_global_buffer_size = 300U * 1024U * 1024U;  /* 300 MB */
+        tmp_global_buffer = opencl_create_buffer(env->context, CL_MEM_READ_WRITE,
+                                                 tmp_global_buffer_size, NULL, "tmp_global_buffer");
+        if (tmp_global_buffer == NULL) {
+            opencl_release_mem_object(output_buf, "output buffer");
+            opencl_release_mem_object(input_buf, "input buffer");
+            opencl_release_kernel(kernel);
+            return;
+        }
+
+        (void)printf("\n=== Loading Gaussian Weight Files ===\n");
+
+        /* Load kernel_x using read_image (5 floats = 5 width, 1 height, 4 bytes per float) */
+        kernel_x_data = read_image(config->kernel_x_file, 5 * sizeof(float), 1);
+        if (kernel_x_data == NULL) {
+            (void)fprintf(stderr, "Failed to load %s\n", config->kernel_x_file);
+            goto cleanup;
+        }
+        kernel_x = (float*)kernel_x_data;
+        (void)printf("Loaded kernel_x from %s\n", config->kernel_x_file);
+
+        /* Load kernel_y using read_image (5 floats = 5 width, 1 height, 4 bytes per float) */
+        kernel_y_data = read_image(config->kernel_y_file, 5 * sizeof(float), 1);
+        if (kernel_y_data == NULL) {
+            (void)fprintf(stderr, "Failed to load %s\n", config->kernel_y_file);
+            goto cleanup;
+        }
+        kernel_y = (float*)kernel_y_data;
+        (void)printf("Loaded kernel_y from %s\n", config->kernel_y_file);
+
+        /* Create OpenCL buffers for weights */
+        kernel_x_buf = opencl_create_buffer(env->context,
+                                           CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                           5 * sizeof(float), kernel_x, "kernel_x");
+        if (kernel_x_buf == NULL) {
+            goto cleanup;
+        }
+
+        kernel_y_buf = opencl_create_buffer(env->context,
+                                           CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                           5 * sizeof(float), kernel_y, "kernel_y");
+        if (kernel_y_buf == NULL) {
+            goto cleanup;
+        }
+
+        /* Store buffers in structure to pass via algo_params */
+        gaussian_buffers.kernel_x_buf = kernel_x_buf;
+        gaussian_buffers.kernel_y_buf = kernel_y_buf;
+        gaussian_buffers.tmp_buffer = tmp_global_buffer;
+
+        (void)printf("Created weight buffers (kernel_x: 5 floats, kernel_y: 5 floats)\n");
+        (void)printf("Created temporary global buffer (%.1f MB)\n",
+                     (double)tmp_global_buffer_size / (1024.0 * 1024.0));
+    }
+
     /* Step 5: Run OpenCL kernel (algorithm handles argument setting) */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
-    {
-        OpParams params = {0};
-        params.src_width = config->src_width;
-        params.src_height = config->src_height;
 
-        run_result = opencl_run_kernel(env, kernel, algo,
-                                      input_buf, output_buf, &params,
-                                      kernel_cfg->global_work_size,
-                                      kernel_cfg->local_work_size,
-                                      kernel_cfg->work_dim,
-                                      &gpu_time);
+    /* Pass weight buffers for Gaussian via algo_params */
+    if (strcmp(algo->id, "gaussian5x5") == 0) {
+        op_params.algo_params = &gaussian_buffers;
+        op_params.algo_params_size = sizeof(gaussian_buffers);
     }
+
+    run_result = opencl_run_kernel(env, kernel, algo,
+                                  input_buf, output_buf, &op_params,
+                                  kernel_cfg->global_work_size,
+                                  kernel_cfg->local_work_size,
+                                  kernel_cfg->work_dim,
+                                  &gpu_time);
     if (run_result != 0) {
         (void)fprintf(stderr, "Failed to run kernel\n");
         goto cleanup;
@@ -352,14 +423,9 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
     /* Step 7: Verify GPU results against C reference */
-    {
-        OpParams verify_params = {0};
-        verify_params.gpu_output = gpu_output_buffer;
-        verify_params.ref_output = ref_output_buffer;
-        verify_params.dst_width = config->src_width;
-        verify_params.dst_height = config->src_height;
-        passed = algo->verify_result(&verify_params, &max_error);
-    }
+    op_params.gpu_output = gpu_output_buffer;
+    op_params.ref_output = ref_output_buffer;
+    passed = algo->verify_result(&op_params, &max_error);
 
     /* Display results */
     (void)printf("\n=== Results ===\n");
@@ -379,6 +445,19 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
 cleanup:
+    /* Cleanup weight buffers (for Gaussian) */
+    if (kernel_y_buf != NULL) {
+        opencl_release_mem_object(kernel_y_buf, "kernel_y buffer");
+    }
+    if (kernel_x_buf != NULL) {
+        opencl_release_mem_object(kernel_x_buf, "kernel_x buffer");
+    }
+
+    /* Cleanup temporary buffer */
+    if (tmp_global_buffer != NULL) {
+        opencl_release_mem_object(tmp_global_buffer, "tmp_global_buffer");
+    }
+
     /* Cleanup standard buffers - MISRA-C:2023 Rule 22.1: Proper resource management */
     opencl_release_mem_object(output_buf, "output buffer");
     opencl_release_mem_object(input_buf, "input buffer");

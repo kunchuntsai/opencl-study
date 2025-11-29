@@ -1,11 +1,12 @@
 /**
- * @file config_parser.h
+ * @file config.h
  * @brief Configuration file parser for OpenCL framework
  *
  * Parses INI-style configuration files containing:
  * - Image processing parameters (dimensions, file paths)
  * - Algorithm selection (op_id)
  * - Kernel variant configurations (work sizes, kernel files)
+ * - Buffer configurations (types, sizes)
  *
  * Configuration file format:
  * [image]
@@ -14,6 +15,10 @@
  * output = path/to/output
  * src_width = 1920
  * src_height = 1080
+ * kernel_x_file = path/to/kernel_x.bin
+ * kernel_y_file = path/to/kernel_y.bin
+ * cl_buffer_type = READ_ONLY, WRITE_ONLY
+ * cl_buffer_size = 1920 * 1080 * 4, 1920 * 1080 * 4
  *
  * [kernel.v0]
  * kernel_file = path/to/kernel.cl
@@ -50,6 +55,17 @@ typedef struct {
     size_t local_work_size[3];  /**< Local work group size for each dimension */
 } KernelConfig;
 
+/** Maximum number of custom buffers */
+#define MAX_CUSTOM_BUFFERS 8
+
+/** Buffer type enumeration */
+typedef enum {
+    BUFFER_TYPE_NONE = 0,
+    BUFFER_TYPE_READ_ONLY,
+    BUFFER_TYPE_WRITE_ONLY,
+    BUFFER_TYPE_READ_WRITE
+} BufferType;
+
 /**
  * @brief Complete configuration parsed from config file
  *
@@ -66,6 +82,15 @@ typedef struct {
     int dst_height;             /**< Destination image height (for resize ops) */
     int num_kernels;            /**< Number of kernel variants configured */
     KernelConfig kernels[MAX_KERNEL_CONFIGS]; /**< Array of kernel configurations */
+
+    /* Custom buffer files (e.g., kernel weights) */
+    char kernel_x_file[256];    /**< Path to kernel_x weight file */
+    char kernel_y_file[256];    /**< Path to kernel_y weight file */
+
+    /* Buffer configuration */
+    BufferType cl_buffer_type[MAX_CUSTOM_BUFFERS]; /**< Buffer types */
+    size_t cl_buffer_size[MAX_CUSTOM_BUFFERS];     /**< Buffer sizes */
+    int num_buffers;            /**< Number of configured buffers */
 } Config;
 
 /**

@@ -1,24 +1,22 @@
 /**
- * Gaussian 5x5 blur kernel with external weights buffer
+ * Gaussian 5x5 blur kernel with separable convolution
  *
- * This version demonstrates using CreateBuffersFunc to provide kernel weights
- * via a buffer instead of hardcoding them in the kernel.
- *
- * Benefits of using a buffer:
- * - Weights can be changed at runtime without recompiling the kernel
- * - Reduces kernel code size and register pressure
- * - Better cache utilization for large kernels
- * - Weights are shared across all work items
+ * Uses 1D kernels (kernel_x and kernel_y) loaded from external files.
+ * The 2D Gaussian is computed as the outer product of 1D kernels.
  *
  * @param input Input image buffer
  * @param output Output image buffer
- * @param weights Pre-computed Gaussian weights (25 floats for 5x5 kernel)
+ * @param kernel_x Horizontal 1D Gaussian weights (5 floats)
+ * @param kernel_y Vertical 1D Gaussian weights (5 floats)
+ * @param tmp_buffer Temporary global buffer for intermediate results (300MB)
  * @param width Image width
  * @param height Image height
  */
 __kernel void gaussian5x5(__global const uchar* input,
                           __global uchar* output,
-                          __global const float* weights,
+                          __global const float* kernel_x,
+                          __global const float* kernel_y,
+                          __global uchar* tmp_buffer,
                           int width,
                           int height) {
     int x = get_global_id(0);
@@ -27,19 +25,22 @@ __kernel void gaussian5x5(__global const uchar* input,
     if (x >= width || y >= height) return;
 
     float sum = 0.0f;
-    int idx = 0;
+    float kernel_sum = 0.0f;
 
-    // Apply 5x5 convolution using weights from buffer
+    // Apply 5x5 convolution using separable kernels
+    // 2D weight = kernel_y[i] * kernel_x[j]
     for (int dy = -2; dy <= 2; dy++) {
         for (int dx = -2; dx <= 2; dx++) {
             int ny = clamp(y + dy, 0, height - 1);
             int nx = clamp(x + dx, 0, width - 1);
 
-            // Read weight from global buffer instead of local array
-            float weight = weights[idx++];
+            // Compute 2D weight as outer product of 1D kernels
+            float weight = kernel_y[dy + 2] * kernel_x[dx + 2];
+            kernel_sum += weight;
+
             sum += input[ny * width + nx] * weight;
         }
     }
 
-    output[y * width + x] = convert_uchar_sat(sum / 256.0f);
+    output[y * width + x] = convert_uchar_sat(sum / kernel_sum);
 }

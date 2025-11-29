@@ -9,6 +9,7 @@ out/
 # Cache directories (kernel binaries and golden samples) per algorithm
 test_data/*/kernels/
 test_data/*/golden/
+test_data/*/
 
 # Compiled files
 *.o

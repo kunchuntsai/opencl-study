@@ -1,7 +1,7 @@
 /* POSIX feature test macro for strtok_r */
 #define _POSIX_C_SOURCE 200809L
 
-#include "config_parser.h"
+#include "config.h"
 #include "safe_ops.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -90,6 +90,144 @@ static int parse_size_array(const char* str, size_t* arr, int max_count) {
             count++;
         } else {
             /* Conversion failed */
+            return -1;
+        }
+        token = strtok_r(NULL, ",", &saveptr);
+    }
+
+    return count;
+}
+
+/* Parse buffer type from string */
+static BufferType parse_buffer_type(const char* str) {
+    if (str == NULL) {
+        return BUFFER_TYPE_NONE;
+    }
+
+    if (strcmp(str, "READ_ONLY") == 0) {
+        return BUFFER_TYPE_READ_ONLY;
+    } else if (strcmp(str, "WRITE_ONLY") == 0) {
+        return BUFFER_TYPE_WRITE_ONLY;
+    } else if (strcmp(str, "READ_WRITE") == 0) {
+        return BUFFER_TYPE_READ_WRITE;
+    }
+
+    return BUFFER_TYPE_NONE;
+}
+
+/* Parse buffer types array from comma-separated string */
+static int parse_buffer_types(const char* str, BufferType* arr, int max_count) {
+    char buffer[MAX_BUFFER_LENGTH];
+    char* saveptr = NULL;
+    char* token;
+    int count = 0;
+
+    if ((str == NULL) || (arr == NULL)) {
+        return 0;
+    }
+
+    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
+    buffer[sizeof(buffer) - 1U] = '\0';
+
+    token = strtok_r(buffer, ",", &saveptr);
+    while ((token != NULL) && (count < max_count)) {
+        arr[count] = parse_buffer_type(trim(token));
+        if (arr[count] == BUFFER_TYPE_NONE) {
+            (void)fprintf(stderr, "Warning: Invalid buffer type: %s\n", trim(token));
+        }
+        count++;
+        token = strtok_r(NULL, ",", &saveptr);
+    }
+
+    return count;
+}
+
+/* Evaluate simple arithmetic expression (e.g., "1920 * 1080 * 4") */
+static int eval_expression(const char* str, size_t* result) {
+    char buffer[MAX_BUFFER_LENGTH];
+    char* saveptr = NULL;
+    char* token;
+    size_t value = 0;
+    int has_value = 0;
+    char operation = '\0';
+    long temp_val;
+
+    if ((str == NULL) || (result == NULL)) {
+        return -1;
+    }
+
+    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
+    buffer[sizeof(buffer) - 1U] = '\0';
+
+    /* Simple tokenizer: split by spaces and handle *, +, - */
+    token = strtok_r(buffer, " ", &saveptr);
+    while (token != NULL) {
+        if ((strcmp(token, "*") == 0) || (strcmp(token, "x") == 0)) {
+            operation = '*';
+        } else if (strcmp(token, "+") == 0) {
+            operation = '+';
+        } else if (strcmp(token, "-") == 0) {
+            operation = '-';
+        } else {
+            /* Try to parse as number */
+            if (!safe_strtol(token, &temp_val) || (temp_val < 0)) {
+                return -1;
+            }
+
+            if (!has_value) {
+                value = (size_t)temp_val;
+                has_value = 1;
+            } else {
+                /* Apply operation */
+                if (operation == '*') {
+                    value *= (size_t)temp_val;
+                } else if (operation == '+') {
+                    value += (size_t)temp_val;
+                } else if (operation == '-') {
+                    if (value >= (size_t)temp_val) {
+                        value -= (size_t)temp_val;
+                    } else {
+                        return -1;  /* Underflow */
+                    }
+                } else {
+                    return -1;  /* No operation specified */
+                }
+                operation = '\0';
+            }
+        }
+        token = strtok_r(NULL, " ", &saveptr);
+    }
+
+    if (!has_value) {
+        return -1;
+    }
+
+    *result = value;
+    return 0;
+}
+
+/* Parse buffer sizes array from comma-separated expressions */
+static int parse_buffer_sizes(const char* str, size_t* arr, int max_count) {
+    char buffer[MAX_BUFFER_LENGTH];
+    char* saveptr = NULL;
+    char* token;
+    int count = 0;
+    size_t val;
+
+    if ((str == NULL) || (arr == NULL)) {
+        return 0;
+    }
+
+    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
+    buffer[sizeof(buffer) - 1U] = '\0';
+
+    token = strtok_r(buffer, ",", &saveptr);
+    while ((token != NULL) && (count < max_count)) {
+        if (eval_expression(trim(token), &val) == 0) {
+            arr[count] = val;
+            count++;
+        } else {
+            (void)fprintf(stderr, "Error: Invalid buffer size expression: %s\n", trim(token));
             return -1;
         }
         token = strtok_r(NULL, ",", &saveptr);
@@ -216,6 +354,50 @@ int parse_config(const char* filename, Config* config) {
                     (void)fprintf(stderr, "Error: Invalid dst_height value: %s\n", value);
                     (void)fclose(fp);
                     return -1;
+                }
+            } else if (strcmp(key, "kernel_x_file") == 0) {
+                (void)strncpy(config->kernel_x_file, value, sizeof(config->kernel_x_file) - 1U);
+                config->kernel_x_file[sizeof(config->kernel_x_file) - 1U] = '\0';
+            } else if (strcmp(key, "kernel_y_file") == 0) {
+                (void)strncpy(config->kernel_y_file, value, sizeof(config->kernel_y_file) - 1U);
+                config->kernel_y_file[sizeof(config->kernel_y_file) - 1U] = '\0';
+            } else if (strcmp(key, "cl_buffer_type") == 0) {
+                int count = parse_buffer_types(value, config->cl_buffer_type, MAX_CUSTOM_BUFFERS);
+                if (count < 0) {
+                    (void)fprintf(stderr, "Error: Invalid cl_buffer_type: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+                (void)printf("Parsed %d buffer types: ", count);
+                {
+                    int i;
+                    for (i = 0; i < count; i++) {
+                        const char* type_name = "UNKNOWN";
+                        if (config->cl_buffer_type[i] == BUFFER_TYPE_READ_ONLY) {
+                            type_name = "READ_ONLY";
+                        } else if (config->cl_buffer_type[i] == BUFFER_TYPE_WRITE_ONLY) {
+                            type_name = "WRITE_ONLY";
+                        } else if (config->cl_buffer_type[i] == BUFFER_TYPE_READ_WRITE) {
+                            type_name = "READ_WRITE";
+                        }
+                        (void)printf("%s%s", type_name, (i < count - 1) ? ", " : "\n");
+                    }
+                }
+            } else if (strcmp(key, "cl_buffer_size") == 0) {
+                int count = parse_buffer_sizes(value, config->cl_buffer_size, MAX_CUSTOM_BUFFERS);
+                if (count < 0) {
+                    (void)fprintf(stderr, "Error: Invalid cl_buffer_size: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+                config->num_buffers = count;
+                (void)printf("Parsed %d buffer sizes: ", count);
+                {
+                    int i;
+                    for (i = 0; i < count; i++) {
+                        (void)printf("%zu%s", config->cl_buffer_size[i],
+                                   (i < count - 1) ? ", " : "\n");
+                    }
                 }
             } else {
                 /* Unknown key in image section */
