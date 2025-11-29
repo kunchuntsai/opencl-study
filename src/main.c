@@ -409,6 +409,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                                   kernel_cfg->global_work_size,
                                   kernel_cfg->local_work_size,
                                   kernel_cfg->work_dim,
+                                  kernel_cfg->host_type,
                                   &gpu_time);
     if (run_result != 0) {
         (void)fprintf(stderr, "Failed to run kernel\n");

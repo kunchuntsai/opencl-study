@@ -40,6 +40,12 @@
 /** Maximum number of kernel configurations per algorithm */
 #define MAX_KERNEL_CONFIGS 32
 
+/** Host type enumeration for OpenCL API selection */
+typedef enum {
+    HOST_TYPE_STANDARD = 0,     /**< Standard OpenCL API (default) */
+    HOST_TYPE_CL_EXTENSION      /**< Custom CL extension API */
+} HostType;
+
 /**
  * @brief Kernel configuration for a specific variant
  *
@@ -53,6 +59,7 @@ typedef struct {
     int work_dim;               /**< Work dimensions (1, 2, or 3) */
     size_t global_work_size[3]; /**< Global work size for each dimension */
     size_t local_work_size[3];  /**< Local work group size for each dimension */
+    HostType host_type;         /**< Host API type (standard or cl_extension) */
 } KernelConfig;
 
 /** Maximum number of custom buffers */

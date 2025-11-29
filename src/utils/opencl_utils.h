@@ -24,6 +24,7 @@
 
 /* Include op_interface for Algorithm and OpParams */
 #include "op_interface.h"
+#include "cl_extension_api.h"
 
 /**
  * @brief OpenCL environment containing all required resources
@@ -36,6 +37,7 @@ typedef struct {
     cl_device_id device;        /**< OpenCL device (GPU/CPU) */
     cl_context context;         /**< OpenCL context for device */
     cl_command_queue queue;     /**< Command queue for kernel execution */
+    CLExtensionContext ext_ctx; /**< Custom CL extension context */
 } OpenCLEnv;
 
 /**
@@ -74,6 +76,9 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
  * execution, and measures GPU time. All buffers are configured via
  * .ini files rather than algorithm-specific creation callbacks.
  *
+ * Uses either standard OpenCL API or custom CL extension API based on
+ * the host_type configuration in the kernel config.
+ *
  * @param[in] env Initialized OpenCL environment
  * @param[in] kernel Compiled kernel object
  * @param[in] algo Algorithm interface (for argument setter callback)
@@ -83,6 +88,7 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
  * @param[in] global_work_size Global work dimensions (array of size work_dim)
  * @param[in] local_work_size Local work group size (NULL for automatic)
  * @param[in] work_dim Number of work dimensions (1, 2, or 3)
+ * @param[in] host_type Host API type (standard or cl_extension)
  * @param[out] gpu_time_ms Execution time in milliseconds
  * @return 0 on success, -1 on error
  */
@@ -93,6 +99,7 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
                       const size_t* global_work_size,
                       const size_t* local_work_size,
                       int work_dim,
+                      HostType host_type,
                       double* gpu_time_ms);
 
 /**

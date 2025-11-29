@@ -2,6 +2,8 @@
 #include "cache_manager.h"
 #include "safe_ops.h"
 #include "op_interface.h"
+#include "cl_extension_api.h"
+#include "config.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -167,6 +169,12 @@ int opencl_init(OpenCLEnv* env) {
         return -1;
     }
 
+    /* Initialize custom CL extension context */
+    if (cl_extension_init(&env->ext_ctx) != 0) {
+        (void)fprintf(stderr, "Warning: Failed to initialize CL extension context\n");
+        /* Continue anyway - standard API will still work */
+    }
+
     (void)printf("OpenCL initialized successfully\n");
     return 0;
 }
@@ -291,6 +299,7 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
                       const size_t* global_work_size,
                       const size_t* local_work_size,
                       int work_dim,
+                      HostType host_type,
                       double* gpu_time_ms) {
     cl_int err;
     cl_event event;
@@ -313,18 +322,47 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
         return -1;
     }
 
-    /* Execute kernel */
-    err = clEnqueueNDRangeKernel(env->queue, kernel, (cl_uint)work_dim,
-                                 NULL, global_work_size,
-                                 (local_work_size[0] == 0U) ? NULL : local_work_size,
-                                 0U, NULL, &event);
+    /* Execute kernel using appropriate API based on host_type */
+    if (host_type == HOST_TYPE_CL_EXTENSION) {
+        (void)printf("\n=== Using Custom CL Extension API ===\n");
+        err = cl_extension_enqueue_ndrange_kernel(
+            &env->ext_ctx,
+            env->queue,
+            kernel,
+            (cl_uint)work_dim,
+            NULL,
+            global_work_size,
+            (local_work_size[0] == 0U) ? NULL : local_work_size,
+            0U,
+            NULL,
+            &event);
+    } else {
+        /* Standard OpenCL API */
+        (void)printf("\n=== Using Standard OpenCL API ===\n");
+        err = clEnqueueNDRangeKernel(
+            env->queue,
+            kernel,
+            (cl_uint)work_dim,
+            NULL,
+            global_work_size,
+            (local_work_size[0] == 0U) ? NULL : local_work_size,
+            0U,
+            NULL,
+            &event);
+    }
+
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Failed to enqueue kernel (error code: %d)\n", err);
         return -1;
     }
 
-    /* Wait for completion */
-    err = clFinish(env->queue);
+    /* Wait for completion - use custom API if configured */
+    if (host_type == HOST_TYPE_CL_EXTENSION) {
+        err = cl_extension_finish(&env->ext_ctx, env->queue);
+    } else {
+        err = clFinish(env->queue);
+    }
+
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Failed to finish queue (error code: %d)\n", err);
         /* MISRA-C:2023 Rule 17.7: Check return value */
@@ -411,6 +449,9 @@ void opencl_cleanup(OpenCLEnv* env) {
     if (env == NULL) {
         return;
     }
+
+    /* Cleanup custom CL extension context */
+    cl_extension_cleanup(&env->ext_ctx);
 
     if (env->queue != NULL) {
         /* MISRA-C:2023 Rule 17.7: Check return value */
