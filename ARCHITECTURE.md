@@ -8,12 +8,6 @@ Visual diagrams to understand the system architecture and execution flow.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         CLIENT DEMONSTRATION                         │
-│                    (Show GPU Optimization Results)                   │
-└─────────────────────────────────────────────────────────────────────┘
-                                    │
-                                    ▼
-┌─────────────────────────────────────────────────────────────────────┐
 │                            MAIN PROGRAM                              │
 │                            (src/main.c)                              │
 │                                                                       │
@@ -46,14 +40,8 @@ Visual diagrams to understand the system architecture and execution flow.
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          APPLICATION LAYER                           │
-│                                                                       │
-│  ┌───────────────────────────────────────────────────────────────┐  │
-│  │                         src/main.c                             │  │
-│  │  • Program entry point                                         │  │
-│  │  • Menu system                                                 │  │
-│  │  • Algorithm selection & execution                             │  │
-│  │  • Performance reporting                                       │  │
-│  └───────────────────────────────────────────────────────────────┘  │
+│                           (src/main.c)                               │
+│  • Program entry & menu • Algorithm execution • Performance reports  │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
                     ┌───────────────┼───────────────┐
@@ -62,65 +50,46 @@ Visual diagrams to understand the system architecture and execution flow.
 │                         ALGORITHM LAYER                              │
 │                                                                       │
 │  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │
-│  │  src/dilate/    │  │ src/gaussian/   │  │ src/algorithm3/ │    │
-│  │  dilate3x3.c    │  │ gaussian5x5.c   │  │  (future)       │    │
-│  │                 │  │                 │  │                 │    │
-│  │  • Wrapper      │  │  • Wrapper      │  │  • Wrapper      │    │
+│  │  src/dilate/    │  │ src/gaussian/   │  │  src/resize/    │    │
+│  │  dilate3x3.c    │  │ gaussian5x5.c   │  │  resize.c       │    │
+│  │  • C reference  │  │  • C reference  │  │  • C reference  │    │
 │  │  • Verification │  │  • Verification │  │  • Verification │    │
-│  │  • Info display │  │  • Info display │  │  • Info display │    │
+│  │  • Set args     │  │  • Set args     │  │  • Set args     │    │
+│  │                 │  │                 │  │                 │    │
+│  │  c_ref/  cl/    │  │  c_ref/  cl/    │  │  c_ref/  cl/    │    │
+│  │  *.c     *.cl   │  │  *.c     *.cl   │  │  *.c     *.cl   │    │
 │  └─────────────────┘  └─────────────────┘  └─────────────────┘    │
-│          │                     │                     │              │
-│  ┌───────┴──────┐      ┌───────┴──────┐      ┌──────┴───────┐     │
-│  │              │      │              │      │              │     │
-│  ▼              ▼      ▼              ▼      ▼              ▼     │
-│ ┌──────────┐ ┌────┐ ┌──────────┐  ┌────┐ ┌──────────┐  ┌────┐   │
-│ │ c_ref/   │ │cl/ │ │ c_ref/   │  │cl/ │ │ c_ref/   │  │cl/ │   │
-│ │ *_ref.c  │ │*.cl│ │ *_ref.c  │  │*.cl│ │ *_ref.c  │  │*.cl│   │
-│ └──────────┘ └────┘ └──────────┘  └────┘ └──────────┘  └────┘   │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
-                    ┌───────────────┼───────────────┐
-                    ▼               ▼               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                       INFRASTRUCTURE LAYER                           │
-│                         (src/utils/)                                 │
+│                       INFRASTRUCTURE LAYER (src/utils/)              │
 │                                                                       │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐  │
 │  │ op_registry.c/.h │  │opencl_utils.c/.h │  │config_parser.c  │  │
-│  │                  │  │                  │  │                 │  │
-│  │ • Algorithm      │  │ • Platform init  │  │ • INI parsing   │  │
-│  │   registration   │  │ • Kernel build   │  │ • Config load   │  │
-│  │ • Registry       │  │ • Kernel exec    │  │ • Variant mgmt  │  │
-│  │   management     │  │ • Memory mgmt    │  │                 │  │
+│  │ • Algorithm reg  │  │ • Platform init  │  │ • INI parsing   │  │
+│  │ • Registry mgmt  │  │ • Kernel exec    │  │ • Buffer config │  │
 │  └──────────────────┘  └──────────────────┘  └─────────────────┘  │
 │                                                                       │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐  │
 │  │  image_io.c/.h   │  │cache_manager.c/.h│  │  safe_ops.h     │  │
-│  │                  │  │                  │  │                 │  │
-│  │ • Load raw image │  │ • Golden cache   │  │ • MISRA-C safe  │  │
-│  │ • Save raw image │  │ • Kernel cache   │  │   arithmetic    │  │
-│  │ • Size checking  │  │ • File I/O       │  │ • Overflow chk  │  │
+│  │ • Image I/O      │  │ • Cache mgmt     │  │ • Safe ops      │  │
 │  └──────────────────┘  └──────────────────┘  └─────────────────┘  │
 │                                                                       │
-│  ┌──────────────────┐                                                │
-│  │ op_interface.h   │  ← Abstract Algorithm Interface                │
-│  │                  │                                                │
-│  │ typedef struct { │                                                │
-│  │   char name[64]; │                                                │
-│  │   void (*ref)(); │                                                │
-│  │   int (*verify)();                                               │
-│  │ } Algorithm;     │                                                │
-│  └──────────────────┘                                                │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │ op_interface.h    ← Algorithm Interface                       │  │
+│  │                                                                │  │
+│  │ typedef struct {                                               │  │
+│  │   char name[64], id[32];                                       │  │
+│  │   void (*reference_impl)(OpParams*);                           │  │
+│  │   int (*verify_result)(OpParams*, float*);                     │  │
+│  │   int (*set_kernel_args)(cl_kernel, cl_mem, cl_mem, OpParams);│  │
+│  │ } Algorithm;                                                   │  │
+│  └──────────────────────────────────────────────────────────────┘  │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
-                                    ▼
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          SYSTEM LAYER                                │
-│                                                                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │   OpenCL     │  │    libc      │  │  File System │              │
-│  │   Runtime    │  │  (MISRA-C)   │  │              │              │
-│  └──────────────┘  └──────────────┘  └──────────────┘              │
+│  • OpenCL Runtime  • libc (MISRA-C)  • File System                  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -129,98 +98,62 @@ Visual diagrams to understand the system architecture and execution flow.
 ## 3. Execution Flow (Single Algorithm Run)
 
 ```
-START: User runs ./build/opencl_host 0 1
+START: User selects algorithm & variant
   │
   ▼
 ┌─────────────────────────────────────┐
 │ 1. INITIALIZATION                   │
-│    • Parse config.ini               │
 │    • Initialize OpenCL platform     │
-│    • Discover GPU/CPU devices       │
+│    • Parse algorithm INI file       │
+│    • Load buffer configurations     │
 │    • Create context & queue         │
 └─────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────┐
-│ 2. ALGORITHM DISCOVERY              │
-│    • Load algorithm registry        │
-│    • Display available algorithms   │
-│    • User selects: Dilate (index 0) │
-└─────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────┐
-│ 3. VARIANT SELECTION                │
-│    • Load kernel configs from INI   │
-│    • Display variants (0,1,2...)    │
-│    • User selects: variant 1        │
-└─────────────────────────────────────┘
-  │
-  ▼
-┌─────────────────────────────────────┐
-│ 4. IMAGE LOADING                    │
-│    • Read test_data/input.raw       │
-│    • Validate dimensions            │
-│    • Load into memory buffer        │
+│ 2. BUFFER CREATION                  │
+│    • Load input image from INI      │
+│    • Create input/output buffers    │
+│    • Create custom buffers (INI)    │
+│      - Intermediate buffers         │
+│      - Weight/kernel data buffers   │
+│      - Read from source files       │
 └─────────────────────────────────────┘
   │
   ├──────────────────────┬─────────────────────┐
   ▼                      ▼                     ▼
 ┌───────────────┐  ┌────────────────┐  ┌──────────────────┐
-│ 5a. CPU PATH  │  │ 5b. GPU PATH   │  │ 5c. CACHE CHECK  │
+│ 3a. CPU PATH  │  │ 3b. GPU PATH   │  │ 3c. CACHING      │
 │               │  │                │  │                  │
-│ Check golden  │  │ Check kernel   │  │ Look for:        │
-│ cache first   │  │ binary cache   │  │ • golden/*.bin   │
-│               │  │                │  │ • kernels/*.bin  │
-│ ┌───────────┐ │  │ ┌────────────┐ │  └──────────────────┘
-│ │ Cache hit?│ │  │ │ Cache hit? │ │
-│ └─────┬─────┘ │  │ └─────┬──────┘ │
-│   NO  │  YES  │  │   NO  │  YES   │
-│   ▼   │       │  │   ▼   │        │
-│ ┌─────▼─────┐ │  │ ┌─────▼──────┐ │
-│ │Run C ref  │ │  │ │Compile .cl │ │
-│ │dilate3x3_ │ │  │ │Load binary │ │
-│ │ref()      │ │  │ │Build kernel│ │
-│ │           │ │  │ │            │ │
-│ │Save golden│ │  │ │Save binary │ │
-│ └───────────┘ │  │ └────────────┘ │
-│               │  │                │
-│ Result:       │  │ Set args:      │
-│ cpu_output[]  │  │ • input buffer │
-│               │  │ • output buffer│
-│ Time: ~2.5ms  │  │ • width/height │
-│               │  │                │
-│               │  │ Run kernel     │
-│               │  │ Result:        │
-│               │  │ gpu_output[]   │
-│               │  │                │
-│               │  │ Time: ~0.003ms │
-└───────────────┘  └────────────────┘
+│ Check golden  │  │ Check kernel   │  │ • golden/*.bin   │
+│ cache         │  │ binary cache   │  │ • kernels/*.bin  │
+│               │  │                │  │                  │
+│ Run C ref     │  │ Compile .cl or │  │ Cache misses:    │
+│ implementation│  │ load binary    │  │ ~250ms first run │
+│               │  │                │  │                  │
+│ Time: ~2.5ms  │  │ Set kernel args│  │ Cache hits:      │
+│               │  │ (via callback) │  │ ~5-10ms after    │
+│               │  │                │  │                  │
+│               │  │ Run kernel     │  │                  │
+│               │  │ Time: ~0.003ms │  │                  │
+└───────────────┘  └────────────────┘  └──────────────────┘
   │                      │
   └──────────┬───────────┘
              ▼
 ┌─────────────────────────────────────┐
-│ 6. VERIFICATION                     │
-│    • Compare cpu_output vs gpu_out  │
-│    • Count mismatches               │
-│    • Calculate error stats          │
-│                                     │
-│    For Dilate: Exact match required │
-│    For Gaussian: ±1 tolerance       │
+│ 4. VERIFICATION                     │
+│    • Compare cpu vs gpu output      │
+│    • Calculate max error            │
+│    • Algorithm-specific tolerance   │
 └─────────────────────────────────────┘
   │
   ▼
 ┌─────────────────────────────────────┐
-│ 7. RESULTS DISPLAY                  │
-│                                     │
+│ 5. RESULTS DISPLAY                  │
 │  ✓ Verification: PASS               │
 │  ✓ CPU Time:     2.45 ms            │
 │  ✓ GPU Time:     0.003 ms           │
 │  ✓ Speedup:      817x               │
-│                                     │
-│  [Optimization Analysis]            │
-│  Variant 1 uses local memory tiling │
-│  which reduces global memory access │
 └─────────────────────────────────────┘
   │
   ▼
@@ -237,11 +170,10 @@ END: Return to menu or exit
 │                    (src/utils/op_interface.h)                     │
 │                                                                   │
 │  typedef struct {                                                 │
-│      char name[64];           /* Display name */                  │
-│      char id[32];             /* Unique identifier */             │
-│      void (*reference_impl)(...);  /* C reference */              │
-│      int (*verify_result)(...);    /* Verification */             │
-│      void (*print_info)(void);     /* Info display */             │
+│      char name[64], id[32];       /* Display & ID */              │
+│      void (*reference_impl)(OpParams*);  /* C reference */        │
+│      int (*verify_result)(OpParams*, float*);  /* Verification */ │
+│      int (*set_kernel_args)(cl_kernel, cl_mem, cl_mem, OpParams); │
 │  } Algorithm;                                                     │
 └───────────────────────────────────────────────────────────────────┘
                               ▲
@@ -250,47 +182,35 @@ END: Return to menu or exit
               │               │               │
               ▼               ▼               ▼
 ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│   DILATE 3x3     │  │  GAUSSIAN 5x5    │  │  ALGORITHM 3     │
-│                  │  │                  │  │   (Future)       │
-│  name: "Dilate"  │  │ name: "Gaussian" │  │                  │
-│  id: "dilate3x3" │  │ id: "gaussian5x5"│  │                  │
+│   DILATE 3x3     │  │  GAUSSIAN 5x5    │  │    RESIZE        │
 │                  │  │                  │  │                  │
 │  reference_impl: │  │  reference_impl: │  │  reference_impl: │
-│    ├─> dilate3x3 │  │    ├─> gauss5x5  │  │    ├─> algo3_ref │
-│    │   _ref()    │  │    │   _ref()    │  │    │   ()        │
+│  • CPU dilate    │  │  • CPU gaussian  │  │  • CPU resize    │
 │                  │  │                  │  │                  │
 │  verify_result:  │  │  verify_result:  │  │  verify_result:  │
-│    ├─> exact     │  │    ├─> tolerance │  │    ├─> custom    │
-│    │   match     │  │    │   ±1 pixel  │  │    │   logic     │
+│  • Exact match   │  │  • ±1 tolerance  │  │  • Custom tol    │
 │                  │  │                  │  │                  │
-│  print_info:     │  │  print_info:     │  │  print_info:     │
-│    └─> display   │  │    └─> display   │  │    └─> display   │
-│        algorithm │  │        algorithm │  │        algorithm │
-│        details   │  │        details   │  │        details   │
+│  set_kernel_args:│  │  set_kernel_args:│  │  set_kernel_args:│
+│  • input, output │  │  • input, output │  │  • input, output │
+│  • w, h, stride  │  │  • buffers, w, h │  │  • src/dst dims  │
 └──────────────────┘  └──────────────────┘  └──────────────────┘
         │                     │                     │
-        │                     │                     │
         └─────────────────────┼─────────────────────┘
-                              │
                               ▼
               ┌───────────────────────────────┐
               │   ALGORITHM REGISTRY          │
               │  (src/utils/op_registry.c)    │
               │                               │
-              │  algorithms[32]               │
-              │    [0] = &dilate3x3_algorithm │
-              │    [1] = &gaussian5x5_algo    │
-              │    [2] = &algorithm3          │
-              │    [3] = NULL                 │
-              │                               │
-              │  register_algorithm(...)      │
-              │  get_algorithm(index)         │
-              │  list_algorithms()            │
+              │  algorithms[] = {             │
+              │    &dilate3x3_algorithm,      │
+              │    &gaussian5x5_algorithm,    │
+              │    &resize_algorithm,         │
+              │    NULL                       │
+              │  }                            │
               └───────────────────────────────┘
                               │
                               ▼
-                    Used by main.c for
-                    dynamic menu generation
+                Used by main.c for menu
 ```
 
 ---
@@ -298,64 +218,64 @@ END: Return to menu or exit
 ## 5. Per-Algorithm Directory Structure
 
 ```
-src/dilate/                          ← Self-contained algorithm module
+src/gaussian/                        ← Self-contained algorithm module
 │
-├── dilate3x3.h                      ← Public interface
-│   └── Algorithm dilate3x3_algorithm  (exported for registration)
-│
-├── dilate3x3.c                      ← Algorithm wrapper
-│   ├── dilate3x3_reference()        → Calls C reference
-│   ├── dilate3x3_verify()           → Exact match verification
-│   └── dilate3x3_print_info()       → Display algorithm details
+├── gaussian5x5.h                    ← Public interface
+├── gaussian5x5.c                    ← Algorithm implementation
+│   ├── gaussian5x5_reference()      → C reference impl
+│   ├── gaussian5x5_verify()         → ±1 tolerance verification
+│   └── gaussian5x5_set_args()       → Set kernel arguments
 │
 ├── c_ref/                           ← CPU reference implementation
-│   ├── dilate3x3_ref.h
-│   └── dilate3x3_ref.c
-│       └── dilate3x3_ref()          → Ground truth implementation
-│                                      (Serial C code for verification)
+│   ├── gaussian5x5_ref.h
+│   └── gaussian5x5_ref.c
 │
 └── cl/                              ← GPU kernel variants
-    ├── dilate0.cl                   → Basic version (23 lines)
-    │   └── __kernel dilate3x3()       • Simple global memory
-    │                                  • 9 reads per pixel
-    │                                  • Baseline performance
-    │
-    ├── dilate1.cl                   → Optimized v1 (87 lines)
-    │   └── __kernel dilate3x3()       • Local memory tiling (16x16)
-    │                                  • Halo loading strategy
-    │                                  • 8x faster than basic
-    │
-    └── dilate2.cl                   → Optimized v2 (future)
-        └── __kernel dilate3x3()       • Advanced optimization
-                                       • Vector operations
-                                       • Further speedup
+    └── gaussian0.cl                 → Kernel implementation
 
-Configuration (config/config.ini):
-─────────────────────────────────
-[dilate3x3_v0]                       ← Variant 0 configuration
-kernel_file = dilate/cl/dilate0.cl
-kernel_name = dilate3x3
-global_work_size_x = 1024
-global_work_size_y = 1024
-local_work_size_x = 16
-local_work_size_y = 16
+Configuration (config/gaussian5x5.ini):
+───────────────────────────────────────
+# Image configuration
+[image]
+input = test_data/input.bin
+output = test_data/output.bin
+src_width = 1920
+src_height = 1080
 
-[dilate3x3_v1]                       ← Variant 1 configuration
-kernel_file = dilate/cl/dilate1.cl
-kernel_name = dilate3x3
-global_work_size_x = 1024
-global_work_size_y = 1024
-local_work_size_x = 16
-local_work_size_y = 16
+# Custom buffers
+[buffer.tmp_global]                  ← Intermediate buffer
+type = READ_WRITE
+size_bytes = 314572800
+
+[buffer.kernel_x]                    ← Gaussian weights X
+type = READ_ONLY
+data_type = float
+num_elements = 5
+source_file = test_data/gaussian5x5/kernel_x.bin
+
+[buffer.kernel_y]                    ← Gaussian weights Y
+type = READ_ONLY
+data_type = float
+num_elements = 5
+source_file = test_data/gaussian5x5/kernel_y.bin
+
+# Kernel variant
+[kernel.v0]
+kernel_file = src/gaussian/cl/gaussian0.cl
+kernel_function = gaussian5x5
+work_dim = 2
+global_work_size = 1920,1088
+local_work_size = 16,16
 
 Test Data Organization:
 ───────────────────────
-test_data/dilate/
+test_data/gaussian5x5/
+├── kernel_x.bin                     ← Horizontal weights
+├── kernel_y.bin                     ← Vertical weights
 ├── golden/
-│   └── dilate3x3.bin                ← Cached C reference output
+│   └── gaussian5x5.bin              ← Cached C reference output
 └── kernels/
-    ├── dilate0.bin                  ← Cached compiled kernel v0
-    └── dilate1.bin                  ← Cached compiled kernel v1
+    └── gaussian0.bin                ← Cached compiled kernel
 ```
 
 ---
@@ -460,21 +380,34 @@ test_data/dilate/
 
 ```
 ┌───────────────────────────────────────────────────────────────┐
-│                      config/config.ini                        │
+│                 config/gaussian5x5.ini                        │
 │                                                               │
-│  [dilate3x3_v0]              [dilate3x3_v1]                  │
-│  kernel_file = dilate/       kernel_file = dilate/           │
-│                cl/dilate0.cl              cl/dilate1.cl      │
-│  kernel_name = dilate3x3     kernel_name = dilate3x3         │
-│  global_work_size_x = 1024   global_work_size_x = 1024       │
-│  global_work_size_y = 1024   global_work_size_y = 1024       │
-│  local_work_size_x = 16      local_work_size_x = 16          │
-│  local_work_size_y = 16      local_work_size_y = 16          │
+│  [image]                      ← Image dimensions & I/O       │
+│  input = test_data/input.bin                                 │
+│  src_width = 1920                                            │
+│  src_height = 1080                                           │
 │                                                               │
-│  [gaussian5x5_v0]            [gaussian5x5_v1]                │
-│  kernel_file = gaussian/     (future optimization)           │
-│                cl/gaussian0.cl                               │
-│  ...                                                          │
+│  [buffer.tmp_global]          ← Custom buffer 0              │
+│  type = READ_WRITE                                           │
+│  size_bytes = 314572800                                      │
+│                                                               │
+│  [buffer.kernel_x]            ← Custom buffer 1              │
+│  type = READ_ONLY                                            │
+│  data_type = float                                           │
+│  num_elements = 5                                            │
+│  source_file = test_data/gaussian5x5/kernel_x.bin            │
+│                                                               │
+│  [buffer.kernel_y]            ← Custom buffer 2              │
+│  type = READ_ONLY                                            │
+│  data_type = float                                           │
+│  num_elements = 5                                            │
+│  source_file = test_data/gaussian5x5/kernel_y.bin            │
+│                                                               │
+│  [kernel.v0]                  ← Kernel variant 0             │
+│  kernel_file = src/gaussian/cl/gaussian0.cl                  │
+│  kernel_function = gaussian5x5                               │
+│  global_work_size = 1920,1088                                │
+│  local_work_size = 16,16                                     │
 └───────────────────────────────────────────────────────────────┘
                             │
                             │ parse_config()
@@ -482,50 +415,37 @@ test_data/dilate/
 ┌───────────────────────────────────────────────────────────────┐
 │              CONFIG PARSER (config_parser.c)                  │
 │                                                               │
-│  1. Read INI file line by line                               │
-│  2. Parse sections: [algorithm_vX]                           │
-│  3. Parse key=value pairs                                    │
-│  4. Store in KernelConfig struct:                            │
-│     typedef struct {                                         │
-│         char kernel_file[256];                               │
-│         char kernel_name[64];                                │
-│         size_t global_x, global_y;                           │
-│         size_t local_x, local_y;                             │
-│     } KernelConfig;                                          │
-│  5. Validate values (safe_strtol for overflow checking)      │
-└───────────────────────────────────────────────────────────────┘
-                            │
-                            ▼
-┌───────────────────────────────────────────────────────────────┐
-│             IN-MEMORY CONFIG STRUCTURE                        │
+│  1. Parse [image] section                                    │
+│     → ImageConfig (dims, I/O paths)                          │
 │                                                               │
-│  KernelConfig configs[MAX_VARIANTS];                         │
-│    [0] → dilate3x3_v0 config                                 │
-│    [1] → dilate3x3_v1 config                                 │
-│    [2] → gaussian5x5_v0 config                               │
-│    [3] → gaussian5x5_v1 config                               │
-│    ...                                                        │
+│  2. Parse [buffer.*] sections                                │
+│     → BufferConfig[] (type, size, source)                    │
+│                                                               │
+│  3. Parse [kernel.*] sections                                │
+│     → KernelConfig[] (file, function, work sizes)            │
+│                                                               │
+│  4. Validate & store in AlgorithmConfig                      │
 └───────────────────────────────────────────────────────────────┘
                             │
-                            │ User selects variant
                             ▼
 ┌───────────────────────────────────────────────────────────────┐
 │             OPENCL EXECUTION (opencl_utils.c)                 │
 │                                                               │
-│  KernelConfig* cfg = &configs[selected_variant];             │
-│                                                               │
-│  1. Load kernel source from cfg->kernel_file                 │
-│  2. Build kernel with name cfg->kernel_name                  │
-│  3. Set work dimensions:                                     │
-│     global_work_size[0] = cfg->global_x;                     │
-│     global_work_size[1] = cfg->global_y;                     │
-│     local_work_size[0] = cfg->local_x;                       │
-│     local_work_size[1] = cfg->local_y;                       │
-│  4. Execute kernel                                           │
+│  1. Create input/output buffers (from ImageConfig)           │
+│  2. Create custom buffers (from BufferConfig[])              │
+│     • Allocate CL_MEM_READ_WRITE/READ_ONLY                   │
+│     • Load data from source_file if specified                │
+│  3. Build kernel (from KernelConfig)                         │
+│  4. Set kernel arguments via algorithm callback              │
+│     • algorithm->set_kernel_args(kernel, ...)                │
+│  5. Execute kernel with configured work sizes                │
 └───────────────────────────────────────────────────────────────┘
 
-BENEFIT: Change work group sizes without recompiling!
-         Easy to test different configurations for optimization.
+BENEFITS:
+  ✓ Per-algorithm INI files (modular configuration)
+  ✓ Flexible custom buffer creation
+  ✓ Load kernel weights from files
+  ✓ No recompilation needed for config changes
 ```
 
 ---
@@ -730,13 +650,13 @@ All algorithms self-contained.
 
 This architecture provides:
 
-1. **Modularity** - Algorithms are self-contained plugins
+1. **Modularity** - Self-contained algorithm plugins with clean interfaces
 2. **Extensibility** - Add algorithms without modifying core code
-3. **Maintainability** - Clear separation of concerns
-4. **Performance** - Caching system accelerates iteration
-5. **Safety** - MISRA-C compliance for production use
-6. **Flexibility** - INI configuration enables runtime tuning
-7. **Verification** - Dual implementation ensures correctness
-8. **Scalability** - Supports multiple algorithms with multiple variants each
+3. **Flexibility** - Per-algorithm INI files with custom buffer configuration
+4. **Performance** - Binary caching accelerates iteration (50-60x)
+5. **Safety** - MISRA-C compliant (static allocation, safe arithmetic)
+6. **Verification** - CPU reference validates GPU correctness
+7. **Scalability** - Multiple algorithms, multiple variants per algorithm
+8. **Maintainability** - Clear separation: app, algorithm, infrastructure layers
 
 The design follows professional software engineering practices suitable for client demonstrations and production deployment.

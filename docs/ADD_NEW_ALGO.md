@@ -1,169 +1,62 @@
-# Algorithm Development Guide
+# Adding New Algorithms
 
-This guide covers the implemented algorithms and how to add new ones to the framework.
+Quick guide on the mandatory configuration and API requirements for adding algorithms.
 
-## Implemented Algorithms
+## Table of Contents
 
-### 1. Dilate 3x3
-Morphological dilation with a 3x3 structuring element.
+- [Three Required Components](#three-required-components)
+- [1. Configuration File (`config/<algo>.ini`)](#1-configuration-file-configalgoini)
+  - [Basic Structure](#basic-structure)
+  - [Configuration Parameters](#configuration-parameters)
+  - [Custom Buffers](#custom-buffers)
+- [2. Mandatory C API Functions](#2-mandatory-c-api-functions)
+  - [Function 1: Reference Implementation](#function-1-reference-implementation)
+  - [Function 2: Verification Function](#function-2-verification-function)
+  - [Function 3: Kernel Arguments Setter](#function-3-kernel-arguments-setter)
+- [3. Auto-Registration System](#3-auto-registration-system)
+  - [How It Works](#how-it-works)
+  - [After Adding Your Algorithm](#after-adding-your-algorithm)
+- [Quick Reference](#quick-reference)
+- [Directory Structure Example](#directory-structure-example)
+- [Build and Run](#build-and-run)
 
-**Variants:**
-- `v0`: Basic implementation
-- `v1`: Optimized with local memory tiling
+---
 
-**Usage:**
-```bash
-./opencl_host dilate3x3 0    # Basic variant
-./opencl_host dilate3x3 1    # Optimized variant
-```
+## Three Required Components
 
-### 2. Gaussian 5x5
-Gaussian blur with a 5x5 kernel.
+To add a new algorithm (e.g., `erode3x3`):
 
-**Variants:**
-- `v0`: Basic implementation
+1. **Configuration file:** `config/erode3x3.ini`
+2. **C reference file:** `src/erode/c_ref/erode3x3_ref.c` with three mandatory functions
+3. **OpenCL kernel:** `src/erode/cl/erode0.cl`
 
-**Usage:**
-```bash
-./opencl_host gaussian5x5 0
-```
+---
 
-## Adding New Algorithms
+## 1. Configuration File (`config/<algo>.ini`)
 
-Adding a new algorithm is now extremely simple with auto-registration. Here's how to add an algorithm (e.g., `erode3x3`):
-
-### 1. Create Directory Structure
-```bash
-mkdir -p src/erode/c_ref
-mkdir -p src/erode/cl
-```
-
-### 2. Implement C Reference + Auto-Register
-**File:** `src/erode/c_ref/erode3x3_ref.c`
-
-```c
-#include "../../utils/op_interface.h"
-#include "../../utils/op_registry.h"
-#include "../../utils/verify.h"
-#include <stddef.h>
-
-/* C reference implementation */
-void erode3x3_ref(const OpParams* params) {
-    if (params == NULL) return;
-
-    unsigned char* input = params->input;
-    unsigned char* output = params->output;
-    int width = params->src_width;
-    int height = params->src_height;
-
-    /* Implement your algorithm here */
-    /* This serves as the ground truth for verification */
-}
-
-/* Verification function */
-static int erode3x3_verify(const OpParams* params, float* max_error) {
-    if (params == NULL) return 0;
-    return verify_exact_match(params->gpu_output, params->ref_output,
-                             params->dst_width, params->dst_height, max_error);
-}
-
-/* Auto-register - ONE LINE! */
-REGISTER_ALGORITHM(erode3x3, "Erode 3x3", erode3x3_ref, erode3x3_verify)
-```
-
-That's it! The algorithm automatically registers itself before `main()` runs.
-
-### 3. Create OpenCL Kernel
-**File:** `src/erode/cl/erode0.cl`
-
-```c
-__kernel void erode3x3(__global const uchar* input,
-                       __global uchar* output,
-                       int width,
-                       int height) {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-
-    if (x >= width || y >= height) return;
-
-    /* Implement your kernel here */
-}
-```
-
-Add optimized variants as needed (`erode1.cl`, etc.)
-
-### 4. Create Configuration File
-**File:** `config/erode3x3.ini`
+### Basic Structure
 
 ```ini
-# Erode 3x3 Algorithm Configuration
-# Note: op_id is auto-derived from filename (erode3x3.ini -> op_id = erode3x3)
+# Algorithm ID is auto-derived from filename
+# erode3x3.ini → op_id = "erode3x3"
 
 [image]
-input = test_data/input.bin
-output = test_data/output.bin
+input = test_data/erode3x3/input.bin
+output = test_data/erode3x3/output.bin
 src_width = 1920
 src_height = 1080
-dst_width = 1920
+dst_width = 1920    # Can differ from src for resize operations
 dst_height = 1080
 
-# Variant 0: Basic implementation
+# Kernel variant 0 (required)
 [kernel.v0]
 kernel_file = src/erode/cl/erode0.cl
 kernel_function = erode3x3
 work_dim = 2
 global_work_size = 1920,1088
 local_work_size = 16,16
-```
 
-### 5. Build and Run
-```bash
-./scripts/build.sh
-./build/opencl_host erode3x3 0    # Run by algorithm name!
-```
-
-### That's It!
-
-No manual registration, no header files, no modification to `main.c` or existing configs. Just:
-1. Implement your algorithm `.c` file with `REGISTER_ALGORITHM()` macro
-2. Create your kernel `.cl` file
-3. Create your config `erode3x3.ini`
-4. Build and run
-
-The `REGISTER_ALGORITHM` macro automatically:
-- Creates the `Algorithm` struct
-- Registers it before `main()` runs using constructor attributes
-- Makes it available by name
-
-## Advanced Topics
-
-### Custom Parameters
-
-For algorithms needing custom parameters (kernel weights, thresholds, etc.):
-
-```c
-typedef struct {
-    float* kernel_weights;
-    int kernel_size;
-    float threshold;
-} ErodeParams;
-
-void erode_custom_ref(const OpParams* params) {
-    ErodeParams* custom = (ErodeParams*)params->algo_params;
-    // Use custom->kernel_weights, custom->kernel_size, etc.
-}
-```
-
-See `ALGORITHM_INTERFACE.md` for details.
-
-### Multiple Variants
-
-To add multiple optimized variants of your algorithm:
-
-**Variant 1: Optimized with local memory**
-1. Create `src/erode/cl/erode1.cl` with optimized kernel
-2. Add to `config/erode3x3.ini`:
-```ini
+# Optional: Additional variants
 [kernel.v1]
 kernel_file = src/erode/cl/erode1.cl
 kernel_function = erode3x3_optimized
@@ -172,125 +65,317 @@ global_work_size = 1920,1088
 local_work_size = 16,16
 ```
 
-Run with: `./opencl_host erode3x3 1`
+### Configuration Parameters
 
-### Algorithm Categories
+#### `[image]` Section (Required)
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `input` | Input image path | `test_data/erode3x3/input.bin` |
+| `output` | Output image path | `test_data/erode3x3/output.bin` |
+| `src_width` | Source width in pixels | `1920` |
+| `src_height` | Source height in pixels | `1080` |
+| `dst_width` | Destination width (optional, defaults to src_width) | `1920` |
+| `dst_height` | Destination height (optional, defaults to src_height) | `1080` |
 
-Organize algorithms by category:
+#### `[kernel.vN]` Sections (At least v0 required)
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `kernel_file` | Path to .cl file | `src/erode/cl/erode0.cl` |
+| `kernel_function` | Kernel function name | `erode3x3` |
+| `work_dim` | Work dimensions (1, 2, or 3) | `2` |
+| `global_work_size` | Global work size (comma-separated) | `1920,1088` |
+| `local_work_size` | Local work size (comma-separated) | `16,16` |
+
+### Custom Buffers
+
+Add `[buffer.<name>]` sections for additional buffers beyond input/output:
+
+```ini
+# Empty buffer for intermediate results
+[buffer.tmp_global]
+type = READ_WRITE
+size_bytes = 314572800
+
+# Buffer loaded from file (e.g., kernel weights)
+[buffer.kernel_x]
+type = READ_ONLY
+data_type = float          # float, int, uchar, etc.
+num_elements = 5
+source_file = test_data/gaussian5x5/kernel_x.bin
+
+# Another weights buffer
+[buffer.kernel_y]
+type = READ_ONLY
+data_type = float
+num_elements = 5
+source_file = test_data/gaussian5x5/kernel_y.bin
 ```
-src/
-├── morphology/           # Morphological operations
-│   ├── dilate/
-│   ├── erode/
-│   └── open/
-├── filters/              # Image filters
-│   ├── gaussian/
-│   ├── median/
-│   └── bilateral/
-└── transforms/           # Image transforms
-    ├── resize/
-    ├── rotate/
-    └── warp/
+
+**Buffer Types:**
+- `READ_ONLY` - Kernel only reads (e.g., constant weights)
+- `WRITE_ONLY` - Kernel only writes (e.g., output buffer)
+- `READ_WRITE` - Kernel reads and writes (e.g., intermediate results)
+
+**Buffer Allocation:**
+- **Size-based:** Specify `size_bytes` for empty allocation
+- **Data-based:** Specify `data_type`, `num_elements`, and `source_file` to load from file
+- Custom buffers are indexed in order: first `[buffer.*]` section = index 0, etc.
+
+---
+
+## 2. Mandatory C API Functions
+
+Every algorithm must implement these three functions in `src/<algo>/c_ref/<algo>_ref.c`:
+
+### Function 1: Reference Implementation
+```c
+void <algo>_ref(const OpParams* params);
 ```
 
-## MISRA-C Compliance Notes
+**Purpose:** CPU implementation serving as ground truth for verification
 
-When implementing new algorithms, follow these patterns for compliance:
+**Parameters available in `OpParams*`:**
+- `params->input` - Input image buffer
+- `params->output` - Output image buffer
+- `params->src_width`, `params->src_height` - Source dimensions
+- `params->dst_width`, `params->dst_height` - Destination dimensions
+- `params->border_mode`, `params->border_value` - Border handling
+- `params->algo_params` - Algorithm-specific custom data (if needed)
 
-- Use `const OpParams* params` for all reference implementations
-- Check `params == NULL` before use
-- Use `verify_exact_match()` or `verify_with_tolerance()` for verification
-- Follow existing patterns in `dilate3x3_ref.c` and `gaussian5x5_ref.c`
-- Use safe arithmetic from `safe_ops.h` (e.g., `safe_mul_int()`)
-- Add bounds checking for array accesses
-- Validate all input parameters
+**Must:**
+- Validate `params != NULL`
+- Implement the algorithm correctly (this is the golden reference!)
+- Write results to `params->output`
 
-## Testing Your Algorithm
+---
 
-After implementing your algorithm:
+### Function 2: Verification Function
+```c
+int <algo>_verify(const OpParams* params, float* max_error);
+```
 
-1. **Generate test input:**
+**Purpose:** Compare GPU output against CPU reference
+
+**Returns:**
+- `1` if verification passed
+- `0` if verification failed
+
+**Parameters:**
+- `params->ref_output` - CPU reference output
+- `params->gpu_output` - GPU kernel output
+- `params->dst_width`, `params->dst_height` - Output dimensions
+- `max_error` - (output) Maximum error found
+
+**Use provided helpers:**
+```c
+// For operations requiring exact match (morphology, etc.)
+return verify_exact_match(params->gpu_output, params->ref_output,
+                         params->dst_width, params->dst_height, max_error);
+
+// For operations with rounding tolerance (filters, etc.)
+return verify_with_tolerance(params->gpu_output, params->ref_output,
+                            params->dst_width, params->dst_height,
+                            1.0f,    // max pixel difference
+                            0.001f,  // max fraction of pixels that can differ
+                            max_error);
+```
+
+---
+
+### Function 3: Kernel Arguments Setter
+```c
+int <algo>_set_kernel_args(cl_kernel kernel,
+                           cl_mem input_buf,
+                           cl_mem output_buf,
+                           const OpParams* params);
+```
+
+**Purpose:** Set all kernel arguments in exact order matching kernel signature
+
+**Critical:** Argument order must **exactly match** your OpenCL kernel signature!
+
+**Returns:**
+- `0` on success
+- `-1` on error
+
+**Example for simple kernel:**
+```c
+// Kernel: __kernel void erode3x3(__global uchar* input,
+//                                __global uchar* output,
+//                                int width, int height)
+
+int erode3x3_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
+                             cl_mem output_buf, const OpParams* params) {
+    if (!kernel || !params) return -1;
+
+    // arg 0: input
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_buf);
+    // arg 1: output
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), &output_buf);
+    // arg 2: width
+    clSetKernelArg(kernel, 2, sizeof(int), &params->src_width);
+    // arg 3: height
+    clSetKernelArg(kernel, 3, sizeof(int), &params->src_height);
+
+    return 0;
+}
+```
+
+**Accessing custom buffers:**
+```c
+// Kernel: __kernel void gaussian5x5(__global uchar* input,
+//                                    __global uchar* output,
+//                                    __global uchar* tmp_buffer,    // custom[0]
+//                                    int width, int height,
+//                                    __global float* kernel_x,      // custom[1]
+//                                    __global float* kernel_y)      // custom[2]
+
+typedef struct {
+    cl_mem buffer;
+    unsigned char* host_data;
+} RuntimeBuffer;
+
+typedef struct {
+    RuntimeBuffer buffers[8];  // MAX_CUSTOM_BUFFERS
+    int count;
+} CustomBuffers;
+
+int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
+                                cl_mem output_buf, const OpParams* params) {
+    if (!kernel || !params || !params->algo_params) return -1;
+
+    CustomBuffers* custom = (CustomBuffers*)params->algo_params;
+    if (custom->count != 3) return -1;  // Expect 3 custom buffers
+
+    clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_buf);
+    clSetKernelArg(kernel, 1, sizeof(cl_mem), &output_buf);
+    clSetKernelArg(kernel, 2, sizeof(cl_mem), &custom->buffers[0].buffer);  // tmp
+    clSetKernelArg(kernel, 3, sizeof(int), &params->src_width);
+    clSetKernelArg(kernel, 4, sizeof(int), &params->src_height);
+    clSetKernelArg(kernel, 5, sizeof(cl_mem), &custom->buffers[1].buffer);  // kernel_x
+    clSetKernelArg(kernel, 6, sizeof(cl_mem), &custom->buffers[2].buffer);  // kernel_y
+
+    return 0;
+}
+```
+
+**Key points:**
+- Custom buffers accessed via `params->algo_params`
+- Cast to `CustomBuffers*` to access
+- Buffers indexed in order they appear in `.ini` file
+- First `[buffer.*]` → `custom->buffers[0]`, second → `custom->buffers[1]`, etc.
+
+---
+
+## 3. Auto-Registration System
+
+**TL;DR:** Registration is automatic - just run `./scripts/generate_registry.sh` after adding your algorithm.
+
+### How It Works
+
+The script `scripts/generate_registry.sh` automatically:
+1. Scans `src/` for algorithm reference files (`src/*/c_ref/*_ref.c`)
+2. Extracts algorithm names from filenames
+3. Generates `src/utils/auto_registry.c` with all registrations
+
+**Generated code:**
+- Declares `extern` functions for all three required functions
+- Calls `register_algorithm()` for each algorithm in `register_all_algorithms()`
+- Uses constructor attribute to run before `main()`
+
+### After Adding Your Algorithm
+
+Simply regenerate the registry:
+
 ```bash
-python3 scripts/generate_test_image.py
-```
-
-2. **Build:**
-```bash
+./scripts/generate_registry.sh
 ./scripts/build.sh
 ```
 
-3. **Run with verification:**
+**Important:**
+- Algorithm ID is derived from filename: `erode3x3_ref.c` → `"erode3x3"`
+- This ID must match your `.ini` filename: `config/erode3x3.ini`
+
+---
+
+## Quick Reference
+
+### Mandatory Files
+
+| File | Purpose |
+|------|---------|
+| `config/<algo>.ini` | Algorithm configuration |
+| `src/<algo>/c_ref/<algo>_ref.c` | Three required functions |
+| `src/<algo>/cl/<algo>0.cl` | OpenCL kernel variant 0 |
+
+### Mandatory Functions
+
+| Function | Signature | Purpose |
+|----------|-----------|---------|
+| `<algo>_ref` | `void(const OpParams*)` | CPU reference implementation |
+| `<algo>_verify` | `int(const OpParams*, float*)` | Verify GPU vs CPU |
+| `<algo>_set_kernel_args` | `int(cl_kernel, cl_mem, cl_mem, const OpParams*)` | Set kernel arguments |
+
+### Configuration Checklist
+
+- [ ] Created `config/<algo>.ini` with `[image]` and `[kernel.v0]` sections
+- [ ] Created `src/<algo>/c_ref/<algo>_ref.c` with three required functions
+- [ ] Created `src/<algo>/cl/<algo>0.cl` kernel file
+- [ ] Kernel signature matches `set_kernel_args()` exactly
+- [ ] Algorithm filename matches `.ini` filename (e.g., `erode3x3_ref.c` ↔ `erode3x3.ini`)
+- [ ] Run `./scripts/generate_registry.sh` to auto-register
+- [ ] Built and tested successfully
+
+---
+
+## Directory Structure Example
+
+```
+config/
+  └── erode3x3.ini              # Configuration
+
+src/erode/
+  ├── c_ref/
+  │   └── erode3x3_ref.c        # Three required functions
+  └── cl/
+      ├── erode0.cl             # Variant 0 kernel
+      └── erode1.cl             # Variant 1 kernel (optional)
+
+test_data/erode3x3/
+  ├── input.bin                 # Input image
+  ├── output.bin                # Output image (generated)
+  ├── golden/
+  │   └── erode3x3.bin          # Cached CPU reference (auto-generated)
+  └── kernels/
+      └── erode0.bin            # Cached compiled kernel (auto-generated)
+```
+
+---
+
+## Build and Run
+
 ```bash
-./build/opencl_host myalgo 0
+# 1. Generate registry and build
+# (scans src/ and auto-registers algorithms) from scripts/generate_registry.sh
+./scripts/build.sh
+
+# 2. List available algorithms
+./build/opencl_host
+
+# 3. Run algorithm variant 0
+./build/opencl_host erode3x3 0
+
+# 4. Run algorithm variant 1
+./build/opencl_host erode3x3 1
 ```
 
-The framework automatically:
-- Runs C reference implementation
-- Creates golden sample from reference output
-- Compiles and runs OpenCL kernel
-- Verifies GPU output against reference
-- Reports timing and speedup
+**Note:** Only need to run `generate_registry.sh` when adding/removing algorithms, not for code changes to existing algorithms.
 
-4. **Check output:**
-- Verification should show **PASSED**
-- Max error should be acceptable (0.00 for exact, < 1.0 for approximate)
-- Speedup shows GPU performance improvement
-
-## Common Patterns
-
-### Image Filters
-```c
-void filter_ref(const OpParams* params) {
-    // Extract parameters
-    unsigned char* input = params->input;
-    unsigned char* output = params->output;
-    int width = params->src_width;
-    int height = params->src_height;
-
-    // Apply filter with border handling
-    for (int y = 0; y < height; y++) {
-        for (int x = 0; x < width; x++) {
-            // Compute filtered value
-            output[y * width + x] = compute_filter(input, x, y, width, height);
-        }
-    }
-}
-```
-
-### Morphological Operations
-```c
-void morph_ref(const OpParams* params) {
-    // Use border_mode from params for edge handling
-    BorderMode mode = params->border_mode;
-
-    // Iterate over structuring element
-    for (int dy = -radius; dy <= radius; dy++) {
-        for (int dx = -radius; dx <= radius; dx++) {
-            // Apply operation
-        }
-    }
-}
-```
-
-### Resize Operations
-```c
-void resize_ref(const OpParams* params) {
-    // Different source and destination sizes
-    int src_w = params->src_width;
-    int src_h = params->src_height;
-    int dst_w = params->dst_width;
-    int dst_h = params->dst_height;
-
-    // Compute scaling factors
-    float scale_x = (float)src_w / dst_w;
-    float scale_y = (float)src_h / dst_h;
-
-    // Sample and interpolate
-}
-```
+---
 
 ## Related Documentation
 
-- **[ALGORITHM_INTERFACE.md](ALGORITHM_INTERFACE.md)** - Detailed OpParams interface guide
-- **[CONFIG_SYSTEM.md](CONFIG_SYSTEM.md)** - Configuration system documentation
+- **[ALGORITHM_INTERFACE.md](ALGORITHM_INTERFACE.md)** - Detailed OpParams interface
+- **[CONFIG_SYSTEM.md](CONFIG_SYSTEM.md)** - Configuration file format
+- **[../ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture
 - **[../README.md](../README.md)** - Main project documentation
