@@ -288,7 +288,6 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
                       const Algorithm* algo,
                       cl_mem input_buf, cl_mem output_buf,
                       const OpParams* params,
-                      void* algo_buffers,
                       const size_t* global_work_size,
                       const size_t* local_work_size,
                       int work_dim,
@@ -309,8 +308,7 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
     }
 
     /* Set kernel arguments using algorithm-specific setter */
-    if (algo->set_kernel_args(kernel, input_buf, output_buf,
-                             params, algo_buffers) != 0) {
+    if (algo->set_kernel_args(kernel, input_buf, output_buf, params) != 0) {
         (void)fprintf(stderr, "Failed to set kernel arguments\n");
         return -1;
     }

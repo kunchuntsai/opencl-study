@@ -19,27 +19,27 @@
  * @param[in] ref_output Reference implementation output
  * @param[in] width Image width in pixels
  * @param[in] height Image height in pixels
- * @param[out] max_error Maximum absolute difference found
+ * @param[in] tolerance Maximum acceptable pixel difference
  * @return 1 if verification passed, 0 if failed
  */
 int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output,
-                       int width, int height, float* max_error);
+                       int width, int height, int tolerance);
 
 /**
- * @brief Verify with tolerance for floating-point operations
+ * @brief Verify pixel match with tolerance and error rate threshold
  *
- * Allows small differences due to floating-point rounding errors.
- * Suitable for operations like Gaussian blur that involve floating-point
- * arithmetic.
+ * Allows for some pixel differences due to floating-point rounding.
+ * Suitable for operations like convolution and filtering where minor
+ * differences are acceptable.
  *
  * @param[in] gpu_output GPU-generated output
  * @param[in] ref_output Reference implementation output
  * @param[in] width Image width in pixels
  * @param[in] height Image height in pixels
- * @param[in] tolerance Maximum allowed per-pixel difference
- * @param[in] error_rate_threshold Maximum allowed error rate (0.0-1.0)
+ * @param[in] tolerance Maximum acceptable pixel difference
+ * @param[in] error_rate_threshold Maximum acceptable fraction of differing pixels
  * @param[out] max_error Maximum absolute difference found
- * @return 1 if verification passed, 0 if failed
+ * @return 1 if verification passed (error rate below threshold), 0 if failed
  */
 int verify_with_tolerance(unsigned char* gpu_output, unsigned char* ref_output,
                           int width, int height, float tolerance,

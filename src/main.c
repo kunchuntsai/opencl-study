@@ -214,7 +214,6 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     cl_kernel kernel;
     cl_mem input_buf = NULL;
     cl_mem output_buf = NULL;
-    void* algo_buffers = NULL;  /* Algorithm-specific buffers */
     clock_t ref_start;
     clock_t ref_end;
     double ref_time;
@@ -323,25 +322,6 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
-    /* Step 4b: Create ALGORITHM-SPECIFIC buffers (if needed) */
-    if (algo->create_buffers != NULL) {
-        OpParams buffer_params = {0};
-        buffer_params.input = input;
-        buffer_params.src_width = config->src_width;
-        buffer_params.src_height = config->src_height;
-        buffer_params.src_stride = 0;  /* Packed */
-
-        algo_buffers = algo->create_buffers(env->context, &buffer_params,
-                                          input, img_size_t);
-        if (algo_buffers == NULL) {
-            (void)fprintf(stderr, "Failed to create algorithm-specific buffers\n");
-            opencl_release_mem_object(output_buf, "output buffer");
-            opencl_release_mem_object(input_buf, "input buffer");
-            opencl_release_kernel(kernel);
-            return;
-        }
-    }
-
     /* Step 5: Run OpenCL kernel (algorithm handles argument setting) */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
     {
@@ -350,7 +330,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         params.src_height = config->src_height;
 
         run_result = opencl_run_kernel(env, kernel, algo,
-                                      input_buf, output_buf, &params, algo_buffers,
+                                      input_buf, output_buf, &params,
                                       kernel_cfg->global_work_size,
                                       kernel_cfg->local_work_size,
                                       kernel_cfg->work_dim,
@@ -399,11 +379,6 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
 cleanup:
-    /* Cleanup algorithm-specific buffers */
-    if ((algo != NULL) && (algo->destroy_buffers != NULL) && (algo_buffers != NULL)) {
-        algo->destroy_buffers(algo_buffers);
-    }
-
     /* Cleanup standard buffers - MISRA-C:2023 Rule 22.1: Proper resource management */
     opencl_release_mem_object(output_buf, "output buffer");
     opencl_release_mem_object(input_buf, "input buffer");

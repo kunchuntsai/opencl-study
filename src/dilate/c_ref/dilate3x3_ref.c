@@ -103,23 +103,30 @@ void dilate3x3_ref(const OpParams* params) {
 
 /* Verification: check if GPU and reference outputs match exactly */
 int dilate3x3_verify(const OpParams* params, float* max_error) {
+    int result;
+
     if (params == NULL) {
         return 0;
     }
-    return verify_exact_match(params->gpu_output, params->ref_output,
-                             params->dst_width, params->dst_height, max_error);
+
+    /* Use tolerance of 0 for exact match */
+    result = verify_exact_match(params->gpu_output, params->ref_output,
+                                params->dst_width, params->dst_height, 0);
+
+    /* Set max_error to 0 if verification passed */
+    if (max_error != NULL) {
+        *max_error = (result == 1) ? 0.0f : 1.0f;
+    }
+
+    return result;
 }
 
 /* Kernel argument setter - sets 4 standard arguments */
 int dilate3x3_set_kernel_args(cl_kernel kernel,
                                      cl_mem input_buf,
                                      cl_mem output_buf,
-                                     const OpParams* params,
-                                     void* algo_buffers) {
+                                     const OpParams* params) {
     cl_uint arg_idx = 0U;
-
-    /* Unused parameter - dilate doesn't need extra buffers */
-    (void)algo_buffers;
 
     if ((kernel == NULL) || (params == NULL)) {
         return -1;

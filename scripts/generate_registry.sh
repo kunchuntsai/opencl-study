@@ -49,16 +49,8 @@ for file in $ALGO_FILES; do
     cat >> "$OUTPUT_FILE" <<EOF
 extern void ${algo_name}_ref(const OpParams* params);
 extern int ${algo_name}_verify(const OpParams* params, float* max_error);
-extern int ${algo_name}_set_kernel_args(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf, const OpParams* params, void* algo_buffers);
+extern int ${algo_name}_set_kernel_args(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf, const OpParams* params);
 EOF
-
-    # Check if algorithm has custom buffer functions
-    if grep -q "${algo_name}_create_buffers" "$file" && grep -q "${algo_name}_destroy_buffers" "$file"; then
-        cat >> "$OUTPUT_FILE" <<EOF
-extern void* ${algo_name}_create_buffers(cl_context context, const OpParams* params, const unsigned char* input, size_t img_size);
-extern void ${algo_name}_destroy_buffers(void* algo_buffers);
-EOF
-    fi
 done
 
 # Add algorithm structures
@@ -86,37 +78,17 @@ for file in $ALGO_FILES; do
         display_name=$(echo "$algo_name" | sed -E 's/([a-z])([0-9])/\1 \2/g; s/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
     fi
 
-    # Check if algorithm has custom buffer functions
-    if grep -q "${algo_name}_create_buffers" "$file" && grep -q "${algo_name}_destroy_buffers" "$file"; then
-        # Algorithm with custom buffer management
-        cat >> "$OUTPUT_FILE" <<EOF
-/* ${display_name} with custom buffer management */
+    # Generate algorithm structure
+    cat >> "$OUTPUT_FILE" <<EOF
 static Algorithm ${algo_name}_algorithm = {
     .name = "$display_name",
     .id = "$algo_name",
     .reference_impl = ${algo_name}_ref,
     .verify_result = ${algo_name}_verify,
-    .create_buffers = ${algo_name}_create_buffers,     /* Custom buffer creation */
-    .destroy_buffers = ${algo_name}_destroy_buffers,   /* Custom buffer cleanup */
     .set_kernel_args = ${algo_name}_set_kernel_args
 };
 
 EOF
-    else
-        # Standard algorithm without custom buffers
-        cat >> "$OUTPUT_FILE" <<EOF
-static Algorithm ${algo_name}_algorithm = {
-    .name = "$display_name",
-    .id = "$algo_name",
-    .reference_impl = ${algo_name}_ref,
-    .verify_result = ${algo_name}_verify,
-    .create_buffers = NULL,
-    .destroy_buffers = NULL,
-    .set_kernel_args = ${algo_name}_set_kernel_args
-};
-
-EOF
-    fi
 done
 
 # Add registration function

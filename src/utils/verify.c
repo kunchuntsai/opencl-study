@@ -4,17 +4,16 @@
 #include <math.h>
 
 int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output,
-                       int width, int height, float* max_error) {
+                       int width, int height, int tolerance) {
     int errors = 0;
     int total_pixels;
-    float diff;
+    int diff;
     int i;
 
-    if ((gpu_output == NULL) || (ref_output == NULL) || (max_error == NULL)) {
+    if ((gpu_output == NULL) || (ref_output == NULL)) {
         return 0;
     }
 
-    *max_error = 0.0f;
     /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
     if (!safe_mul_int(width, height, &total_pixels)) {
         (void)fprintf(stderr, "Error: Image dimensions overflow\n");
@@ -22,11 +21,11 @@ int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output,
     }
 
     for (i = 0; i < total_pixels; i++) {
-        diff = fabsf((float)gpu_output[i] - (float)ref_output[i]);
-        if (diff > *max_error) {
-            *max_error = diff;
+        diff = (int)gpu_output[i] - (int)ref_output[i];
+        if (diff < 0) {
+            diff = -diff;  /* Absolute value */
         }
-        if (diff > 0.0f) {
+        if (diff > tolerance) {
             errors++;
         }
     }

@@ -70,9 +70,9 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
 /**
  * @brief Execute OpenCL kernel with timing
  *
- * Sets kernel arguments (using algorithm callback or default), enqueues kernel
- * execution, and measures GPU time. Supports both simple algorithms (dilate)
- * and complex algorithms with custom buffers and arguments (gaussian).
+ * Sets kernel arguments (using algorithm callback), enqueues kernel
+ * execution, and measures GPU time. All buffers are configured via
+ * .ini files rather than algorithm-specific creation callbacks.
  *
  * @param[in] env Initialized OpenCL environment
  * @param[in] kernel Compiled kernel object
@@ -80,7 +80,6 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
  * @param[in] input_buf Input buffer containing image data
  * @param[out] output_buf Output buffer for processed image
  * @param[in] params Operation parameters (dimensions, algo-specific data)
- * @param[in] algo_buffers Algorithm-specific buffers (from algo->create_buffers)
  * @param[in] global_work_size Global work dimensions (array of size work_dim)
  * @param[in] local_work_size Local work group size (NULL for automatic)
  * @param[in] work_dim Number of work dimensions (1, 2, or 3)
@@ -91,7 +90,6 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
                       const Algorithm* algo,
                       cl_mem input_buf, cl_mem output_buf,
                       const OpParams* params,
-                      void* algo_buffers,
                       const size_t* global_work_size,
                       const size_t* local_work_size,
                       int work_dim,
