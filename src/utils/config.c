@@ -189,6 +189,21 @@ static int parse_size_array(const char* str, size_t* arr, int max_count) {
     return count;
 }
 
+/* Parse host type from string */
+static HostType parse_host_type(const char* str) {
+    if (str == NULL) {
+        return HOST_TYPE_STANDARD;  /* Default to standard */
+    }
+
+    if (strcmp(str, "cl_extension") == 0) {
+        return HOST_TYPE_CL_EXTENSION;
+    } else if (strcmp(str, "standard") == 0) {
+        return HOST_TYPE_STANDARD;
+    }
+
+    return HOST_TYPE_STANDARD;  /* Default to standard */
+}
+
 /* Parse buffer type from string */
 static BufferType parse_buffer_type(const char* str) {
     if (str == NULL) {
@@ -395,6 +410,8 @@ int parse_config(const char* filename, Config* config) {
                         (void)fclose(fp);
                         return -1;
                     }
+                    /* Initialize host_type to default (standard) */
+                    config->kernels[kernel_index].host_type = HOST_TYPE_STANDARD;
                 }
                 /* If section starts with "buffer.", it's a custom buffer configuration */
                 else if (strncmp(section, "buffer.", 7U) == 0) {
@@ -459,6 +476,15 @@ int parse_config(const char* filename, Config* config) {
         *equals = '\0';
         key = trim(trimmed);
         value = trim(equals + 1);
+
+        /* Strip inline comments from value (everything after #) */
+        {
+            char* comment = strchr(value, '#');
+            if (comment != NULL) {
+                *comment = '\0';
+                value = trim(value);  /* Trim again after removing comment */
+            }
+        }
 
         /* Parse based on section */
         if (strcmp(section, "image") == 0) {
@@ -579,6 +605,8 @@ int parse_config(const char* filename, Config* config) {
                     (void)fclose(fp);
                     return -1;
                 }
+            } else if (strcmp(key, "host_type") == 0) {
+                kc->host_type = parse_host_type(value);
             } else {
                 /* Unknown key in kernel section */
             }

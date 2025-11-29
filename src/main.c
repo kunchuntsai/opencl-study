@@ -21,6 +21,9 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                          const Config* config, OpenCLEnv* env);
 static int resolve_config_path(const char* input, char* output, size_t output_size);
 static int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size);
+static int select_algorithm_and_variant(const Config* config, int provided_variant_index,
+                                        Algorithm** selected_algo, KernelConfig** variants,
+                                        int* variant_count, int* selected_variant_index);
 
 int main(int argc, char** argv) {
     Config config;
@@ -31,7 +34,6 @@ int main(int argc, char** argv) {
     int variant_count;
     int parse_result;
     int opencl_result;
-    int get_variants_result;
     long temp_index;
     char config_path[MAX_PATH_LENGTH];
     const char* config_input;
@@ -111,70 +113,9 @@ int main(int argc, char** argv) {
         }
     }
 
-    /* 3. Algorithms auto-register via constructor attributes in c_ref/ *.c files */
-
-    /* Display available algorithms */
-    (void)printf("\n=== Available Algorithms ===\n");
-    list_algorithms();
-    (void)printf("\n");
-
-    /* 4. Get selected algorithm based on config.op_id */
-    algo = find_algorithm(config.op_id);
-    if (algo == NULL) {
-        (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n", config.op_id);
-        (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
-        return 1;
-    }
-    (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name, algo->id);
-
-    /* 6. Get kernel variants for selected algorithm */
-    get_variants_result = get_op_variants(&config, algo->id, variants, &variant_count);
-    if ((get_variants_result != 0) || (variant_count == 0)) {
-        (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
-        return 1;
-    }
-
-    /* Display available variants */
-    (void)printf("=== Available Variants for %s ===\n", algo->name);
-    {
-        int i;
-        for (i = 0; i < variant_count; i++) {
-            (void)printf("  %d - %s\n", i, variants[i]->variant_id);
-        }
-        (void)printf("\n");
-    }
-
-    /* If variant_index not provided via command line, prompt user */
-    if (argc == 1) {
-        char input_buffer[32];
-        char* newline_pos;
-        (void)printf("Select variant (0-%d, default: 0): ", variant_count - 1);
-        if (fgets(input_buffer, sizeof(input_buffer), stdin) != NULL) {
-            /* Remove trailing newline if present */
-            newline_pos = strchr(input_buffer, '\n');
-            if (newline_pos != NULL) {
-                *newline_pos = '\0';
-            }
-
-            /* If empty input, use default variant 0 */
-            if (input_buffer[0] == '\0') {
-                variant_index = 0;
-            } else {
-                if (!safe_strtol(input_buffer, &temp_index)) {
-                    (void)fprintf(stderr, "Invalid variant selection\n");
-                    return 1;
-                }
-                variant_index = (int)temp_index;
-            }
-        } else {
-            (void)fprintf(stderr, "Failed to read input\n");
-            return 1;
-        }
-    }
-
-    if ((variant_index < 0) || (variant_index >= variant_count)) {
-        (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
-                      variant_index, variant_count - 1);
+    /* 3. Select algorithm and kernel variant (with user interaction if needed) */
+    if (select_algorithm_and_variant(&config, variant_index, &algo, variants,
+                                     &variant_count, &variant_index) != 0) {
         return 1;
     }
 
@@ -198,6 +139,112 @@ int main(int argc, char** argv) {
 
     /* Cleanup */
     opencl_cleanup(&env);
+    return 0;
+}
+
+/**
+ * @brief Select algorithm and kernel variant (with user interaction if needed)
+ *
+ * This function:
+ * 1. Displays available algorithms and selects the one from config
+ * 2. Gets and displays kernel variants for the selected algorithm
+ * 3. Selects variant (from command line parameter or interactive prompt)
+ * 4. Validates the selection
+ *
+ * @param[in] config Configuration containing op_id
+ * @param[in] provided_variant_index Variant index from command line, or -1 for interactive
+ * @param[out] selected_algo Pointer to receive the selected algorithm
+ * @param[out] variants Array to receive variant configurations
+ * @param[out] variant_count Number of variants found
+ * @param[out] selected_variant_index The selected variant index
+ * @return 0 on success, -1 on error
+ */
+static int select_algorithm_and_variant(const Config* config, int provided_variant_index,
+                                        Algorithm** selected_algo, KernelConfig** variants,
+                                        int* variant_count, int* selected_variant_index) {
+    Algorithm* algo;
+    int get_variants_result;
+    int i;
+    char input_buffer[32];
+    char* newline_pos;
+    long temp_index;
+
+    if ((config == NULL) || (selected_algo == NULL) || (variants == NULL) ||
+        (variant_count == NULL) || (selected_variant_index == NULL)) {
+        return -1;
+    }
+
+    /* Step 1: Display available algorithms */
+    (void)printf("\n=== Available Algorithms ===\n");
+    list_algorithms();
+    (void)printf("\n");
+
+    /* Step 2: Find selected algorithm based on config.op_id */
+    algo = find_algorithm(config->op_id);
+    if (algo == NULL) {
+        (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n", config->op_id);
+        (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
+        return -1;
+    }
+    (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name, algo->id);
+
+    /* Step 3: Get kernel variants for selected algorithm */
+    get_variants_result = get_op_variants(config, algo->id, variants, variant_count);
+    if ((get_variants_result != 0) || (*variant_count == 0)) {
+        (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
+        return -1;
+    }
+
+    /* Step 4: Display available variants */
+    (void)printf("=== Available Variants for %s ===\n", algo->name);
+    for (i = 0; i < *variant_count; i++) {
+        (void)printf("  %d - %s\n", i, variants[i]->variant_id);
+    }
+    (void)printf("\n");
+
+    /* Step 5: Select variant (from command line or interactive prompt) */
+    if (provided_variant_index >= 0) {
+        /* Variant index was provided via command line - validate it */
+        *selected_variant_index = provided_variant_index;
+        if ((*selected_variant_index < 0) || (*selected_variant_index >= *variant_count)) {
+            (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
+                          *selected_variant_index, *variant_count - 1);
+            return -1;
+        }
+    } else {
+        /* No variant index provided - prompt user interactively */
+        (void)printf("Select variant (0-%d, default: 0): ", *variant_count - 1);
+        if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
+            (void)fprintf(stderr, "Failed to read input\n");
+            return -1;
+        }
+
+        /* Remove trailing newline if present */
+        newline_pos = strchr(input_buffer, '\n');
+        if (newline_pos != NULL) {
+            *newline_pos = '\0';
+        }
+
+        /* If empty input, use default variant 0 */
+        if (input_buffer[0] == '\0') {
+            *selected_variant_index = 0;
+        } else {
+            if (!safe_strtol(input_buffer, &temp_index)) {
+                (void)fprintf(stderr, "Invalid variant selection\n");
+                return -1;
+            }
+            *selected_variant_index = (int)temp_index;
+
+            /* Validate range */
+            if ((*selected_variant_index < 0) || (*selected_variant_index >= *variant_count)) {
+                (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
+                              *selected_variant_index, *variant_count - 1);
+                return -1;
+            }
+        }
+    }
+
+    *selected_algo = algo;
     return 0;
 }
 
@@ -409,6 +456,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                                   kernel_cfg->global_work_size,
                                   kernel_cfg->local_work_size,
                                   kernel_cfg->work_dim,
+                                  kernel_cfg->host_type,
                                   &gpu_time);
     if (run_result != 0) {
         (void)fprintf(stderr, "Failed to run kernel\n");
