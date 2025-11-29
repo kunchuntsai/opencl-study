@@ -201,12 +201,22 @@ int main(int argc, char** argv) {
     return 0;
 }
 
-/* Structure to hold Gaussian kernel buffers */
+/* Runtime structure to hold created custom buffers */
 typedef struct {
-    cl_mem kernel_x_buf;
-    cl_mem kernel_y_buf;
-    cl_mem tmp_buffer;
-} Gaussian5x5Buffers;
+    cl_mem buffer;                  /* OpenCL buffer handle */
+    unsigned char* host_data;       /* Host data (for file-backed buffers, NULL otherwise) */
+} RuntimeBuffer;
+
+/* Structure to hold all custom buffers for an algorithm
+ * Buffers are stored in order and set as kernel arguments sequentially:
+ *   arg 0: input (standard)
+ *   arg 1: output (standard)
+ *   arg 2+: custom_buffers[0], custom_buffers[1], ... in order
+ */
+typedef struct {
+    RuntimeBuffer buffers[MAX_CUSTOM_BUFFERS];
+    int count;
+} CustomBuffers;
 
 static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                          const Config* config, OpenCLEnv* env) {
@@ -216,10 +226,7 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     cl_kernel kernel;
     cl_mem input_buf = NULL;
     cl_mem output_buf = NULL;
-    cl_mem kernel_x_buf = NULL;
-    cl_mem kernel_y_buf = NULL;
-    cl_mem tmp_global_buffer = NULL;
-    Gaussian5x5Buffers gaussian_buffers = {0};
+    CustomBuffers custom_buffers = {0};
     clock_t ref_start;
     clock_t ref_end;
     double ref_time;
@@ -228,8 +235,8 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     int passed;
     int write_result;
     size_t img_size_t;
-    size_t tmp_global_buffer_size;
     int run_result;
+    int i;
     OpParams op_params = {0};  /* Common params reused throughout */
 
     if ((algo == NULL) || (kernel_cfg == NULL) || (config == NULL) || (env == NULL)) {
@@ -329,76 +336,72 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
-    /* Step 4b: Load algorithm-specific weight files (for Gaussian) */
-    if (strcmp(algo->id, "gaussian5x5") == 0) {
-        unsigned char* kernel_x_data;
-        unsigned char* kernel_y_data;
-        float* kernel_x;
-        float* kernel_y;
+    /* Step 4b: Create custom buffers from config */
+    if (config->custom_buffer_count > 0) {
+        cl_mem_flags mem_flags;
 
-        /* Step 4c: Create temporary global buffer (300MB) for Gaussian intermediate results */
-        tmp_global_buffer_size = 300U * 1024U * 1024U;  /* 300 MB */
-        tmp_global_buffer = opencl_create_buffer(env->context, CL_MEM_READ_WRITE,
-                                                 tmp_global_buffer_size, NULL, "tmp_global_buffer");
-        if (tmp_global_buffer == NULL) {
-            opencl_release_mem_object(output_buf, "output buffer");
-            opencl_release_mem_object(input_buf, "input buffer");
-            opencl_release_kernel(kernel);
-            return;
+        (void)printf("\n=== Creating Custom Buffers ===\n");
+
+        for (i = 0; i < config->custom_buffer_count; i++) {
+            const CustomBufferConfig* buf_cfg = &config->custom_buffers[i];
+            RuntimeBuffer* runtime_buf = &custom_buffers.buffers[i];
+
+            /* Convert buffer type to OpenCL flags */
+            if (buf_cfg->type == BUFFER_TYPE_READ_ONLY) {
+                mem_flags = CL_MEM_READ_ONLY;
+            } else if (buf_cfg->type == BUFFER_TYPE_WRITE_ONLY) {
+                mem_flags = CL_MEM_WRITE_ONLY;
+            } else {
+                mem_flags = CL_MEM_READ_WRITE;
+            }
+
+            /* File-backed buffer: load data from file */
+            if (buf_cfg->source_file[0] != '\0') {
+                /* Load data from file */
+                runtime_buf->host_data = read_image(buf_cfg->source_file,
+                                                    (int)buf_cfg->size_bytes, 1);
+                if (runtime_buf->host_data == NULL) {
+                    (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
+                    goto cleanup;
+                }
+
+                /* Create buffer with host data */
+                runtime_buf->buffer = opencl_create_buffer(env->context,
+                                                          mem_flags | CL_MEM_COPY_HOST_PTR,
+                                                          buf_cfg->size_bytes,
+                                                          runtime_buf->host_data,
+                                                          buf_cfg->name);
+                (void)printf("Loaded buffer '%s' from %s (%zu bytes)\n",
+                           buf_cfg->name, buf_cfg->source_file, buf_cfg->size_bytes);
+            }
+            /* Empty buffer: allocate without initialization */
+            else {
+                runtime_buf->host_data = NULL;
+                runtime_buf->buffer = opencl_create_buffer(env->context,
+                                                          mem_flags,
+                                                          buf_cfg->size_bytes,
+                                                          NULL,
+                                                          buf_cfg->name);
+                (void)printf("Created buffer '%s' (%zu bytes)\n",
+                           buf_cfg->name, buf_cfg->size_bytes);
+            }
+
+            if (runtime_buf->buffer == NULL) {
+                (void)fprintf(stderr, "Failed to create buffer '%s'\n", buf_cfg->name);
+                goto cleanup;
+            }
+
+            custom_buffers.count++;
         }
-
-        (void)printf("\n=== Loading Gaussian Weight Files ===\n");
-
-        /* Load kernel_x using read_image (5 floats = 5 width, 1 height, 4 bytes per float) */
-        kernel_x_data = read_image(config->kernel_x_file, 5 * sizeof(float), 1);
-        if (kernel_x_data == NULL) {
-            (void)fprintf(stderr, "Failed to load %s\n", config->kernel_x_file);
-            goto cleanup;
-        }
-        kernel_x = (float*)kernel_x_data;
-        (void)printf("Loaded kernel_x from %s\n", config->kernel_x_file);
-
-        /* Load kernel_y using read_image (5 floats = 5 width, 1 height, 4 bytes per float) */
-        kernel_y_data = read_image(config->kernel_y_file, 5 * sizeof(float), 1);
-        if (kernel_y_data == NULL) {
-            (void)fprintf(stderr, "Failed to load %s\n", config->kernel_y_file);
-            goto cleanup;
-        }
-        kernel_y = (float*)kernel_y_data;
-        (void)printf("Loaded kernel_y from %s\n", config->kernel_y_file);
-
-        /* Create OpenCL buffers for weights */
-        kernel_x_buf = opencl_create_buffer(env->context,
-                                           CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                           5 * sizeof(float), kernel_x, "kernel_x");
-        if (kernel_x_buf == NULL) {
-            goto cleanup;
-        }
-
-        kernel_y_buf = opencl_create_buffer(env->context,
-                                           CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                           5 * sizeof(float), kernel_y, "kernel_y");
-        if (kernel_y_buf == NULL) {
-            goto cleanup;
-        }
-
-        /* Store buffers in structure to pass via algo_params */
-        gaussian_buffers.kernel_x_buf = kernel_x_buf;
-        gaussian_buffers.kernel_y_buf = kernel_y_buf;
-        gaussian_buffers.tmp_buffer = tmp_global_buffer;
-
-        (void)printf("Created weight buffers (kernel_x: 5 floats, kernel_y: 5 floats)\n");
-        (void)printf("Created temporary global buffer (%.1f MB)\n",
-                     (double)tmp_global_buffer_size / (1024.0 * 1024.0));
     }
 
     /* Step 5: Run OpenCL kernel (algorithm handles argument setting) */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
 
-    /* Pass weight buffers for Gaussian via algo_params */
-    if (strcmp(algo->id, "gaussian5x5") == 0) {
-        op_params.algo_params = &gaussian_buffers;
-        op_params.algo_params_size = sizeof(gaussian_buffers);
+    /* Pass custom buffers to algorithm via algo_params */
+    if (custom_buffers.count > 0) {
+        op_params.algo_params = &custom_buffers;
+        op_params.algo_params_size = sizeof(custom_buffers);
     }
 
     run_result = opencl_run_kernel(env, kernel, algo,
@@ -445,17 +448,12 @@ static void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     }
 
 cleanup:
-    /* Cleanup weight buffers (for Gaussian) */
-    if (kernel_y_buf != NULL) {
-        opencl_release_mem_object(kernel_y_buf, "kernel_y buffer");
-    }
-    if (kernel_x_buf != NULL) {
-        opencl_release_mem_object(kernel_x_buf, "kernel_x buffer");
-    }
-
-    /* Cleanup temporary buffer */
-    if (tmp_global_buffer != NULL) {
-        opencl_release_mem_object(tmp_global_buffer, "tmp_global_buffer");
+    /* Cleanup custom buffers */
+    for (i = 0; i < custom_buffers.count; i++) {
+        if (custom_buffers.buffers[i].buffer != NULL) {
+            opencl_release_mem_object(custom_buffers.buffers[i].buffer,
+                                     config->custom_buffers[i].name);
+        }
     }
 
     /* Cleanup standard buffers - MISRA-C:2023 Rule 22.1: Proper resource management */

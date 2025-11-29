@@ -67,6 +67,97 @@ static int parse_kernel_section(const char* section, char* variant_id,
     return 0;
 }
 
+/* Parse buffer section name to extract buffer name */
+/* Format: "buffer.<name>" */
+static int parse_buffer_section(const char* section, char* name, size_t name_size) {
+    const char* first_dot;
+    size_t name_len;
+
+    if ((section == NULL) || (name == NULL)) {
+        return -1;
+    }
+
+    /* Skip "buffer." prefix */
+    if (strncmp(section, "buffer.", 7U) != 0) {
+        return -1;
+    }
+
+    first_dot = section + 7;  /* Points to start of buffer name */
+
+    /* Extract buffer name */
+    name_len = strlen(first_dot);
+    if ((name_len == 0U) || (name_len >= name_size)) {
+        return -1;  /* name empty or too long */
+    }
+    (void)strncpy(name, first_dot, name_size - 1U);
+    name[name_size - 1U] = '\0';
+
+    return 0;
+}
+
+/* Parse scalar section name to extract scalar name */
+/* Format: "scalar.<name>" */
+static int parse_scalar_section(const char* section, char* name, size_t name_size) {
+    const char* first_dot;
+    size_t name_len;
+
+    if ((section == NULL) || (name == NULL)) {
+        return -1;
+    }
+
+    /* Skip "scalar." prefix */
+    if (strncmp(section, "scalar.", 7U) != 0) {
+        return -1;
+    }
+
+    first_dot = section + 7;  /* Points to start of scalar name */
+
+    /* Extract scalar name */
+    name_len = strlen(first_dot);
+    if ((name_len == 0U) || (name_len >= name_size)) {
+        return -1;  /* name empty or too long */
+    }
+    (void)strncpy(name, first_dot, name_size - 1U);
+    name[name_size - 1U] = '\0';
+
+    return 0;
+}
+
+/* Parse data type from string */
+static DataType parse_data_type(const char* str) {
+    if (str == NULL) {
+        return DATA_TYPE_NONE;
+    }
+
+    if (strcmp(str, "float") == 0) {
+        return DATA_TYPE_FLOAT;
+    } else if (strcmp(str, "uchar") == 0) {
+        return DATA_TYPE_UCHAR;
+    } else if (strcmp(str, "int") == 0) {
+        return DATA_TYPE_INT;
+    } else if (strcmp(str, "short") == 0) {
+        return DATA_TYPE_SHORT;
+    }
+
+    return DATA_TYPE_NONE;
+}
+
+/* Get size in bytes for a data type */
+static size_t get_data_type_size(DataType type) {
+    switch (type) {
+        case DATA_TYPE_FLOAT:
+            return sizeof(float);
+        case DATA_TYPE_UCHAR:
+            return sizeof(unsigned char);
+        case DATA_TYPE_INT:
+            return sizeof(int);
+        case DATA_TYPE_SHORT:
+            return sizeof(short);
+        default:
+            return 0;
+    }
+}
+
 /* Parse a size_t array from a string like "1024,1024" or "1024" */
 /* MISRA-C:2023 Rule 21.17: Replaced strtok with strtok_r */
 static int parse_size_array(const char* str, size_t* arr, int max_count) {
@@ -241,12 +332,15 @@ int parse_config(const char* filename, Config* config) {
     char line[MAX_LINE_LENGTH];
     char section[MAX_SECTION_LENGTH] = "";
     int kernel_index = -1;
+    int buffer_index = -1;
+    int scalar_index = -1;
     char* trimmed;
     char* equals;
     char* key;
     char* value;
     char* end;
     long temp_long;
+    size_t temp_size;
 
     if ((filename == NULL) || (config == NULL)) {
         return -1;
@@ -261,6 +355,8 @@ int parse_config(const char* filename, Config* config) {
     /* Initialize config */
     (void)memset(config, 0, sizeof(Config));
     config->num_kernels = 0;
+    config->custom_buffer_count = 0;
+    config->scalar_arg_count = 0;
 
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
         trimmed = trim(line);
@@ -281,6 +377,8 @@ int parse_config(const char* filename, Config* config) {
                 /* If section starts with "kernel.", it's a kernel configuration */
                 if (strncmp(section, "kernel.", 7U) == 0) {
                     kernel_index = config->num_kernels;
+                    buffer_index = -1;
+                    scalar_index = -1;
                     config->num_kernels++;
                     if (config->num_kernels > MAX_KERNEL_CONFIGS) {
                         (void)fprintf(stderr, "Error: Too many kernel configurations (max %d)\n",
@@ -297,6 +395,56 @@ int parse_config(const char* filename, Config* config) {
                         (void)fclose(fp);
                         return -1;
                     }
+                }
+                /* If section starts with "buffer.", it's a custom buffer configuration */
+                else if (strncmp(section, "buffer.", 7U) == 0) {
+                    buffer_index = config->custom_buffer_count;
+                    kernel_index = -1;
+                    scalar_index = -1;
+                    config->custom_buffer_count++;
+                    if (config->custom_buffer_count > MAX_CUSTOM_BUFFERS) {
+                        (void)fprintf(stderr, "Error: Too many custom buffers (max %d)\n",
+                                      MAX_CUSTOM_BUFFERS);
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                    /* Parse buffer name from section name */
+                    if (parse_buffer_section(section,
+                                            config->custom_buffers[buffer_index].name,
+                                            sizeof(config->custom_buffers[buffer_index].name)) != 0) {
+                        (void)fprintf(stderr, "Error: Invalid buffer section name format: %s\n", section);
+                        (void)fprintf(stderr, "Expected format: buffer.<name>\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                }
+                /* If section starts with "scalar.", it's a scalar argument configuration */
+                else if (strncmp(section, "scalar.", 7U) == 0) {
+                    scalar_index = config->scalar_arg_count;
+                    kernel_index = -1;
+                    buffer_index = -1;
+                    config->scalar_arg_count++;
+                    if (config->scalar_arg_count > MAX_SCALAR_ARGS) {
+                        (void)fprintf(stderr, "Error: Too many scalar arguments (max %d)\n",
+                                      MAX_SCALAR_ARGS);
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                    /* Parse scalar name from section name */
+                    if (parse_scalar_section(section,
+                                            config->scalar_args[scalar_index].name,
+                                            sizeof(config->scalar_args[scalar_index].name)) != 0) {
+                        (void)fprintf(stderr, "Error: Invalid scalar section name format: %s\n", section);
+                        (void)fprintf(stderr, "Expected format: scalar.<name>\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                }
+                else {
+                    /* Other sections like [image] - reset indices */
+                    kernel_index = -1;
+                    buffer_index = -1;
+                    scalar_index = -1;
                 }
             }
             continue;
@@ -434,20 +582,110 @@ int parse_config(const char* filename, Config* config) {
             } else {
                 /* Unknown key in kernel section */
             }
+        } else if ((strncmp(section, "buffer.", 7U) == 0) && (buffer_index >= 0)) {
+            CustomBufferConfig* buf = &config->custom_buffers[buffer_index];
+
+            if (strcmp(key, "type") == 0) {
+                buf->type = parse_buffer_type(value);
+                if (buf->type == BUFFER_TYPE_NONE) {
+                    (void)fprintf(stderr, "Error: Invalid buffer type: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "data_type") == 0) {
+                buf->data_type = parse_data_type(value);
+                if (buf->data_type == DATA_TYPE_NONE) {
+                    (void)fprintf(stderr, "Error: Invalid data type: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "num_elements") == 0) {
+                if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
+                    buf->num_elements = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid num_elements value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "source_file") == 0) {
+                (void)strncpy(buf->source_file, value, sizeof(buf->source_file) - 1U);
+                buf->source_file[sizeof(buf->source_file) - 1U] = '\0';
+            } else if (strcmp(key, "size_bytes") == 0) {
+                if (eval_expression(value, &temp_size) == 0) {
+                    buf->size_bytes = temp_size;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid size_bytes expression: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else {
+                /* Unknown key in buffer section */
+            }
+        } else if ((strncmp(section, "scalar.", 7U) == 0) && (scalar_index >= 0)) {
+            ScalarArgConfig* scalar = &config->scalar_args[scalar_index];
+
+            if (strcmp(key, "value") == 0) {
+                if (safe_strtol(value, &temp_long)) {
+                    scalar->value = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid scalar value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else {
+                /* Unknown key in scalar section */
+            }
         } else {
-            /* Unknown section or invalid kernel index */
+            /* Unknown section or invalid index */
         }
     }
 
     (void)fclose(fp);
 
+    /* Validate custom buffers */
+    {
+        int i;
+        for (i = 0; i < config->custom_buffer_count; i++) {
+            CustomBufferConfig* buf = &config->custom_buffers[i];
+
+            /* Check if buffer type is set */
+            if (buf->type == BUFFER_TYPE_NONE) {
+                (void)fprintf(stderr, "Error: Buffer '%s' missing 'type' field\n", buf->name);
+                return -1;
+            }
+
+            /* File-backed buffer: must have source_file, data_type, and num_elements */
+            if (buf->source_file[0] != '\0') {
+                if (buf->data_type == DATA_TYPE_NONE) {
+                    (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'data_type' field\n", buf->name);
+                    return -1;
+                }
+                if (buf->num_elements == 0) {
+                    (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'num_elements' field\n", buf->name);
+                    return -1;
+                }
+                /* Calculate size_bytes from data_type and num_elements */
+                buf->size_bytes = get_data_type_size(buf->data_type) * (size_t)buf->num_elements;
+            }
+            /* Empty buffer: must have size_bytes */
+            else {
+                if (buf->size_bytes == 0) {
+                    (void)fprintf(stderr, "Error: Empty buffer '%s' missing 'size_bytes' field\n", buf->name);
+                    return -1;
+                }
+            }
+        }
+    }
+
     /* Note: op_id is now optional - can be auto-derived from filename in main.c */
     if (config->op_id[0] != '\0') {
-        (void)printf("Parsed config file: %s (op_id: %s, %d kernel configurations)\n",
-                     filename, config->op_id, config->num_kernels);
+        (void)printf("Parsed config file: %s (op_id: %s, %d kernels, %d custom buffers, %d scalars)\n",
+                     filename, config->op_id, config->num_kernels,
+                     config->custom_buffer_count, config->scalar_arg_count);
     } else {
-        (void)printf("Parsed config file: %s (%d kernel configurations)\n",
-                     filename, config->num_kernels);
+        (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n",
+                     filename, config->num_kernels,
+                     config->custom_buffer_count, config->scalar_arg_count);
     }
     return 0;
 }

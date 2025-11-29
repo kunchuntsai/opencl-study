@@ -6,19 +6,19 @@
  *
  * @param input Input image buffer
  * @param output Output image buffer
- * @param kernel_x Horizontal 1D Gaussian weights (5 floats)
- * @param kernel_y Vertical 1D Gaussian weights (5 floats)
  * @param tmp_buffer Temporary global buffer for intermediate results (300MB)
  * @param width Image width
  * @param height Image height
+ * @param kernel_x Horizontal 1D Gaussian weights (5 floats)
+ * @param kernel_y Vertical 1D Gaussian weights (5 floats)
  */
 __kernel void gaussian5x5(__global const uchar* input,
                           __global uchar* output,
-                          __global const float* kernel_x,
-                          __global const float* kernel_y,
                           __global uchar* tmp_buffer,
                           int width,
-                          int height) {
+                          int height,
+                          __global const float* kernel_x,
+                          __global const float* kernel_y) {
     int x = get_global_id(0);
     int y = get_global_id(1);
 

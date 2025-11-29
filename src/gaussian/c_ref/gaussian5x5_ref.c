@@ -127,60 +127,86 @@ int gaussian5x5_verify(const OpParams* params, float* max_error) {
 }
 
 
-/* Structure to hold Gaussian kernel buffers passed via OpParams */
+/* Runtime structure to hold created custom buffers (must match main.c) */
 typedef struct {
-    cl_mem kernel_x_buf;
-    cl_mem kernel_y_buf;
-    cl_mem tmp_buffer;
-} Gaussian5x5Buffers;
+    cl_mem buffer;
+    unsigned char* host_data;
+} RuntimeBuffer;
 
-/* Kernel argument setter - sets kernel arguments including weight buffers */
+typedef struct {
+    RuntimeBuffer buffers[8];  /* MAX_CUSTOM_BUFFERS */
+    int count;
+} CustomBuffers;
+
+/* Kernel argument setter - sets kernel arguments to match kernel signature
+ *
+ * Kernel signature: gaussian5x5(input, output, tmp_buffer, width, height, kernel_x, kernel_y)
+ *
+ * Arguments mapping:
+ *   arg 0: input
+ *   arg 1: output
+ *   arg 2: tmp_buffer (custom_buffers[0])
+ *   arg 3: width (scalar)
+ *   arg 4: height (scalar)
+ *   arg 5: kernel_x (custom_buffers[1])
+ *   arg 6: kernel_y (custom_buffers[2])
+ */
 int gaussian5x5_set_kernel_args(cl_kernel kernel,
                                        cl_mem input_buf,
                                        cl_mem output_buf,
                                        const OpParams* params) {
-    cl_uint arg_idx = 0U;
-    Gaussian5x5Buffers* buffers;
+    CustomBuffers* custom_buffers;
 
     if ((kernel == NULL) || (params == NULL)) {
         return -1;
     }
 
-    /* Extract weight buffers from algo_params */
+    /* Verify we have the expected number of custom buffers */
     if (params->algo_params == NULL) {
-        (void)fprintf(stderr, "Error: Gaussian kernel requires weight buffers in algo_params\n");
+        (void)fprintf(stderr, "Error: Gaussian kernel requires custom buffers\n");
         return -1;
     }
-    buffers = (Gaussian5x5Buffers*)params->algo_params;
+    custom_buffers = (CustomBuffers*)params->algo_params;
+    if (custom_buffers->count != 3) {
+        (void)fprintf(stderr, "Error: Gaussian kernel requires exactly 3 custom buffers (got %d)\n",
+                     custom_buffers->count);
+        return -1;
+    }
 
-    /* Set all 7 kernel arguments:
-     * 0: input buffer
-     * 1: output buffer
-     * 2: kernel_x buffer (1D horizontal weights)
-     * 3: kernel_y buffer (1D vertical weights)
-     * 4: tmp_buffer (temporary global buffer)
-     * 5: width
-     * 6: height
-     */
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
+    /* Set arguments in exact order matching kernel signature */
+
+    /* arg 0: input */
+    if (clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
         return -1;
     }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
+
+    /* arg 1: output */
+    if (clSetKernelArg(kernel, 1, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
         return -1;
     }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &buffers->kernel_x_buf) != CL_SUCCESS) {
+
+    /* arg 2: tmp_buffer (first custom buffer from config) */
+    if (clSetKernelArg(kernel, 2, sizeof(cl_mem), &custom_buffers->buffers[0].buffer) != CL_SUCCESS) {
         return -1;
     }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &buffers->kernel_y_buf) != CL_SUCCESS) {
+
+    /* arg 3: width */
+    if (clSetKernelArg(kernel, 3, sizeof(int), &params->src_width) != CL_SUCCESS) {
         return -1;
     }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &buffers->tmp_buffer) != CL_SUCCESS) {
+
+    /* arg 4: height */
+    if (clSetKernelArg(kernel, 4, sizeof(int), &params->src_height) != CL_SUCCESS) {
         return -1;
     }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
+
+    /* arg 5: kernel_x (second custom buffer from config) */
+    if (clSetKernelArg(kernel, 5, sizeof(cl_mem), &custom_buffers->buffers[1].buffer) != CL_SUCCESS) {
         return -1;
     }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
+
+    /* arg 6: kernel_y (third custom buffer from config) */
+    if (clSetKernelArg(kernel, 6, sizeof(cl_mem), &custom_buffers->buffers[2].buffer) != CL_SUCCESS) {
         return -1;
     }
 

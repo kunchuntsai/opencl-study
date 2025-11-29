@@ -66,6 +66,58 @@ typedef enum {
     BUFFER_TYPE_READ_WRITE
 } BufferType;
 
+/** Data type enumeration for buffer elements */
+typedef enum {
+    DATA_TYPE_NONE = 0,
+    DATA_TYPE_FLOAT,    /**< 32-bit floating point (4 bytes) */
+    DATA_TYPE_UCHAR,    /**< 8-bit unsigned char (1 byte) */
+    DATA_TYPE_INT,      /**< 32-bit signed integer (4 bytes) */
+    DATA_TYPE_SHORT     /**< 16-bit signed integer (2 bytes) */
+} DataType;
+
+/**
+ * @brief Custom buffer configuration
+ *
+ * Describes a custom OpenCL buffer that will be created and passed to the kernel.
+ * Buffers are set as kernel arguments sequentially after input/output buffers.
+ * Order in config file determines kernel argument order:
+ *   arg 0: input (standard)
+ *   arg 1: output (standard)
+ *   arg 2: first custom buffer
+ *   arg 3: second custom buffer
+ *   ...
+ *
+ * Buffers can either be:
+ * - File-backed: Loaded from source_file, sized by data_type * num_elements
+ * - Empty: Allocated with size_bytes, no initialization
+ */
+typedef struct {
+    char name[64];              /**< Buffer name (from [buffer.NAME] section) */
+    BufferType type;            /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
+
+    /* File-backed buffer fields */
+    char source_file[256];      /**< Path to data file (empty string if not file-backed) */
+    DataType data_type;         /**< Element data type (for file-backed buffers) */
+    int num_elements;           /**< Number of elements (for file-backed buffers) */
+
+    /* Empty buffer fields */
+    size_t size_bytes;          /**< Direct size specification (for empty buffers) */
+} CustomBufferConfig;
+
+/**
+ * @brief Scalar argument configuration
+ *
+ * Describes a scalar argument to be passed to the kernel (e.g., filter_width, filter_height).
+ * Scalars are set as kernel arguments sequentially after all custom buffers.
+ */
+typedef struct {
+    char name[64];              /**< Argument name */
+    int value;                  /**< Scalar integer value */
+} ScalarArgConfig;
+
+/** Maximum number of scalar arguments */
+#define MAX_SCALAR_ARGS 16
+
 /**
  * @brief Complete configuration parsed from config file
  *
@@ -83,14 +135,22 @@ typedef struct {
     int num_kernels;            /**< Number of kernel variants configured */
     KernelConfig kernels[MAX_KERNEL_CONFIGS]; /**< Array of kernel configurations */
 
-    /* Custom buffer files (e.g., kernel weights) */
+    /* DEPRECATED: Legacy buffer files (kept for backward compatibility) */
     char kernel_x_file[256];    /**< Path to kernel_x weight file */
     char kernel_y_file[256];    /**< Path to kernel_y weight file */
 
-    /* Buffer configuration */
+    /* DEPRECATED: Legacy buffer configuration (kept for backward compatibility) */
     BufferType cl_buffer_type[MAX_CUSTOM_BUFFERS]; /**< Buffer types */
     size_t cl_buffer_size[MAX_CUSTOM_BUFFERS];     /**< Buffer sizes */
     int num_buffers;            /**< Number of configured buffers */
+
+    /* NEW: Custom buffer configuration (replaces legacy approach) */
+    CustomBufferConfig custom_buffers[MAX_CUSTOM_BUFFERS]; /**< Custom buffer configurations */
+    int custom_buffer_count;    /**< Number of custom buffers configured */
+
+    /* NEW: Scalar argument configuration */
+    ScalarArgConfig scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
+    int scalar_arg_count;       /**< Number of scalar arguments configured */
 } Config;
 
 /**
