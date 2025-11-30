@@ -41,7 +41,15 @@ Visual diagrams to understand the system architecture and execution flow.
 ┌─────────────────────────────────────────────────────────────────────┐
 │                          APPLICATION LAYER                           │
 │                           (src/main.c)                               │
-│  • Program entry & menu • Algorithm execution • Performance reports  │
+│           • CLI interface • Argument parsing • User menus            │
+└─────────────────────────────────────────────────────────────────────┘
+                                    │
+                    ┌───────────────┼───────────────┐
+                    ▼               ▼               ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                      EXECUTION PIPELINE LAYER                        │
+│                    (src/algorithm_runner.c/.h)                       │
+│    • Algorithm orchestration • Buffer management • Verification      │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
                     ┌───────────────┼───────────────┐
@@ -65,9 +73,10 @@ Visual diagrams to understand the system architecture and execution flow.
 │                       INFRASTRUCTURE LAYER (src/utils/)              │
 │                                                                       │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐  │
-│  │ op_registry.c/.h │  │opencl_utils.c/.h │  │config_parser.c  │  │
+│  │ op_registry.c/.h │  │opencl_utils.c/.h │  │  config.c/.h    │  │
 │  │ • Algorithm reg  │  │ • Platform init  │  │ • INI parsing   │  │
 │  │ • Registry mgmt  │  │ • Kernel exec    │  │ • Buffer config │  │
+│  │                  │  │                  │  │ • Path utils    │  │
 │  └──────────────────┘  └──────────────────┘  └─────────────────┘  │
 │                                                                       │
 │  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐  │
@@ -551,24 +560,30 @@ test_data/
 │              (No malloc - MISRA-C Rule 21.3)                  │
 └───────────────────────────────────────────────────────────────┘
 
-main.c:
+main.c (Application Layer):
 ┌──────────────────────────────────────────────────────────────┐
 │ static unsigned char gpu_output_buffer[16*1024*1024];       │  16 MB
 │ static unsigned char ref_output_buffer[16*1024*1024];       │  16 MB
 └──────────────────────────────────────────────────────────────┘
 
-image_io.c:
+algorithm_runner.c (Execution Pipeline):
+┌──────────────────────────────────────────────────────────────┐
+│ RuntimeBuffer buffers[MAX_CUSTOM_BUFFERS];                   │  ~1 KB
+│ CustomBuffers custom_buffers;                                │  (refs)
+└──────────────────────────────────────────────────────────────┘
+
+image_io.c (Infrastructure):
 ┌──────────────────────────────────────────────────────────────┐
 │ static unsigned char image_buffer[16*1024*1024];            │  16 MB
 └──────────────────────────────────────────────────────────────┘
 
-opencl_utils.c:
+opencl_utils.c (Infrastructure):
 ┌──────────────────────────────────────────────────────────────┐
 │ static char kernel_source_buffer[1024*1024];                │   1 MB
 │ static char build_log_buffer[16*1024];                      │  16 KB
 └──────────────────────────────────────────────────────────────┘
 
-config_parser.c:
+config.c (Infrastructure):
 ┌──────────────────────────────────────────────────────────────┐
 │ static KernelConfig configs[32];                            │  ~50 KB
 └──────────────────────────────────────────────────────────────┘
@@ -594,46 +609,54 @@ Maximum supported image: 4096 x 4096 pixels (16 MB)
                       │  src/Makefile  │
                       └────────┬───────┘
                                │
-                ┌──────────────┼──────────────┐
-                ▼              ▼              ▼
-        ┌─────────────┐  ┌──────────┐  ┌──────────┐
-        │   main.c    │  │ utils/   │  │ dilate/  │
-        └─────────────┘  │  *.c     │  │  *.c     │
-                         └──────────┘  └──────────┘
-                               │              │
-                         ┌─────┴──────┬───────┘
-                         ▼            ▼
-                  ┌────────────┐  ┌─────────────┐
-                  │ gaussian/  │  │ algorithm3/ │
-                  │   *.c      │  │   *.c       │
-                  └────────────┘  └─────────────┘
-                         │
-                         ▼
-              ┌────────────────────────┐
-              │     Compiler (gcc)     │
-              │  -Wall -O2 -std=c99    │
-              │  -I. (include paths)   │
-              └────────────┬───────────┘
-                           ▼
-              ┌────────────────────────┐
-              │   Object Files (.o)    │
-              │   build/obj/           │
-              │    ├── main.o          │
-              │    ├── utils/          │
-              │    ├── dilate/         │
-              │    └── gaussian/       │
-              └────────────┬───────────┘
-                           ▼
-              ┌────────────────────────┐
-              │    Linker (gcc)        │
-              │  -framework OpenCL     │
-              │  -lm (math library)    │
-              └────────────┬───────────┘
-                           ▼
-              ┌────────────────────────┐
-              │  build/opencl_host     │
-              │     (70 KB exec)       │
-              └────────────────────────┘
+           ┌───────────────────┼───────────────────┐
+           ▼                   ▼                   ▼
+    ┌─────────────┐    ┌──────────────┐    ┌──────────┐
+    │   main.c    │    │ algorithm_   │    │ utils/   │
+    │  (CLI only) │    │  runner.c    │    │  *.c     │
+    └─────────────┘    │ (pipeline)   │    └──────────┘
+                       └──────────────┘         │
+                              │           ┌─────┴──────┐
+                              │           ▼            ▼
+                              │    ┌──────────┐  ┌─────────────┐
+                              │    │ dilate/  │  │ gaussian/   │
+                              │    │  *.c     │  │   *.c       │
+                              │    └──────────┘  └─────────────┘
+                              │
+                              ▼
+                   ┌────────────────────────┐
+                   │     Compiler (gcc)     │
+                   │  -Wall -O2 -std=c99    │
+                   │  -I. (include paths)   │
+                   └────────────┬───────────┘
+                                ▼
+                   ┌────────────────────────┐
+                   │   Object Files (.o)    │
+                   │   build/obj/           │
+                   │    ├── main.o          │
+                   │    ├── algorithm_      │
+                   │    │     runner.o      │
+                   │    ├── utils/          │
+                   │    ├── dilate/         │
+                   │    └── gaussian/       │
+                   └────────────┬───────────┘
+                                ▼
+                   ┌────────────────────────┐
+                   │    Linker (gcc)        │
+                   │  -framework OpenCL     │
+                   │  -lm (math library)    │
+                   └────────────┬───────────┘
+                                ▼
+                   ┌────────────────────────┐
+                   │  build/opencl_host     │
+                   │     (70 KB exec)       │
+                   └────────────────────────┘
+
+MODULAR STRUCTURE:
+  • main.c (230 lines) - CLI only
+  • algorithm_runner.c (266 lines) - Execution pipeline
+  • utils/config.c - Extended with path utilities
+  • Algorithm modules - Self-contained plugins
 
 EXTERNAL DEPENDENCIES:
   • OpenCL Runtime (GPU drivers)
@@ -651,12 +674,26 @@ All algorithms self-contained.
 This architecture provides:
 
 1. **Modularity** - Self-contained algorithm plugins with clean interfaces
+   - CLI layer (main.c) - 230 lines
+   - Execution pipeline (algorithm_runner.c) - 266 lines
+   - Infrastructure utilities (utils/) - Reusable components
+
 2. **Extensibility** - Add algorithms without modifying core code
+
 3. **Flexibility** - Per-algorithm INI files with custom buffer configuration
+
 4. **Performance** - Binary caching accelerates iteration (50-60x)
+
 5. **Safety** - MISRA-C compliant (static allocation, safe arithmetic)
+
 6. **Verification** - CPU reference validates GPU correctness
+
 7. **Scalability** - Multiple algorithms, multiple variants per algorithm
-8. **Maintainability** - Clear separation: app, algorithm, infrastructure layers
+
+8. **Maintainability** - Clear separation of concerns:
+   - Application layer: CLI interface
+   - Execution layer: Algorithm orchestration
+   - Algorithm layer: Self-contained plugins
+   - Infrastructure layer: Reusable utilities
 
 The design follows professional software engineering practices suitable for client demonstrations and production deployment.

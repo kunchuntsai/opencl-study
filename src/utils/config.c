@@ -745,3 +745,74 @@ int get_op_variants(const Config* config, const char* op_id,
     *count = config->num_kernels;
     return 0;
 }
+
+int resolve_config_path(const char* input, char* output, size_t output_size) {
+    FILE* test_file;
+
+    if ((input == NULL) || (output == NULL) || (output_size == 0U)) {
+        return -1;
+    }
+
+    /* Check if input already has .ini extension or contains path separators */
+    if ((strstr(input, ".ini") != NULL) || (strchr(input, '/') != NULL)) {
+        /* Treat as explicit path */
+        if (strlen(input) >= output_size) {
+            return -1;
+        }
+        (void)strncpy(output, input, output_size - 1U);
+        output[output_size - 1U] = '\0';
+    } else {
+        /* Treat as algorithm name - construct config/<name>.ini */
+        int written;
+        written = snprintf(output, output_size, "config/%s.ini", input);
+        if ((written < 0) || ((size_t)written >= output_size)) {
+            return -1;
+        }
+    }
+
+    /* Verify file exists */
+    test_file = fopen(output, "r");
+    if (test_file == NULL) {
+        (void)fprintf(stderr, "Config file not found: %s\n", output);
+        return -1;
+    }
+    (void)fclose(test_file);
+
+    return 0;
+}
+
+int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size) {
+    const char* last_slash;
+    const char* last_dot;
+    const char* filename;
+    size_t name_len;
+
+    if ((config_path == NULL) || (op_id == NULL) || (op_id_size == 0U)) {
+        return -1;
+    }
+
+    /* Find filename (after last slash) */
+    last_slash = strrchr(config_path, '/');
+    filename = (last_slash != NULL) ? (last_slash + 1) : config_path;
+
+    /* Find extension (last dot) */
+    last_dot = strrchr(filename, '.');
+    if (last_dot == NULL) {
+        /* No extension, use entire filename */
+        if (strlen(filename) >= op_id_size) {
+            return -1;
+        }
+        (void)strncpy(op_id, filename, op_id_size - 1U);
+        op_id[op_id_size - 1U] = '\0';
+    } else {
+        /* Extract name before extension */
+        name_len = (size_t)(last_dot - filename);
+        if (name_len >= op_id_size) {
+            return -1;
+        }
+        (void)strncpy(op_id, filename, name_len);
+        op_id[name_len] = '\0';
+    }
+
+    return 0;
+}

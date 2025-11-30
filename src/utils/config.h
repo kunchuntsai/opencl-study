@@ -188,3 +188,33 @@ int parse_config(const char* filename, Config* config);
  */
 int get_op_variants(const Config* config, const char* op_id,
                     KernelConfig* variants[], int* count);
+
+/**
+ * @brief Resolve config path from algorithm name or explicit path
+ *
+ * Handles three cases:
+ * 1. Algorithm name (e.g., "dilate3x3") -> "config/dilate3x3.ini"
+ * 2. Explicit relative path (e.g., "config/custom.ini") -> unchanged
+ * 3. Explicit absolute path (e.g., "/path/to/config.ini") -> unchanged
+ *
+ * Verifies that the resolved file exists.
+ *
+ * @param[in] input User input (algorithm name or path)
+ * @param[out] output Resolved config file path
+ * @param[in] output_size Size of output buffer
+ * @return 0 on success, -1 on error
+ */
+int resolve_config_path(const char* input, char* output, size_t output_size);
+
+/**
+ * @brief Extract op_id from config file path
+ *
+ * Extracts the base filename without extension to use as op_id.
+ * Example: "config/dilate3x3.ini" -> "dilate3x3"
+ *
+ * @param[in] config_path Path to config file
+ * @param[out] op_id Extracted algorithm identifier
+ * @param[in] op_id_size Size of op_id buffer
+ * @return 0 on success, -1 on error
+ */
+int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size);

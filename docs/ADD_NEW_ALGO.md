@@ -230,13 +230,14 @@ int erode3x3_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
 //                                    __global float* kernel_x,      // custom[1]
 //                                    __global float* kernel_y)      // custom[2]
 
+// These types are defined in src/algorithm_runner.h
 typedef struct {
     cl_mem buffer;
     unsigned char* host_data;
 } RuntimeBuffer;
 
 typedef struct {
-    RuntimeBuffer buffers[8];  // MAX_CUSTOM_BUFFERS
+    RuntimeBuffer buffers[MAX_CUSTOM_BUFFERS]; // MAX: 8
     int count;
 } CustomBuffers;
 

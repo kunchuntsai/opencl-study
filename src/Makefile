@@ -23,6 +23,7 @@ TARGET = $(BUILD_DIR)/opencl_host
 # Note: List algorithm directories explicitly to avoid duplicates
 ALGO_DIRS = dilate gaussian
 SRCS = main.c \
+       algorithm_runner.c \
        $(wildcard utils/*.c) \
        $(foreach dir,$(ALGO_DIRS),$(wildcard $(dir)/*.c) $(wildcard $(dir)/c_ref/*.c))
 
