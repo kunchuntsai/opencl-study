@@ -34,7 +34,7 @@ int main(int argc, char** argv) {
 
     /* Check for help flags */
     if ((argc == 2) && ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0) || (strcmp(argv[1], "help") == 0))) {
-        (void)printf("Usage: %s <algorithm|config_file> [variant_index]\n", argv[0]);
+        (void)printf("Usage: %s <algorithm> [variant_index]\n", argv[0]);
         (void)printf("\n");
         (void)printf("Available Algorithms:\n");
         list_algorithms();
@@ -44,7 +44,7 @@ int main(int argc, char** argv) {
     /* Check command line arguments */
     if (argc > 3) {
         (void)fprintf(stderr, "Error: Too many arguments\n");
-        (void)fprintf(stderr, "Usage: %s [algorithm|config_file] [variant_index]\n", argv[0]);
+        (void)fprintf(stderr, "Usage: %s <algorithm> [variant_index]\n", argv[0]);
         (void)fprintf(stderr, "Run '%s --help' for more information\n", argv[0]);
         return 1;
     }
@@ -59,7 +59,7 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* Argument 1: Algorithm name or config path (required) */
+    /* Argument 1: Algorithm name (required) */
     config_input = argv[1];
 
     /* Argument 2: Variant index (optional, default: interactive) */
@@ -73,7 +73,7 @@ int main(int argc, char** argv) {
         variant_index = -1;
     }
 
-    /* Resolve config path (handles both algorithm names and explicit paths) */
+    /* Resolve algorithm name to config path (config/<name>.ini) */
     if (resolve_config_path(config_input, config_path, sizeof(config_path)) != 0) {
         (void)fprintf(stderr, "Failed to resolve config path: %s\n", config_input);
         return 1;

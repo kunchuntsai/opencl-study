@@ -1,14 +1,19 @@
 # OpenCL Image Processing Framework
 
-A modular, plugin-like C implementation for OpenCL image processing algorithms with built-in verification and benchmarking.
+A modular, plugin-like C framework for developing and benchmarking OpenCL image processing algorithms with automatic verification and performance testing.
 
-> **✨ Recent Updates:**
-> - **Per-Algorithm Configs**: Each algorithm now has its own `.ini` file (e.g., `config/dilate3x3.ini`)
-> - **Auto-Registration**: New `REGISTER_ALGORITHM()` macro eliminates boilerplate
-> - **Flexible Parameters**: `OpParams` structure supports diverse algorithm requirements
-> - **Intuitive CLI**: Run algorithms by name: `./opencl_host dilate3x3 0`
+**What does this framework provide?**
+
+- 🚀 **Rapid algorithm development**: Add new OpenCL algorithms with minimal boilerplate
+- ✅ **Automatic correctness verification**: Compare GPU results against CPU reference implementation
+- ⚡ **Performance benchmarking**: Built-in timing and speedup calculations
+- 🔧 **Flexible configuration**: Per-algorithm `.ini` files with support for multiple kernel variants
+- 💾 **Smart caching**: Automatic caching of compiled kernels and golden samples
+- 🎯 **Clean architecture**: Modular design following best practices for safety-critical systems
 
 ## Quick Start
+
+Get up and running in 3 steps:
 
 ```bash
 # 1. Generate test image
@@ -17,174 +22,104 @@ python3 scripts/generate_test_image.py
 # 2. Build the project
 ./scripts/build.sh
 
-# 3. Run an algorithm by name
+# 3. Run an algorithm
 ./build/opencl_host dilate3x3 0        # Morphological dilation
 ./build/opencl_host gaussian5x5 0      # Gaussian blur
-
-# 4. See available options
-./build/opencl_host --help
 ```
 
-Each algorithm automatically loads its own configuration from `config/<algorithm>.ini`.
+**New to the framework?** See [Getting Started](#getting-started) below for detailed setup instructions.
 
-## Features
+## Table of Contents
 
-- **Modular Architecture**: Easy to add new algorithms following the plugin pattern
-- **Auto-Registration System**: Algorithms register themselves using simple macros - no manual registration needed
-- **Per-Algorithm Configs**: Each algorithm has its own configuration file for better maintainability
-- **Multiple Kernel Variants**: Support for different implementations of the same algorithm
-- **Automatic Verification**: Built-in C reference implementations for correctness checking
-- **Golden Sample Caching**: Automatic caching of c_ref outputs for regression testing
-- **Kernel Binary Caching**: Compiled OpenCL binaries are cached per algorithm to skip recompilation
-- **Performance Benchmarking**: Automatic timing and speedup calculations
-- **Flexible Parameters**: OpParams structure supports algorithms with varying requirements
-- **Intuitive CLI**: Algorithm selection by name (`./opencl_host dilate3x3 0`)
-- **MISRA-C:2023 Compliant**: High compliance for safety-critical applications
-- **Clean Architecture**: Separated init/build/run phases for OpenCL operations
-- **Organized Cache Structure**: Per-algorithm cache organization under `test_data/`
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Initial Setup](#initial-setup)
+  - [Running Your First Algorithm](#running-your-first-algorithm)
+- [Adding a New Algorithm](#adding-a-new-algorithm)
+- [Configuration Guide](#configuration-guide)
+- [Project Structure](#project-structure)
+- [Documentation](#documentation)
 
-## Project Structure
+## Getting Started
 
-```
-.
-├── build/
-│   ├── obj/                        # Intermediate object files
-│   └── opencl_host                 # Compiled executable
-├── config/
-│   ├── dilate3x3.ini               # Dilate algorithm config
-│   ├── gaussian5x5.ini             # Gaussian algorithm config
-│   └── README.md                   # Config documentation
-├── docs/
-│   ├── ADD_NEW_ALGO.md             # Algorithm development guide
-│   ├── ALGORITHM_INTERFACE.md      # Algorithm interface guide
-│   └── CONFIG_SYSTEM.md            # Per-algorithm config system guide
-├── src/
-│   ├── main.c                      # Entry point with smart CLI parsing
-│   ├── Makefile                    # Build configuration
-│   ├── dilate/
-│   │   ├── c_ref/                  # C reference implementation
-│   │   │   └── dilate3x3_ref.c     # Self-contained, auto-registers
-│   │   └── cl/                     # OpenCL kernels
-│   │       ├── dilate0.cl          # Basic variant
-│   │       └── dilate1.cl          # Optimized with local memory
-│   ├── gaussian/
-│   │   ├── c_ref/                  # C reference implementation
-│   │   │   └── gaussian5x5_ref.c   # Self-contained, auto-registers
-│   │   └── cl/                     # OpenCL kernels
-│   │       └── gaussian0.cl        # Basic variant
-│   └── utils/
-│       ├── op_interface.h          # OpParams + Algorithm interface
-│       ├── op_registry.c/.h        # Registration + REGISTER_ALGORITHM macro
-│       ├── opencl_utils.c/.h       # OpenCL init/build/run utilities
-│       ├── config_parser.c/.h      # INI file parser
-│       ├── image_io.c/.h           # Raw image I/O
-│       ├── verify.c/.h             # Verification utilities
-│       └── safe_ops.h              # MISRA-C safe arithmetic operations
-├── scripts/
-│   ├── build.sh                    # Build script (with --clean option)
-│   ├── generate_test_image.py     # Test image generator
-│   └── run.sh                      # Run script
-└── test_data/
-    ├── dilate3x3/                  # Algorithm-specific cache
-    │   ├── kernels/                # Cached kernel binaries (.bin)
-    │   └── golden/                 # Golden sample from c_ref (.bin)
-    ├── gaussian5x5/                # Algorithm-specific cache
-    │   ├── kernels/                # Cached kernel binaries (.bin)
-    │   └── golden/                 # Golden sample from c_ref (.bin)
-    ├── input.bin                   # Sample input image
-    └── output.bin                  # Latest output image
-```
+### Prerequisites
 
-## Building
+Before you begin, ensure you have:
 
-First, generate the test image:
+- **C Compiler**: GCC or compatible C compiler
+- **OpenCL Runtime**:
+  - macOS: Apple OpenCL framework (pre-installed)
+  - Linux/Windows: OpenCL SDK for your GPU vendor
+- **Python 3**: With NumPy for test image generation
+  ```bash
+  pip install numpy
+  ```
+
+### Initial Setup
+
+1. **Clone and navigate to the project:**
+   ```bash
+   cd opencl-study
+   ```
+
+2. **Generate a test image:**
+   ```bash
+   python3 scripts/generate_test_image.py
+   ```
+   This creates `test_data/input.bin` (1024x1024 grayscale image with geometric patterns).
+
+3. **Build the project:**
+   ```bash
+   ./scripts/build.sh
+   ```
+   This compiles all sources and creates `build/opencl_host`.
+
+### Running Your First Algorithm
+
+Run an algorithm by name with a variant index:
+
 ```bash
-python3 scripts/generate_test_image.py
+./build/opencl_host dilate3x3 0
 ```
 
-Then build using the build script:
+**What happens:**
+- Loads configuration from `config/dilate3x3.ini`
+- Runs C reference implementation (CPU)
+- Runs OpenCL kernel variant 0 (GPU)
+- Verifies GPU output matches CPU reference
+- Displays performance metrics
+
+**Try other algorithms:**
 ```bash
-./scripts/build.sh                # Incremental build
-./scripts/build.sh --clean        # Clean build (removes build/ and cache/)
-./scripts/build.sh --help         # Show help
+./build/opencl_host gaussian5x5 0      # Gaussian blur
+./build/opencl_host dilate3x3 1        # Optimized dilate variant
+./build/opencl_host --help             # See all available algorithms
 ```
 
-Or manually:
+## Adding a New Algorithm
+
+Want to add your own image processing algorithm? It's straightforward!
+
+**Three simple steps:**
+
+1. **Create a configuration file:** `config/myalgo.ini`
+2. **Implement C reference:** `src/myalgo/c_ref/myalgo_ref.c` (3 required functions)
+3. **Write OpenCL kernel:** `src/myalgo/cl/myalgo0.cl`
+
+Then regenerate the registry and build:
 ```bash
-cd src
-make                              # Incremental build
-make clean && make                # Clean build (removes build/ only)
+./scripts/generate_registry.sh
+./scripts/build.sh
+./build/opencl_host myalgo 0
 ```
 
-This will compile all source files and create the `opencl_host` executable in the `build/` directory.
+**📖 Detailed guide:** See **[docs/ADD_NEW_ALGO.md](docs/ADD_NEW_ALGO.md)** for complete step-by-step instructions, API requirements, and examples.
 
-### Caching System
+## Configuration Guide
 
-The framework automatically caches:
-- **Kernel Binaries**: Compiled OpenCL binaries in `test_data/{algorithm}/kernels/` (avoids recompilation)
-- **Golden Samples**: C reference outputs in `test_data/{algorithm}/golden/` (for regression testing)
+Each algorithm has its own `.ini` configuration file in the `config/` directory.
 
-Use `./scripts/build.sh --clean` to remove all cached data and perform a fresh build.
-
-## Running
-
-The framework supports multiple ways to run algorithms:
-
-### By Algorithm Name (Recommended)
-```bash
-./build/opencl_host <algorithm> [variant]
-
-# Examples:
-./build/opencl_host dilate3x3 0      # Run dilate with variant v0
-./build/opencl_host gaussian5x5 0    # Run gaussian with variant v0
-./build/opencl_host dilate3x3 1      # Run dilate with optimized variant v1
-```
-
-This automatically loads `config/<algorithm>.ini` for the specified algorithm.
-
-### Interactive Variant Selection
-```bash
-./build/opencl_host dilate3x3        # Prompts for variant selection
-./build/opencl_host gaussian5x5      # Prompts for variant selection
-```
-
-### With Explicit Config Path
-```bash
-./build/opencl_host config/dilate3x3.ini 0
-./build/opencl_host config/custom.ini 1
-```
-
-### Using the Run Script
-```bash
-./scripts/run.sh                     # Interactive mode
-```
-
-### Help
-```bash
-./build/opencl_host --help           # Show usage and available algorithms
-```
-
-**Available Algorithms:**
-- `dilate3x3` - Morphological dilation (variants: v0, v1)
-- `gaussian5x5` - Gaussian blur (variants: v0)
-
-**Variant Indices:**
-- `0` = v0 (basic implementation)
-- `1` = v1 (optimized, if available)
-
-Note: The executable runs from the project root directory, so all paths in config files are relative to the project root.
-
-## Configuration
-
-Each algorithm has its own configuration file: `config/<algorithm>.ini`
-
-**Key Features:**
-- One config file per algorithm for better organization
-- Algorithm ID auto-derived from filename (`dilate3x3.ini` → `op_id = dilate3x3`)
-- Multiple kernel variants per algorithm
-- No merge conflicts when adding new algorithms
-
-**Example:** `config/dilate3x3.ini`
+**Basic structure:**
 ```ini
 [image]
 input = test_data/input.bin
@@ -193,84 +128,179 @@ src_width = 1920
 src_height = 1080
 
 [kernel.v0]
-kernel_file = src/dilate/cl/dilate0.cl
-kernel_function = dilate3x3
+kernel_file = src/myalgo/cl/myalgo0.cl
+kernel_function = myalgo
 work_dim = 2
 global_work_size = 1920,1088
 local_work_size = 16,16
 ```
 
-For detailed configuration options and examples, see **[docs/CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md)** and **[config/README.md](config/README.md)**.
+**Key points:**
+- Algorithm ID auto-derived from filename (`myalgo.ini` → `myalgo`)
+- At least one kernel variant required (`[kernel.v0]`)
+- Custom buffers supported via `[buffer.*]` sections
 
-## Algorithms
+**📖 Complete reference:** See **[docs/CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md)** for all configuration parameters, custom buffers, and advanced options.
 
-The framework includes morphological and filtering algorithms. For the complete list of implemented algorithms and detailed instructions on adding new ones, see **[docs/ADD_NEW_ALGO.md](docs/ADD_NEW_ALGO.md)**.
+## Features
 
-**Quick summary:**
-- **Dilate 3x3** - Morphological dilation (variants: v0, v1)
-- **Gaussian 5x5** - Gaussian blur (variants: v0)
+- **Modular Architecture**: Easy to add new algorithms following the plugin pattern
+- **Auto-Registration System**: Algorithms register themselves automatically - no manual registration needed
+- **Per-Algorithm Configs**: Each algorithm has its own configuration file for better maintainability
+- **Multiple Kernel Variants**: Support for different implementations of the same algorithm
+- **Automatic Verification**: Built-in C reference implementations for correctness checking
+- **Golden Sample Caching**: Automatic caching of c_ref outputs for regression testing
+- **Kernel Binary Caching**: Compiled OpenCL binaries are cached per algorithm to skip recompilation
+- **Performance Benchmarking**: Automatic timing and speedup calculations
+- **Flexible Parameters**: OpParams structure supports algorithms with varying requirements
+- **Intuitive CLI**: Algorithm selection by name (`./opencl_host dilate3x3 0`)
+- **Clean Architecture**: Separated init/build/run phases for OpenCL operations
+- **Organized Cache Structure**: Per-algorithm cache organization under `test_data/`
 
-**Adding a new algorithm is simple:**
-1. Create `.c` file with `REGISTER_ALGORITHM()` macro
-2. Create OpenCL `.cl` kernel
-3. Create `config/<algorithm>.ini`
-4. Build and run!
+## Project Structure
 
-See the full guide: **[docs/ADD_NEW_ALGO.md](docs/ADD_NEW_ALGO.md)**
-
-## Testing
-
-A test image generator script is included:
-
-```bash
-python3 scripts/generate_test_image.py
+```
+.
+├── ARCHITECTURE.md                 # Detailed architecture documentation
+├── README.md                       # This file
+├── config/
+│   ├── dilate3x3.ini               # Dilate algorithm config
+│   └── gaussian5x5.ini             # Gaussian algorithm config
+├── docs/
+│   ├── ADD_NEW_ALGO.md             # Algorithm development guide
+│   ├── CONFIG_SYSTEM.md            # Configuration system guide
+│   └── Doxyfile                    # Doxygen documentation config
+├── scripts/
+│   ├── build.sh                    # Build script (with --clean option)
+│   ├── generate_registry.sh       # Auto-generate algorithm registry
+│   ├── generate_test_image.py     # Test image generator
+│   └── run.sh                      # Interactive run script
+├── src/
+│   ├── main.c                      # Entry point with CLI parsing
+│   ├── Makefile                    # Build configuration
+│   ├── algorithm_runner.c/.h       # Algorithm execution pipeline
+│   ├── dilate/
+│   │   ├── c_ref/
+│   │   │   └── dilate3x3_ref.c     # CPU reference + verification
+│   │   └── cl/
+│   │       ├── dilate0.cl          # Basic variant
+│   │       └── dilate1.cl          # Optimized with local memory
+│   ├── gaussian/
+│   │   ├── c_ref/
+│   │   │   └── gaussian5x5_ref.c   # CPU reference + verification
+│   │   └── cl/
+│   │       ├── gaussian0.cl        # Basic variant
+│   │       └── gaussian1.cl        # Optimized variant
+│   └── utils/
+│       ├── auto_registry.c         # Auto-generated registry (don't edit)
+│       ├── cache_manager.c/.h      # Kernel binary & golden caching
+│       ├── cl_extension_api.c/.h   # Custom host API framework
+│       ├── config.c/.h              # Configuration file parser
+│       ├── image_io.c/.h           # Raw image I/O
+│       ├── op_interface.h          # OpParams structure & API
+│       ├── op_registry.c/.h        # Algorithm registration system
+│       ├── opencl_utils.c/.h       # OpenCL utilities (init/build/run)
+│       ├── safe_ops.h              # MISRA-C safe operations
+│       └── verify.c/.h             # Verification utilities
+└── test_data/
+    ├── dilate3x3/
+    │   ├── input.bin               # Algorithm-specific input
+    │   ├── output.bin              # Latest output
+    │   ├── golden/                 # Cached CPU reference output
+    │   └── kernels/                # Cached compiled kernels (.bin)
+    ├── gaussian5x5/
+    │   ├── input.bin               # Algorithm-specific input
+    │   ├── output.bin              # Latest output
+    │   ├── kernel_x.bin            # Horizontal kernel weights
+    │   ├── kernel_y.bin            # Vertical kernel weights
+    │   ├── golden/                 # Cached CPU reference output
+    │   └── kernels/                # Cached compiled kernels (.bin)
+    └── output.bin                  # Global output (from root input)
 ```
 
-This creates a 1024x1024 grayscale test image (`test_data/input.bin`) with geometric patterns and noise.
+**Note:** Build artifacts (`build/`) are created during compilation and can be cleaned with `./scripts/build.sh --clean`.
 
-## Image Format
+## Advanced Usage
 
-Images are stored in raw grayscale format (8-bit unsigned integers, row-major order).
+### Build Options
 
-To convert to PNG for viewing:
 ```bash
-# Using ImageMagick
-convert -depth 8 -size 1024x1024 gray:test_data/output.bin test_data/output.png
+./scripts/build.sh                # Incremental build
+./scripts/build.sh --clean        # Clean build (removes build/ and cache/)
+./scripts/build.sh --help         # Show help
 ```
 
-## Cleaning
-
-To clean build artifacts and cache:
+Or build manually:
 ```bash
-./scripts/build.sh --clean        # Removes build/ and all caches (test_data/*/kernels/, test_data/*/golden/)
+cd src && make                    # Incremental build
+cd src && make clean && make      # Clean build (removes build/ only)
 ```
 
-To clean only build artifacts:
+### Running Algorithms
+
+**By algorithm name (recommended):**
 ```bash
-cd src
-make clean                         # Removes build/ only (keeps caches)
+./build/opencl_host <algorithm> [variant]
+./build/opencl_host dilate3x3 0      # Run variant v0
+./build/opencl_host gaussian5x5 0    # Run variant v0
 ```
 
-## Requirements
+**Interactive variant selection:**
+```bash
+./build/opencl_host dilate3x3        # Prompts for variant
+```
 
-- GCC or compatible C compiler
-- OpenCL runtime (Apple OpenCL framework on macOS, or OpenCL SDK on Linux/Windows)
-- Python 3 with NumPy (for test image generation)
+**With explicit config path:**
+```bash
+./build/opencl_host config/dilate3x3.ini 0
+```
+
+**Using run script:**
+```bash
+./scripts/run.sh                     # Interactive mode
+```
+
+**Available algorithms:**
+- `dilate3x3` - Morphological dilation (variants: v0, v1)
+- `gaussian5x5` - Gaussian blur (variants: v0, v1)
+
+### Caching System
+
+The framework automatically caches:
+- **Kernel Binaries**: `test_data/{algorithm}/kernels/*.bin` (avoids recompilation)
+- **Golden Samples**: `test_data/{algorithm}/golden/*.bin` (for regression testing)
+
+Clear all caches with `./scripts/build.sh --clean`.
+
+### Image Format
+
+Images use raw grayscale format (8-bit unsigned, row-major).
+
+**Convert to PNG for viewing:**
+```bash
+convert -depth 8 -size 1024x1024 gray:test_data/output.bin output.png
+```
 
 ## Documentation
 
-### Architecture & Design
-- **[STUDY.md](STUDY.md)** - Comprehensive codebase study and module documentation
+### 📚 Essential Guides
+
+Start here if you're new to the framework:
+
+- **[docs/ADD_NEW_ALGO.md](docs/ADD_NEW_ALGO.md)** - Complete guide to adding new algorithms
+  - Three required components (config, C reference, OpenCL kernel)
+  - Mandatory API functions
+  - Auto-registration system
+  - Step-by-step examples
+
+- **[docs/CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md)** - Configuration system reference
+  - Per-algorithm `.ini` file format
+  - Configuration parameters
+  - Custom buffers
+  - Multiple kernel variants
+
+### 🏗️ Architecture & Design
+
+Deep dive into the framework architecture:
+
 - **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture and design decisions
-
-### Feature Guides
-- **[docs/ADD_NEW_ALGO.md](docs/ADD_NEW_ALGO.md)** - Algorithm development guide (NEW)
-- **[docs/CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md)** - Per-algorithm configuration system (NEW)
-- **[docs/ALGORITHM_INTERFACE.md](docs/ALGORITHM_INTERFACE.md)** - Flexible algorithm interface guide (NEW)
-- **[CACHING_FEATURE.md](CACHING_FEATURE.md)** - Kernel binary and golden sample caching
-
-### Compliance & Standards
-- **[MISRA_C_2023_COMPLIANCE.md](MISRA_C_2023_COMPLIANCE.md)** - MISRA-C:2023 compliance documentation
-
-### Quick References
-- **[config/README.md](config/README.md)** - Configuration file format reference

@@ -748,26 +748,16 @@ int get_op_variants(const Config* config, const char* op_id,
 
 int resolve_config_path(const char* input, char* output, size_t output_size) {
     FILE* test_file;
+    int written;
 
     if ((input == NULL) || (output == NULL) || (output_size == 0U)) {
         return -1;
     }
 
-    /* Check if input already has .ini extension or contains path separators */
-    if ((strstr(input, ".ini") != NULL) || (strchr(input, '/') != NULL)) {
-        /* Treat as explicit path */
-        if (strlen(input) >= output_size) {
-            return -1;
-        }
-        (void)strncpy(output, input, output_size - 1U);
-        output[output_size - 1U] = '\0';
-    } else {
-        /* Treat as algorithm name - construct config/<name>.ini */
-        int written;
-        written = snprintf(output, output_size, "config/%s.ini", input);
-        if ((written < 0) || ((size_t)written >= output_size)) {
-            return -1;
-        }
+    /* Treat input as algorithm name - construct config/<name>.ini */
+    written = snprintf(output, output_size, "config/%s.ini", input);
+    if ((written < 0) || ((size_t)written >= output_size)) {
+        return -1;
     }
 
     /* Verify file exists */

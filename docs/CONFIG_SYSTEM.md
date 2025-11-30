@@ -10,153 +10,95 @@ The framework now uses per-algorithm configuration files for better maintainabil
 config/
 ├── dilate3x3.ini      # Dilate 3x3 specific config
 ├── gaussian5x5.ini    # Gaussian 5x5 specific config
-├── myalgo.ini         # Your custom algorithm config
-└── README.md          # Configuration documentation
+└── myalgo.ini         # Your custom algorithm config
 ```
 
-### Config File Format
-
-```ini
-# Algorithm Configuration
-# Note: op_id is auto-derived from filename (myalgo.ini -> op_id = myalgo)
-
-[image]
-input = test_data/input.bin
-output = test_data/output.bin
-src_width = 1920
-src_height = 1080
-dst_width = 1920
-dst_height = 1080
-
-# Variant 0: Basic implementation
-[kernel.v0]
-kernel_file = src/myalgo/cl/myalgo0.cl
-kernel_function = myalgo_kernel
-work_dim = 2
-global_work_size = 1920,1088
-local_work_size = 16,16
-
-# Variant 1: Optimized implementation
-[kernel.v1]
-kernel_file = src/myalgo/cl/myalgo1.cl
-kernel_function = myalgo_optimized
-work_dim = 2
-global_work_size = 1920,1088
-local_work_size = 16,16
-```
-
-## Usage Examples
-
-### 1. By Algorithm Name (Recommended)
-```bash
-# Automatically loads config/<algorithm>.ini
-./opencl_host dilate3x3 0          # Dilate, variant 0
-./opencl_host gaussian5x5 0        # Gaussian, variant 0
-./opencl_host myalgo 1             # Custom algo, variant 1
-```
-
-### 2. Interactive Variant Selection
-```bash
-# Select variant interactively after algorithm loads
-./opencl_host dilate3x3
-./opencl_host gaussian5x5
-```
-
-### 3. Explicit Config Path
-```bash
-# Use custom config file location
-./opencl_host config/dilate3x3.ini 0
-./opencl_host config/custom/test.ini 1
-./opencl_host /path/to/custom.ini 0
-```
-
-### 4. Help
-```bash
-./opencl_host --help
-./opencl_host -h
-./opencl_host help
-```
+Each configuration file contains three types of sections:
+- `[image]` - Input/output settings and image dimensions
+- `[buffer.*]` - Custom buffer definitions (optional)
+- `[kernel.v*]` - Kernel variant configurations
 
 ## Auto-Derivation of op_id
 
-The `op_id` field is now **automatically derived** from the config filename:
+The `op_id` field is **automatically derived** from the config filename:
 
-| Config File            | Auto-derived op_id |
-|------------------------|--------------------|
-| `config/dilate3x3.ini` | `dilate3x3`        |
-| `config/gaussian5x5.ini` | `gaussian5x5`   |
-| `config/my_algo.ini`   | `my_algo`          |
-| `custom/test.ini`      | `test`             |
+| Config File              | Auto-derived op_id | Registered Algorithm Required |
+|--------------------------|--------------------|-----------------------------|
+| `config/dilate3x3.ini`   | `dilate3x3`        | Yes - must have `dilate3x3` algorithm |
+| `config/gaussian5x5.ini` | `gaussian5x5`      | Yes - must have `gaussian5x5` algorithm |
+| `config/my_algo.ini`     | `my_algo`          | Yes - must have `my_algo` algorithm |
 
-You can still manually specify `op_id` in the `[image]` section if needed, but it's optional.
+**Important:** The auto-derived `op_id` must match a registered algorithm in the system. You can manually specify `op_id` in the `[image]` section to override, but this is rarely needed.
 
-## Benefits
+## Configuration Parameters Reference
 
-### ✅ Organization
-- Each algorithm has its own config file
-- Clear separation of concerns
-- Easy to find and modify algorithm settings
+### [image] Section Parameters
 
-### ✅ Scalability
-- Adding new algorithms: just create `config/myalgo.ini`
-- No need to edit a monolithic config file
-- No conflicts when multiple developers work on different algorithms
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| `input` | string | Yes | Path to input image binary file | `test_data/gaussian5x5/input.bin` |
+| `output` | string | Yes | Path to output image binary file | `test_data/gaussian5x5/output.bin` |
+| `src_width` | integer | Yes | Source image width in pixels | `1920` |
+| `src_height` | integer | Yes | Source image height in pixels | `1080` |
+| `dst_width` | integer | Yes | Destination image width in pixels | `1920` |
+| `dst_height` | integer | Yes | Destination image height in pixels | `1080` |
+| `op_id` | string | No | Algorithm operation ID (auto-derived from filename if omitted) | `gaussian5x5` |
 
-### ✅ Version Control
-- Clean git commits per algorithm
-- No merge conflicts in shared config
-- Each algorithm config can be versioned independently
+### [buffer.*] Section Parameters (Custom Buffers)
 
-### ✅ Maintenance
-- Algorithm-specific variants kept together
-- Easy to add/remove/modify variants
-- Self-documenting (filename = algorithm name)
+Custom buffers are defined with section name `[buffer.<name>]` where `<name>` is a descriptive identifier.
 
-### ✅ Flexibility
-- Support for algorithm-specific parameters (future)
-- Can have different image sizes per algorithm
-- Custom kernel work group sizes per algorithm
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| `type` | enum | Yes | Buffer memory type: `READ_ONLY`, `WRITE_ONLY`, or `READ_WRITE` | `READ_WRITE` |
+| `size_bytes` | integer | Conditional* | Buffer size in bytes (for empty buffers) | `314572800` |
+| `source_file` | string | Conditional* | Path to binary file to initialize buffer data (for file-backed buffers) | `test_data/gaussian5x5/kernel_x.bin` |
+| `data_type` | string | Conditional* | Element data type: `float`, `int`, `char`, etc. (required with `source_file`) | `float` |
+| `num_elements` | integer | Conditional* | Number of elements (required with `source_file`) | `5` |
 
-## Adding a New Algorithm
+\* **Buffer Types:**
+- **Empty buffer**: Specify `type` + `size_bytes` (buffer allocated but not initialized)
+- **File-backed buffer**: Specify `type` + `source_file` + `data_type` + `num_elements` (buffer loaded from file; `size_bytes` auto-calculated)
 
-**Step 1:** Implement your algorithm
-```c
-// src/myalgo/c_ref/myalgo_ref.c
-void myalgo_ref(const OpParams* params) {
-    // Implementation
-}
+**Buffer Naming Examples:**
+- `[buffer.tmp_global]` - Temporary global memory buffer (empty)
+- `[buffer.kernel_x]` - Horizontal kernel weights (file-backed)
+- `[buffer.kernel_y]` - Vertical kernel weights (file-backed)
 
-static int myalgo_verify(const OpParams* params, float* max_error) {
-    // Verification
-}
+### [kernel.v*] Section Parameters (Kernel Variants)
 
-REGISTER_ALGORITHM(myalgo, "My Algorithm", myalgo_ref, myalgo_verify)
-```
+Kernel variants are defined with section name `[kernel.v<N>]` where `<N>` is the variant number (0, 1, 2, ...).
 
-**Step 2:** Create config file `config/myalgo.ini`
-```ini
-[image]
-input = test_data/input.bin
-output = test_data/output.bin
-src_width = 1920
-src_height = 1080
-dst_width = 1920
-dst_height = 1080
+| Parameter | Type | Required | Description | Example |
+|-----------|------|----------|-------------|---------|
+| `kernel_file` | string | Yes | Path to OpenCL kernel source file | `src/gaussian/cl/gaussian0.cl` |
+| `kernel_function` | string | Yes | Name of the kernel function to execute | `gaussian5x5` |
+| `work_dim` | integer | Yes | Number of work dimensions (1, 2, or 3) | `2` |
+| `global_work_size` | integers | Yes | Global work size (comma-separated for multi-dim) | `1920,1088` |
+| `local_work_size` | integers | Yes | Local work group size (comma-separated for multi-dim) | `16,16` |
+| `host_type` | enum | No | Host API type: `standard` (default) or `cl_extension` | `cl_extension` |
 
-[kernel.v0]
-kernel_file = src/myalgo/cl/myalgo.cl
-kernel_function = myalgo_kernel
-work_dim = 2
-global_work_size = 1920,1088
-local_work_size = 16,16
-```
+### Host Type Explanation
 
-**Step 3:** Run it
-```bash
-./opencl_host myalgo 0
-```
+The `host_type` parameter determines which OpenCL host API is used to execute the kernel:
 
-That's it! No modifications to existing code or configs needed.
+#### `standard` (Default)
+- Uses the standard OpenCL API (`clSetKernelArg`, `clEnqueueNDRangeKernel`)
+- Portable across all OpenCL implementations
+- Requires manual buffer and argument management
+- Best for: Initial implementations, cross-platform compatibility
+
+#### `cl_extension`
+- Uses the custom CL extension API framework
+- Provides vendor-specific optimizations and simplified buffer management
+- Automatically handles custom buffer setup from configuration
+- Supports advanced features like zero-copy buffers and custom memory types
+- Best for: Performance-optimized variants, vendor-specific tuning
+
+**When to use each:**
+- Start with `standard` for basic implementations
+- Use `cl_extension` for optimized variants that need custom buffers or vendor-specific features
+- Both can coexist in the same config file as different variants
 
 ## Configuration Best Practices
 
@@ -164,14 +106,10 @@ That's it! No modifications to existing code or configs needed.
 2. **Omit op_id field**: The filename automatically becomes the op_id
 3. **Use descriptive variant names**: Add comments explaining what each variant optimizes
 4. **Group related variants**: Put all variants of an algorithm in its config file
+5. **Start with `standard` host type**: Use `standard` for initial implementations, then add `cl_extension` variants for optimization
 
-## Command-Line Parsing Logic
+## Implementation Details
 
-The framework intelligently determines what you mean:
+**Config path resolution:** `resolve_config_path()` in `src/utils/config.c` automatically resolves algorithm names to `config/<name>.ini`
 
-1. **Algorithm name** (e.g., `dilate3x3`) → `config/<name>.ini`
-2. **Path with `/` or `.ini`** → Explicit config file path
-3. **No variant index** → Interactive variant selection
-4. **With variant index** → Direct execution with specified variant
-
-This makes the CLI intuitive and flexible for all use cases.
+**op_id extraction:** `extract_op_id_from_path()` in `src/utils/config.c` derives the op_id from the config filename
