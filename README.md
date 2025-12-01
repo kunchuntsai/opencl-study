@@ -196,9 +196,7 @@ local_work_size = 16,16
 │   └── Doxyfile                    # Doxygen documentation config
 ├── scripts/
 │   ├── build.sh                    # Build script (with --clean option)
-│   ├── create_new_algo.sh          # Generate new algorithm template (shell)
-│   ├── create_new_algo.py          # Generate new algorithm template (Python)
-│   ├── create_new_algo.c           # Generate new algorithm template (C)
+│   ├── create_new_algo.sh          # Generate new algorithm template
 │   ├── generate_registry.sh        # Auto-generate algorithm registry
 │   ├── generate_test_image.py      # Test image generator
 │   ├── generate_gaussian_kernels.py # Generate Gaussian kernel weights
