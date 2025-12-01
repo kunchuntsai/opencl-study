@@ -40,16 +40,8 @@ static int get_pixel_safe(const unsigned char* input, int x, int y,
 }
 
 void gaussian5x5_ref(const OpParams* params) {
-    /* Gaussian 5x5 kernel (normalized) */
-    /* MISRA-C:2023 Rule 9.5: Explicit array initialization */
-    static const float kernel[5][5] = {
-        {1.0f, 4.0f, 6.0f, 4.0f, 1.0f},
-        {4.0f, 16.0f, 24.0f, 16.0f, 4.0f},
-        {6.0f, 24.0f, 36.0f, 24.0f, 6.0f},
-        {4.0f, 16.0f, 24.0f, 16.0f, 4.0f},
-        {1.0f, 4.0f, 6.0f, 4.0f, 1.0f}
-    };
-    static const float kernel_sum = 256.0f;
+    /* Separable Gaussian 5x5 using 1D kernels from custom buffers */
+    /* This matches the OpenCL implementation which uses kernel_x and kernel_y */
     int y;
     int x;
     int dy;
@@ -57,6 +49,7 @@ void gaussian5x5_ref(const OpParams* params) {
     int ny;
     int nx;
     float sum;
+    float kernel_sum;
     float weight;
     int pixel_val;
     int output_index;
@@ -66,6 +59,9 @@ void gaussian5x5_ref(const OpParams* params) {
     int height;
     unsigned char* input;
     unsigned char* output;
+    CustomBuffers* custom_buffers;
+    const float* kernel_x;
+    const float* kernel_y;
 
     if (params == NULL) {
         return;
@@ -81,6 +77,28 @@ void gaussian5x5_ref(const OpParams* params) {
         return;
     }
 
+    /* Get 1D kernels from custom buffers */
+    if (params->algo_params == NULL) {
+        (void)fprintf(stderr, "Error: Gaussian reference requires custom buffers for kernel data\n");
+        return;
+    }
+    custom_buffers = (CustomBuffers*)params->algo_params;
+    if (custom_buffers->count != 3) {
+        (void)fprintf(stderr, "Error: Gaussian reference requires exactly 3 custom buffers (got %d)\n",
+                     custom_buffers->count);
+        return;
+    }
+
+    /* kernel_x is custom_buffers[1], kernel_y is custom_buffers[2] */
+    /* (custom_buffers[0] is tmp_buffer used only by GPU) */
+    kernel_x = (const float*)custom_buffers->buffers[1].host_data;
+    kernel_y = (const float*)custom_buffers->buffers[2].host_data;
+
+    if ((kernel_x == NULL) || (kernel_y == NULL)) {
+        (void)fprintf(stderr, "Error: Gaussian kernel data not loaded\n");
+        return;
+    }
+
     /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
     if (!safe_mul_int(width, height, &total_pixels)) {
         return; /* Overflow detected */
@@ -89,8 +107,10 @@ void gaussian5x5_ref(const OpParams* params) {
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
             sum = 0.0f;
+            kernel_sum = 0.0f;
 
-            /* 5x5 window */
+            /* 5x5 window with separable convolution */
+            /* 2D weight = kernel_y[i] * kernel_x[j] */
             for (dy = -2; dy <= 2; dy++) {
                 for (dx = -2; dx <= 2; dx++) {
                     ny = y + dy;
@@ -98,7 +118,10 @@ void gaussian5x5_ref(const OpParams* params) {
 
                     /* Get pixel value with bounds checking */
                     pixel_val = get_pixel_safe(input, nx, ny, width, height);
-                    weight = kernel[dy + 2][dx + 2];
+
+                    /* Compute 2D weight as outer product of 1D kernels */
+                    weight = kernel_y[dy + 2] * kernel_x[dx + 2];
+                    kernel_sum += weight;
                     sum += (float)pixel_val * weight;
                 }
             }
