@@ -23,6 +23,15 @@
 #include <CL/cl.h>
 #endif
 
+/** Maximum number of custom buffers per algorithm */
+#define MAX_CUSTOM_BUFFERS 8
+
+/** Host type enumeration for OpenCL API selection */
+typedef enum {
+    HOST_TYPE_STANDARD = 0,     /**< Standard OpenCL API (default) */
+    HOST_TYPE_CL_EXTENSION      /**< Custom CL extension API */
+} HostType;
+
 /** Border handling modes */
 typedef enum {
     BORDER_CLAMP = 0,      /**< Clamp to edge (replicate edge pixels) */
@@ -33,6 +42,30 @@ typedef enum {
 } BorderMode;
 
 /**
+ * @brief Runtime buffer structure
+ *
+ * Holds OpenCL buffer handle and optional host data.
+ * Used for managing custom buffers during algorithm execution.
+ */
+typedef struct {
+    cl_mem buffer;                  /**< OpenCL buffer handle */
+    unsigned char* host_data;       /**< Host data (for file-backed buffers, NULL otherwise) */
+} RuntimeBuffer;
+
+/**
+ * @brief Collection of custom buffers for an algorithm
+ *
+ * Buffers are stored in order and set as kernel arguments sequentially:
+ *   arg 0: input (standard)
+ *   arg 1: output (standard)
+ *   arg 2+: custom_buffers[0], custom_buffers[1], ... in order
+ */
+typedef struct {
+    RuntimeBuffer buffers[MAX_CUSTOM_BUFFERS];  /**< Array of runtime buffers */
+    int count;                                   /**< Number of buffers */
+} CustomBuffers;
+
+/**
  * @brief Generic parameters for image processing operations
  *
  * Provides a flexible parameter structure that accommodates various
@@ -41,7 +74,7 @@ typedef enum {
  * Common use cases:
  * - Simple filters: Use input/output with src dimensions
  * - Resize operations: Different src and dst dimensions
- * - Convolution: Use algo_params for kernel weights
+ * - Convolution: Use custom_buffers for kernel weights
  * - Border-sensitive ops: Configure border_mode
  * - Verification: Use ref_output and gpu_output for comparison
  */
@@ -66,9 +99,11 @@ typedef struct {
     BorderMode border_mode; /**< How to handle pixels outside image bounds */
     unsigned char border_value; /**< Constant value for BORDER_CONSTANT mode */
 
-    /* Algorithm-specific parameters (optional extension point) */
-    void* algo_params;      /**< Pointer to algorithm-specific parameters */
-    size_t algo_params_size; /**< Size of algo_params structure in bytes */
+    /* Custom buffers (for algorithms needing additional data) */
+    CustomBuffers* custom_buffers;  /**< Pointer to custom buffer collection (NULL if none) */
+
+    /* Kernel variant information */
+    HostType host_type;  /**< Host API type for current kernel variant */
 } OpParams;
 
 
@@ -117,7 +152,7 @@ typedef struct {
      * and use only what they need. For example:
      * - Simple filters: Use input, output, src_width, src_height
      * - Resize: Use both src and dst dimensions
-     * - Convolution: Cast algo_params to kernel-specific struct
+     * - Convolution: Access kernel weights via custom_buffers
      *
      * @param[in] params Operation parameters (input, output, dimensions, etc.)
      */

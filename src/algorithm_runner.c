@@ -72,6 +72,36 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     op_params.dst_height = config->src_height;
     op_params.border_mode = BORDER_CLAMP;
 
+    /* Step 0: Load custom buffer data from files (needed by both C ref and GPU) */
+    if (config->custom_buffer_count > 0) {
+        (void)printf("\n=== Loading Custom Buffer Data ===\n");
+
+        for (i = 0; i < config->custom_buffer_count; i++) {
+            const CustomBufferConfig* buf_cfg = &config->custom_buffers[i];
+            RuntimeBuffer* runtime_buf = &custom_buffers.buffers[i];
+
+            /* File-backed buffer: load data from file into host memory */
+            if (buf_cfg->source_file[0] != '\0') {
+                runtime_buf->host_data = read_image(buf_cfg->source_file,
+                                                    (int)buf_cfg->size_bytes, 1);
+                if (runtime_buf->host_data == NULL) {
+                    (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
+                    custom_buffers.count = i;  /* Track how many were loaded before failure */
+                    goto cleanup_early;
+                }
+                (void)printf("Loaded '%s' from %s (%zu bytes)\n",
+                           buf_cfg->name, buf_cfg->source_file, buf_cfg->size_bytes);
+            } else {
+                runtime_buf->host_data = NULL;
+            }
+
+            custom_buffers.count++;
+        }
+
+        /* Make custom buffer data available to reference implementation */
+        op_params.custom_buffers = &custom_buffers;
+    }
+
     /* Step 1: Run C reference implementation */
     (void)printf("\n=== C Reference Implementation ===\n");
     ref_start = clock();
@@ -138,11 +168,11 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         return;
     }
 
-    /* Step 4b: Create custom buffers from config */
+    /* Step 4b: Create OpenCL buffers from already-loaded custom buffer data */
     if (config->custom_buffer_count > 0) {
         cl_mem_flags mem_flags;
 
-        (void)printf("\n=== Creating Custom Buffers ===\n");
+        (void)printf("\n=== Creating Custom GPU Buffers ===\n");
 
         for (i = 0; i < config->custom_buffer_count; i++) {
             const CustomBufferConfig* buf_cfg = &config->custom_buffers[i];
@@ -157,54 +187,41 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
                 mem_flags = CL_MEM_READ_WRITE;
             }
 
-            /* File-backed buffer: load data from file */
-            if (buf_cfg->source_file[0] != '\0') {
-                /* Load data from file */
-                runtime_buf->host_data = read_image(buf_cfg->source_file,
-                                                    (int)buf_cfg->size_bytes, 1);
-                if (runtime_buf->host_data == NULL) {
-                    (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
-                    goto cleanup;
-                }
-
-                /* Create buffer with host data */
+            /* Create GPU buffer from already-loaded host data */
+            if (runtime_buf->host_data != NULL) {
+                /* Create buffer with host data (already loaded earlier) */
                 runtime_buf->buffer = opencl_create_buffer(env->context,
                                                           mem_flags | CL_MEM_COPY_HOST_PTR,
                                                           buf_cfg->size_bytes,
                                                           runtime_buf->host_data,
                                                           buf_cfg->name);
-                (void)printf("Loaded buffer '%s' from %s (%zu bytes)\n",
-                           buf_cfg->name, buf_cfg->source_file, buf_cfg->size_bytes);
+                (void)printf("Created GPU buffer '%s' from host data (%zu bytes)\n",
+                           buf_cfg->name, buf_cfg->size_bytes);
             }
             /* Empty buffer: allocate without initialization */
             else {
-                runtime_buf->host_data = NULL;
                 runtime_buf->buffer = opencl_create_buffer(env->context,
                                                           mem_flags,
                                                           buf_cfg->size_bytes,
                                                           NULL,
                                                           buf_cfg->name);
-                (void)printf("Created buffer '%s' (%zu bytes)\n",
+                (void)printf("Created empty GPU buffer '%s' (%zu bytes)\n",
                            buf_cfg->name, buf_cfg->size_bytes);
             }
 
             if (runtime_buf->buffer == NULL) {
-                (void)fprintf(stderr, "Failed to create buffer '%s'\n", buf_cfg->name);
+                (void)fprintf(stderr, "Failed to create GPU buffer '%s'\n", buf_cfg->name);
                 goto cleanup;
             }
-
-            custom_buffers.count++;
         }
     }
 
     /* Step 5: Run OpenCL kernel (algorithm handles argument setting) */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
 
-    /* Pass custom buffers to algorithm via algo_params */
-    if (custom_buffers.count > 0) {
-        op_params.algo_params = &custom_buffers;
-        op_params.algo_params_size = sizeof(custom_buffers);
-    }
+    /* Note: op_params.custom_buffers already set earlier if custom buffers exist */
+    /* Set host type for this kernel variant */
+    op_params.host_type = kernel_cfg->host_type;
 
     run_result = opencl_run_kernel(env, kernel, algo,
                                   input_buf, output_buf, &op_params,
@@ -253,9 +270,15 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
 cleanup:
     /* Cleanup custom buffers */
     for (i = 0; i < custom_buffers.count; i++) {
+        /* Release OpenCL buffer */
         if (custom_buffers.buffers[i].buffer != NULL) {
             opencl_release_mem_object(custom_buffers.buffers[i].buffer,
                                      config->custom_buffers[i].name);
+        }
+        /* Free host data */
+        if (custom_buffers.buffers[i].host_data != NULL) {
+            free(custom_buffers.buffers[i].host_data);
+            custom_buffers.buffers[i].host_data = NULL;
         }
     }
 
@@ -263,4 +286,24 @@ cleanup:
     opencl_release_mem_object(output_buf, "output buffer");
     opencl_release_mem_object(input_buf, "input buffer");
     opencl_release_kernel(kernel);
+
+    /* Free input image */
+    if (input != NULL) {
+        free(input);
+    }
+    return;
+
+cleanup_early:
+    /* Early cleanup before OpenCL resources were created */
+    /* Free any custom buffer host data that was loaded */
+    for (i = 0; i < custom_buffers.count; i++) {
+        if (custom_buffers.buffers[i].host_data != NULL) {
+            free(custom_buffers.buffers[i].host_data);
+            custom_buffers.buffers[i].host_data = NULL;
+        }
+    }
+    /* Free input image */
+    if (input != NULL) {
+        free(input);
+    }
 }

@@ -36,15 +36,12 @@
 #pragma once
 
 #include <stddef.h>
+#include "op_interface.h"  /* For MAX_CUSTOM_BUFFERS and CustomBuffers type */
 
 /** Maximum number of kernel configurations per algorithm */
 #define MAX_KERNEL_CONFIGS 32
 
-/** Host type enumeration for OpenCL API selection */
-typedef enum {
-    HOST_TYPE_STANDARD = 0,     /**< Standard OpenCL API (default) */
-    HOST_TYPE_CL_EXTENSION      /**< Custom CL extension API */
-} HostType;
+/* Note: HostType is defined in utils/op_interface.h */
 
 /**
  * @brief Kernel configuration for a specific variant
@@ -62,8 +59,7 @@ typedef struct {
     HostType host_type;         /**< Host API type (standard or cl_extension) */
 } KernelConfig;
 
-/** Maximum number of custom buffers */
-#define MAX_CUSTOM_BUFFERS 8
+/* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
 
 /** Buffer type enumeration */
 typedef enum {
