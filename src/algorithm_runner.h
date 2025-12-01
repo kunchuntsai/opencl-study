@@ -28,29 +28,7 @@
 /** Maximum image size (used for static buffer allocation) */
 #define MAX_IMAGE_SIZE (4096 * 4096)
 
-/**
- * @brief Runtime buffer structure
- *
- * Holds OpenCL buffer handle and optional host data.
- * Used for managing custom buffers during algorithm execution.
- */
-typedef struct {
-    cl_mem buffer;                  /**< OpenCL buffer handle */
-    unsigned char* host_data;       /**< Host data (for file-backed buffers, NULL otherwise) */
-} RuntimeBuffer;
-
-/**
- * @brief Collection of custom buffers for an algorithm
- *
- * Buffers are stored in order and set as kernel arguments sequentially:
- *   arg 0: input (standard)
- *   arg 1: output (standard)
- *   arg 2+: custom_buffers[0], custom_buffers[1], ... in order
- */
-typedef struct {
-    RuntimeBuffer buffers[MAX_CUSTOM_BUFFERS];  /**< Array of runtime buffers */
-    int count;                                   /**< Number of buffers */
-} CustomBuffers;
+/* Note: RuntimeBuffer and CustomBuffers types are defined in utils/op_interface.h */
 
 /**
  * @brief Run complete algorithm execution pipeline

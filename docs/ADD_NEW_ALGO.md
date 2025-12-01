@@ -140,7 +140,7 @@ void <algo>_ref(const OpParams* params);
 - `params->src_width`, `params->src_height` - Source dimensions
 - `params->dst_width`, `params->dst_height` - Destination dimensions
 - `params->border_mode`, `params->border_value` - Border handling
-- `params->algo_params` - Algorithm-specific custom data (if needed)
+- `params->custom_buffers` - Custom buffer collection (NULL if none)
 
 **Must:**
 - Validate `params != NULL`
@@ -243,9 +243,9 @@ typedef struct {
 
 int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
                                 cl_mem output_buf, const OpParams* params) {
-    if (!kernel || !params || !params->algo_params) return -1;
+    if (!kernel || !params || !params->custom_buffers) return -1;
 
-    CustomBuffers* custom = (CustomBuffers*)params->algo_params;
+    CustomBuffers* custom = params->custom_buffers;
     if (custom->count != 3) return -1;  // Expect 3 custom buffers
 
     clSetKernelArg(kernel, 0, sizeof(cl_mem), &input_buf);
@@ -261,8 +261,8 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
 ```
 
 **Key points:**
-- Custom buffers accessed via `params->algo_params`
-- Cast to `CustomBuffers*` to access
+- Custom buffers accessed via `params->custom_buffers`
+- Type-safe access (no casting required)
 - Buffers indexed in order they appear in `.ini` file
 - First `[buffer.*]` → `custom->buffers[0]`, second → `custom->buffers[1]`, etc.
 

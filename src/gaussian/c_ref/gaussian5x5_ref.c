@@ -78,11 +78,11 @@ void gaussian5x5_ref(const OpParams* params) {
     }
 
     /* Get 1D kernels from custom buffers */
-    if (params->algo_params == NULL) {
+    if (params->custom_buffers == NULL) {
         (void)fprintf(stderr, "Error: Gaussian reference requires custom buffers for kernel data\n");
         return;
     }
-    custom_buffers = (CustomBuffers*)params->algo_params;
+    custom_buffers = params->custom_buffers;
     if (custom_buffers->count != 3) {
         (void)fprintf(stderr, "Error: Gaussian reference requires exactly 3 custom buffers (got %d)\n",
                      custom_buffers->count);
@@ -185,11 +185,11 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel,
     }
 
     /* Verify we have the expected number of custom buffers */
-    if (params->algo_params == NULL) {
+    if (params->custom_buffers == NULL) {
         (void)fprintf(stderr, "Error: Gaussian kernel requires custom buffers\n");
         return -1;
     }
-    custom_buffers = (CustomBuffers*)params->algo_params;
+    custom_buffers = params->custom_buffers;
     if (custom_buffers->count != 3) {
         (void)fprintf(stderr, "Error: Gaussian kernel requires exactly 3 custom buffers (got %d)\n",
                      custom_buffers->count);

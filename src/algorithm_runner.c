@@ -99,8 +99,7 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
         }
 
         /* Make custom buffer data available to reference implementation */
-        op_params.algo_params = &custom_buffers;
-        op_params.algo_params_size = sizeof(custom_buffers);
+        op_params.custom_buffers = &custom_buffers;
     }
 
     /* Step 1: Run C reference implementation */
@@ -220,7 +219,7 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     /* Step 5: Run OpenCL kernel (algorithm handles argument setting) */
     (void)printf("\n=== Running OpenCL Kernel ===\n");
 
-    /* Note: op_params.algo_params already set earlier if custom buffers exist */
+    /* Note: op_params.custom_buffers already set earlier if custom buffers exist */
 
     run_result = opencl_run_kernel(env, kernel, algo,
                                   input_buf, output_buf, &op_params,

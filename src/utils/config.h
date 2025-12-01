@@ -36,6 +36,7 @@
 #pragma once
 
 #include <stddef.h>
+#include "op_interface.h"  /* For MAX_CUSTOM_BUFFERS and CustomBuffers type */
 
 /** Maximum number of kernel configurations per algorithm */
 #define MAX_KERNEL_CONFIGS 32
@@ -62,8 +63,7 @@ typedef struct {
     HostType host_type;         /**< Host API type (standard or cl_extension) */
 } KernelConfig;
 
-/** Maximum number of custom buffers */
-#define MAX_CUSTOM_BUFFERS 8
+/* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
 
 /** Buffer type enumeration */
 typedef enum {
