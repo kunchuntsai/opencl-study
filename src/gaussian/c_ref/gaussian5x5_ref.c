@@ -150,16 +150,7 @@ int gaussian5x5_verify(const OpParams* params, float* max_error) {
 }
 
 
-/* Runtime structure to hold created custom buffers (must match main.c) */
-typedef struct {
-    cl_mem buffer;
-    unsigned char* host_data;
-} RuntimeBuffer;
-
-typedef struct {
-    RuntimeBuffer buffers[8];  /* MAX_CUSTOM_BUFFERS */
-    int count;
-} CustomBuffers;
+/* NOTE: RuntimeBuffer and CustomBuffers are now defined in utils/op_interface.h */
 
 /* Kernel argument setter - sets kernel arguments to match kernel signature
  *
