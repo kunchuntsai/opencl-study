@@ -57,6 +57,7 @@ typedef struct {
     size_t global_work_size[3]; /**< Global work size for each dimension */
     size_t local_work_size[3];  /**< Local work group size for each dimension */
     HostType host_type;         /**< Host API type (standard or cl_extension) */
+    int kernel_variant;         /**< Kernel signature variant (0, 1, 2, etc.) for argument layout */
 } KernelConfig;
 
 /* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */

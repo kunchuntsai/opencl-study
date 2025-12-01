@@ -412,6 +412,8 @@ int parse_config(const char* filename, Config* config) {
                     }
                     /* Initialize host_type to default (standard) */
                     config->kernels[kernel_index].host_type = HOST_TYPE_STANDARD;
+                    /* Initialize kernel_variant to default (0) */
+                    config->kernels[kernel_index].kernel_variant = 0;
                 }
                 /* If section starts with "buffer.", it's a custom buffer configuration */
                 else if (strncmp(section, "buffer.", 7U) == 0) {
@@ -607,6 +609,14 @@ int parse_config(const char* filename, Config* config) {
                 }
             } else if (strcmp(key, "host_type") == 0) {
                 kc->host_type = parse_host_type(value);
+            } else if (strcmp(key, "kernel_variant") == 0) {
+                if (safe_strtol(value, &temp_long) && (temp_long >= 0)) {
+                    kc->kernel_variant = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid kernel_variant value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
             } else {
                 /* Unknown key in kernel section */
             }

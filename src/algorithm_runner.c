@@ -86,13 +86,26 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
 
             /* File-backed buffer: load data from file into host memory */
             if (buf_cfg->source_file[0] != '\0') {
-                runtime_buf->host_data = read_image(buf_cfg->source_file,
-                                                    (int)buf_cfg->size_bytes, 1);
-                if (runtime_buf->host_data == NULL) {
+                unsigned char* temp_data;
+
+                /* Use read_image to load into static buffer */
+                temp_data = read_image(buf_cfg->source_file,
+                                      (int)buf_cfg->size_bytes, 1);
+                if (temp_data == NULL) {
                     (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
                     custom_buffers.count = i;  /* Track how many were loaded before failure */
                     goto cleanup_early;
                 }
+
+                /* Allocate dynamic memory and copy data (since read_image returns static buffer) */
+                runtime_buf->host_data = (unsigned char*)malloc(buf_cfg->size_bytes);
+                if (runtime_buf->host_data == NULL) {
+                    (void)fprintf(stderr, "Failed to allocate memory for %s\n", buf_cfg->name);
+                    custom_buffers.count = i;
+                    goto cleanup_early;
+                }
+                (void)memcpy(runtime_buf->host_data, temp_data, buf_cfg->size_bytes);
+
                 (void)printf("Loaded '%s' from %s (%zu bytes)\n",
                            buf_cfg->name, buf_cfg->source_file, buf_cfg->size_bytes);
             } else {
@@ -224,8 +237,9 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     (void)printf("\n=== Running OpenCL Kernel ===\n");
 
     /* Note: op_params.custom_buffers already set earlier if custom buffers exist */
-    /* Set host type for this kernel variant */
+    /* Set host type and kernel variant for this kernel */
     op_params.host_type = kernel_cfg->host_type;
+    op_params.kernel_variant = kernel_cfg->kernel_variant;
 
     run_result = opencl_run_kernel(env, kernel, algo,
                                   input_buf, output_buf, &op_params,
@@ -291,10 +305,7 @@ cleanup:
     opencl_release_mem_object(input_buf, "input buffer");
     opencl_release_kernel(kernel);
 
-    /* Free input image */
-    if (input != NULL) {
-        free(input);
-    }
+    /* NOTE: input points to static buffer from read_image(), don't free it */
     return;
 
 cleanup_early:
@@ -306,8 +317,5 @@ cleanup_early:
             custom_buffers.buffers[i].host_data = NULL;
         }
     }
-    /* Free input image */
-    if (input != NULL) {
-        free(input);
-    }
+    /* NOTE: input points to static buffer from read_image(), don't free it */
 }

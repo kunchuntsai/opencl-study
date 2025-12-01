@@ -116,6 +116,7 @@ typedef struct {
 
     /* Kernel variant information */
     HostType host_type;  /**< Host API type for current kernel variant */
+    int kernel_variant;  /**< Kernel signature variant ID (0, 1, 2, etc.) for handling different argument layouts */
 } OpParams;
 
 

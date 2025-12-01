@@ -14,7 +14,6 @@
  */
 __kernel void gaussian5x5(__global const uchar* input,
                           __global uchar* output,
-                          __global uchar* tmp_buffer,
                           int width,
                           int height,
                           __global const float* kernel_x,
