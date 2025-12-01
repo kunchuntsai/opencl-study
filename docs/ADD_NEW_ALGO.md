@@ -303,6 +303,55 @@ int my_algo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
 - Local memory allocation that varies by variant
 - Different buffer configurations per variant
 
+### Using Buffer Metadata
+
+Each `RuntimeBuffer` in `params->custom_buffers` contains configuration metadata:
+
+```c
+typedef struct {
+    cl_mem buffer;          // OpenCL buffer handle
+    unsigned char* host_data; // Host data (NULL for empty buffers)
+    BufferType type;        // READ_ONLY, WRITE_ONLY, READ_WRITE
+    size_t size_bytes;      // Buffer size in bytes
+} RuntimeBuffer;
+```
+
+**Example: Dynamic local memory allocation based on buffer size:**
+
+```c
+int my_algo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
+                            cl_mem output_buf, const OpParams* params) {
+    if (!kernel || !params || !params->custom_buffers) return -1;
+
+    CustomBuffers* custom = params->custom_buffers;
+    cl_uint arg_idx = 0;
+
+    // Standard arguments
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf);
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf);
+    clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
+    clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
+
+    // Custom buffer argument
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer);
+
+    // Allocate local memory based on buffer size
+    if (params->host_type == HOST_TYPE_CL_EXTENSION) {
+        // Use buffer size to determine local memory allocation
+        size_t local_size = custom->buffers[0].size_bytes;
+        clSetKernelArg(kernel, arg_idx++, local_size, NULL);  // Local memory
+    }
+
+    return 0;
+}
+```
+
+**Use cases:**
+- Dynamic local memory sizing based on buffer configuration
+- Conditional argument setting based on buffer type (READ_ONLY vs READ_WRITE)
+- Validation: ensure buffer size meets algorithm requirements
+- Debugging: check buffer sizes match expected values
+
 ---
 
 ## 3. Auto-Registration System
