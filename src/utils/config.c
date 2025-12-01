@@ -67,6 +67,33 @@ static int parse_kernel_section(const char* section, char* variant_id,
     return 0;
 }
 
+/* Extract numeric variant number from variant_id */
+/* Format: "v0" -> 0, "v1" -> 1, "v2" -> 2, etc. */
+/* Returns -1 on error, variant number on success */
+static int extract_variant_number(const char* variant_id) {
+    long temp_long;
+    char* endptr;
+
+    if (variant_id == NULL) {
+        return -1;
+    }
+
+    /* Check if variant_id starts with 'v' */
+    if (variant_id[0] != 'v') {
+        return -1;
+    }
+
+    /* Skip 'v' prefix and parse the number */
+    temp_long = strtol(variant_id + 1, &endptr, 10);
+
+    /* Validate conversion */
+    if ((endptr == (variant_id + 1)) || (*endptr != '\0') || (temp_long < 0) || (temp_long > 99)) {
+        return -1;  /* Invalid format or number out of range */
+    }
+
+    return (int)temp_long;
+}
+
 /* Parse buffer section name to extract buffer name */
 /* Format: "buffer.<name>" */
 static int parse_buffer_section(const char* section, char* name, size_t name_size) {
@@ -391,6 +418,8 @@ int parse_config(const char* filename, Config* config) {
 
                 /* If section starts with "kernel.", it's a kernel configuration */
                 if (strncmp(section, "kernel.", 7U) == 0) {
+                    int variant_num;
+
                     kernel_index = config->num_kernels;
                     buffer_index = -1;
                     scalar_index = -1;
@@ -412,8 +441,15 @@ int parse_config(const char* filename, Config* config) {
                     }
                     /* Initialize host_type to default (standard) */
                     config->kernels[kernel_index].host_type = HOST_TYPE_STANDARD;
-                    /* Initialize kernel_variant to default (0) */
-                    config->kernels[kernel_index].kernel_variant = 0;
+                    /* Auto-derive kernel_variant from variant_id (e.g., "v0" -> 0, "v1" -> 1) */
+                    variant_num = extract_variant_number(config->kernels[kernel_index].variant_id);
+                    if (variant_num < 0) {
+                        (void)fprintf(stderr, "Error: Invalid variant_id format: %s (expected v0, v1, v2, ...)\n",
+                                      config->kernels[kernel_index].variant_id);
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                    config->kernels[kernel_index].kernel_variant = variant_num;
                 }
                 /* If section starts with "buffer.", it's a custom buffer configuration */
                 else if (strncmp(section, "buffer.", 7U) == 0) {
@@ -609,16 +645,9 @@ int parse_config(const char* filename, Config* config) {
                 }
             } else if (strcmp(key, "host_type") == 0) {
                 kc->host_type = parse_host_type(value);
-            } else if (strcmp(key, "kernel_variant") == 0) {
-                if (safe_strtol(value, &temp_long) && (temp_long >= 0)) {
-                    kc->kernel_variant = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid kernel_variant value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
             } else {
                 /* Unknown key in kernel section */
+                /* Note: kernel_variant is auto-derived from section name (e.g., [kernel.v0] -> variant 0) */
             }
         } else if ((strncmp(section, "buffer.", 7U) == 0) && (buffer_index >= 0)) {
             CustomBufferConfig* buf = &config->custom_buffers[buffer_index];

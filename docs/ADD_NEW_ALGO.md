@@ -78,6 +78,9 @@ local_work_size = 16,16
 | `dst_height` | Destination height (optional, defaults to src_height) | `1080` |
 
 #### `[kernel.vN]` Sections (At least v0 required)
+
+**Note:** The variant number `N` in `[kernel.vN]` is automatically used as the `kernel_variant` value in `params->kernel_variant`. No need to specify it manually!
+
 | Parameter | Description | Example |
 |-----------|-------------|---------|
 | `kernel_file` | Path to .cl file | `src/erode/cl/erode0.cl` |
@@ -86,7 +89,6 @@ local_work_size = 16,16
 | `global_work_size` | Global work size (comma-separated) | `1920,1088` |
 | `local_work_size` | Local work size (comma-separated) | `16,16` |
 | `host_type` | Host API type: `standard` or `cl_extension` (optional) | `standard` |
-| `kernel_variant` | Kernel signature variant ID (optional, defaults to 0) | `0` |
 
 ### Custom Buffers
 
@@ -316,7 +318,7 @@ int my_algo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
 - Different buffer configurations per variant
 - Local memory allocation that varies by variant
 
-**Note:** You can also use `params->host_type` in combination with `params->kernel_variant` for even more fine-grained control.
+**Note:** The `kernel_variant` value is automatically derived from the section name (`[kernel.v0]` → 0, `[kernel.v1]` → 1, etc.). You can also use `params->host_type` in combination with `params->kernel_variant` for even more fine-grained control.
 
 ### Using Buffer Metadata
 

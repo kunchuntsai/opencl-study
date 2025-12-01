@@ -275,9 +275,9 @@ num_elements = 5
 source_file = test_data/gaussian5x5/kernel_y.bin
 
 # Kernel variants (supports multiple variants with different signatures)
+# Note: kernel_variant is auto-derived from section name (v0->0, v1->1, v2->2)
 [kernel.v0]
 host_type = standard
-kernel_variant = 0
 kernel_file = src/gaussian/cl/gaussian0.cl
 kernel_function = gaussian5x5
 work_dim = 2
@@ -286,7 +286,6 @@ local_work_size = 16,16
 
 [kernel.v1]
 host_type = cl_extension
-kernel_variant = 1
 kernel_file = src/gaussian/cl/gaussian1.cl
 kernel_function = gaussian5x5_optimized
 work_dim = 2
@@ -295,7 +294,6 @@ local_work_size = 16,16
 
 [kernel.v2]
 host_type = cl_extension
-kernel_variant = 2
 kernel_file = src/gaussian/cl/gaussian2.cl
 kernel_function = gaussian5x5_horizontal
 work_dim = 2
@@ -438,17 +436,15 @@ test_data/gaussian5x5/
 │  num_elements = 5                                            │
 │  source_file = test_data/gaussian5x5/kernel_y.bin            │
 │                                                               │
-│  [kernel.v0]                  ← Kernel variant 0             │
+│  [kernel.v0]                  ← Kernel variant 0 (auto)      │
 │  host_type = standard                                        │
-│  kernel_variant = 0                                          │
 │  kernel_file = src/gaussian/cl/gaussian0.cl                  │
 │  kernel_function = gaussian5x5                               │
 │  global_work_size = 1920,1088                                │
 │  local_work_size = 16,16                                     │
 │                                                               │
-│  [kernel.v1]                  ← Kernel variant 1 (optimized) │
+│  [kernel.v1]                  ← Kernel variant 1 (auto)      │
 │  host_type = cl_extension                                    │
-│  kernel_variant = 1                                          │
 │  kernel_file = src/gaussian/cl/gaussian1.cl                  │
 │  kernel_function = gaussian5x5_optimized                     │
 │  global_work_size = 1920,1088                                │
