@@ -69,6 +69,8 @@ Custom buffers are defined with section name `[buffer.<name>]` where `<name>` is
 
 Kernel variants are defined with section name `[kernel.v<N>]` where `<N>` is the variant number (0, 1, 2, ...).
 
+**Important:** The variant number in the section name (e.g., `v0`, `v1`, `v2`) is automatically used as the `kernel_variant` value passed to your `set_kernel_args()` function via `params->kernel_variant`. No manual configuration needed!
+
 | Parameter | Type | Required | Description | Example |
 |-----------|------|----------|-------------|---------|
 | `kernel_file` | string | Yes | Path to OpenCL kernel source file | `src/gaussian/cl/gaussian0.cl` |
@@ -99,6 +101,71 @@ The `host_type` parameter determines which OpenCL host API is used to execute th
 - Start with `standard` for basic implementations
 - Use `cl_extension` for optimized variants that need custom buffers or vendor-specific features
 - Both can coexist in the same config file as different variants
+
+### Kernel Variant Explanation
+
+The `kernel_variant` value is **automatically derived** from the section name. When you define `[kernel.v0]`, `params->kernel_variant` is set to `0`. When you define `[kernel.v1]`, it's set to `1`, and so on.
+
+**Purpose:**
+- Passed to `set_kernel_args()` via `params->kernel_variant`
+- Allows the same algorithm to support multiple kernel signatures
+- Enables variant-specific argument handling logic
+- **Automatically extracted from section name - no manual configuration needed!**
+
+**Example use case:**
+
+```ini
+# Variant 0: Simple signature (input, output, width, height)
+# kernel_variant will automatically be 0
+[kernel.v0]
+kernel_file = src/myalgo/cl/myalgo0.cl
+kernel_function = myalgo_basic
+...
+
+# Variant 1: Extended signature with buffers (input, output, tmp_buf, tmp_size, width, height)
+# kernel_variant will automatically be 1
+[kernel.v1]
+kernel_file = src/myalgo/cl/myalgo1.cl
+kernel_function = myalgo_optimized
+...
+
+# Variant 2: Different signature (input, output, tmp_buf1, tmp_size1, tmp_buf2, tmp_size2, width, height)
+# kernel_variant will automatically be 2
+[kernel.v2]
+kernel_file = src/myalgo/cl/myalgo2.cl
+kernel_function = myalgo_twopass
+...
+```
+
+In your `set_kernel_args()` function, you can check `params->kernel_variant` to set arguments correctly:
+
+```c
+int myalgo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
+                           cl_mem output_buf, const OpParams* params) {
+    cl_uint arg_idx = 0;
+
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf);
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf);
+
+    if (params->kernel_variant == 1) {
+        // Variant 1: add tmp buffer and size
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[0].size_bytes);
+    } else if (params->kernel_variant == 2) {
+        // Variant 2: add two tmp buffers and sizes
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[0].size_bytes);
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[1].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[1].size_bytes);
+    }
+
+    clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
+    clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
+    return 0;
+}
+```
+
+**Note:** The variant number is automatically extracted from the section name. `[kernel.v0]` → variant 0, `[kernel.v1]` → variant 1, etc. This eliminates configuration errors and makes the intent clear from the section name itself.
 
 ## Configuration Best Practices
 
