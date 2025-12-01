@@ -41,7 +41,7 @@
 /** Maximum number of kernel configurations per algorithm */
 #define MAX_KERNEL_CONFIGS 32
 
-/* Note: HostType is defined in utils/op_interface.h */
+/* Note: HostType and BufferType are defined in utils/op_interface.h */
 
 /**
  * @brief Kernel configuration for a specific variant
@@ -60,14 +60,6 @@ typedef struct {
 } KernelConfig;
 
 /* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
-
-/** Buffer type enumeration */
-typedef enum {
-    BUFFER_TYPE_NONE = 0,
-    BUFFER_TYPE_READ_ONLY,
-    BUFFER_TYPE_WRITE_ONLY,
-    BUFFER_TYPE_READ_WRITE
-} BufferType;
 
 /** Data type enumeration for buffer elements */
 typedef enum {

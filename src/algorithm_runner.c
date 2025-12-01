@@ -80,6 +80,10 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
             const CustomBufferConfig* buf_cfg = &config->custom_buffers[i];
             RuntimeBuffer* runtime_buf = &custom_buffers.buffers[i];
 
+            /* Set buffer configuration metadata */
+            runtime_buf->type = buf_cfg->type;
+            runtime_buf->size_bytes = buf_cfg->size_bytes;
+
             /* File-backed buffer: load data from file into host memory */
             if (buf_cfg->source_file[0] != '\0') {
                 runtime_buf->host_data = read_image(buf_cfg->source_file,

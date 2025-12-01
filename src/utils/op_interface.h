@@ -26,6 +26,14 @@
 /** Maximum number of custom buffers per algorithm */
 #define MAX_CUSTOM_BUFFERS 8
 
+/** Buffer type enumeration */
+typedef enum {
+    BUFFER_TYPE_NONE = 0,
+    BUFFER_TYPE_READ_ONLY,
+    BUFFER_TYPE_WRITE_ONLY,
+    BUFFER_TYPE_READ_WRITE
+} BufferType;
+
 /** Host type enumeration for OpenCL API selection */
 typedef enum {
     HOST_TYPE_STANDARD = 0,     /**< Standard OpenCL API (default) */
@@ -44,12 +52,16 @@ typedef enum {
 /**
  * @brief Runtime buffer structure
  *
- * Holds OpenCL buffer handle and optional host data.
+ * Holds OpenCL buffer handle, optional host data, and buffer configuration metadata.
  * Used for managing custom buffers during algorithm execution.
+ * Configuration metadata (type, size) is needed by set_kernel_args() for
+ * variant-specific argument handling (e.g., allocating local memory).
  */
 typedef struct {
     cl_mem buffer;                  /**< OpenCL buffer handle */
     unsigned char* host_data;       /**< Host data (for file-backed buffers, NULL otherwise) */
+    BufferType type;                /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
+    size_t size_bytes;              /**< Buffer size in bytes */
 } RuntimeBuffer;
 
 /**

@@ -150,16 +150,7 @@ int gaussian5x5_verify(const OpParams* params, float* max_error) {
 }
 
 
-/* Runtime structure to hold created custom buffers (must match main.c) */
-typedef struct {
-    cl_mem buffer;
-    unsigned char* host_data;
-} RuntimeBuffer;
-
-typedef struct {
-    RuntimeBuffer buffers[8];  /* MAX_CUSTOM_BUFFERS */
-    int count;
-} CustomBuffers;
+/* NOTE: RuntimeBuffer and CustomBuffers are now defined in utils/op_interface.h */
 
 /* Kernel argument setter - sets kernel arguments to match kernel signature
  *
@@ -179,6 +170,10 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel,
                                        cl_mem output_buf,
                                        const OpParams* params) {
     CustomBuffers* custom_buffers;
+    BufferType tmp_buffer_type;
+    size_t tmp_buffer_size;
+    size_t kernel_x_size;
+    size_t kernel_y_size;
 
     if ((kernel == NULL) || (params == NULL)) {
         return -1;
@@ -193,6 +188,32 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel,
     if (custom_buffers->count != 3) {
         (void)fprintf(stderr, "Error: Gaussian kernel requires exactly 3 custom buffers (got %d)\n",
                      custom_buffers->count);
+        return -1;
+    }
+
+    /* Retrieve buffer metadata */
+    tmp_buffer_type = custom_buffers->buffers[0].type;
+    tmp_buffer_size = custom_buffers->buffers[0].size_bytes;
+    kernel_x_size = custom_buffers->buffers[1].size_bytes;
+    kernel_y_size = custom_buffers->buffers[2].size_bytes;
+
+    /* Validate tmp_buffer is READ_WRITE (needed for intermediate storage) */
+    if (tmp_buffer_type != BUFFER_TYPE_READ_WRITE) {
+        (void)fprintf(stderr, "Error: tmp_buffer must be READ_WRITE (got %d)\n",
+                     tmp_buffer_type);
+        return -1;
+    }
+
+    /* Validate kernel sizes are correct (5 floats each) */
+    if (kernel_x_size != 5 * sizeof(float)) {
+        (void)fprintf(stderr, "Error: kernel_x size mismatch (expected %zu, got %zu)\n",
+                     5 * sizeof(float), kernel_x_size);
+        return -1;
+    }
+
+    if (kernel_y_size != 5 * sizeof(float)) {
+        (void)fprintf(stderr, "Error: kernel_y size mismatch (expected %zu, got %zu)\n",
+                     5 * sizeof(float), kernel_y_size);
         return -1;
     }
 
@@ -231,6 +252,14 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel,
     /* arg 6: kernel_y (third custom buffer from config) */
     if (clSetKernelArg(kernel, 6, sizeof(cl_mem), &custom_buffers->buffers[2].buffer) != CL_SUCCESS) {
         return -1;
+    }
+
+    /* Variant-specific: local memory for cl_extension variant */
+    if (params->host_type == HOST_TYPE_CL_EXTENSION) {
+        /* arg 7: local memory (size from tmp_buffer metadata) */
+        if (clSetKernelArg(kernel, 7, tmp_buffer_size, NULL) != CL_SUCCESS) {
+            return -1;
+        }
     }
 
     return 0;
