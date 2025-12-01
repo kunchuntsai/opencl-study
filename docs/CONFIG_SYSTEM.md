@@ -77,6 +77,7 @@ Kernel variants are defined with section name `[kernel.v<N>]` where `<N>` is the
 | `global_work_size` | integers | Yes | Global work size (comma-separated for multi-dim) | `1920,1088` |
 | `local_work_size` | integers | Yes | Local work group size (comma-separated for multi-dim) | `16,16` |
 | `host_type` | enum | No | Host API type: `standard` (default) or `cl_extension` | `cl_extension` |
+| `kernel_variant` | integer | No | Kernel signature variant ID (0, 1, 2, etc.) for handling different argument layouts | `0` |
 
 ### Host Type Explanation
 
@@ -99,6 +100,70 @@ The `host_type` parameter determines which OpenCL host API is used to execute th
 - Start with `standard` for basic implementations
 - Use `cl_extension` for optimized variants that need custom buffers or vendor-specific features
 - Both can coexist in the same config file as different variants
+
+### Kernel Variant Explanation
+
+The `kernel_variant` parameter is an integer ID that helps distinguish between different kernel signatures within the same algorithm. This is useful when you have multiple kernel variants that require different argument layouts.
+
+**Purpose:**
+- Passed to `set_kernel_args()` via `params->kernel_variant`
+- Allows the same algorithm to support multiple kernel signatures
+- Enables variant-specific argument handling logic
+
+**Example use case:**
+
+```ini
+# Variant 0: Simple signature (input, output, width, height)
+[kernel.v0]
+kernel_variant = 0
+kernel_file = src/myalgo/cl/myalgo0.cl
+kernel_function = myalgo_basic
+...
+
+# Variant 1: Extended signature with buffers (input, output, tmp_buf, tmp_size, width, height)
+[kernel.v1]
+kernel_variant = 1
+kernel_file = src/myalgo/cl/myalgo1.cl
+kernel_function = myalgo_optimized
+...
+
+# Variant 2: Different signature (input, output, tmp_buf1, tmp_size1, tmp_buf2, tmp_size2, width, height)
+[kernel.v2]
+kernel_variant = 2
+kernel_file = src/myalgo/cl/myalgo2.cl
+kernel_function = myalgo_twopass
+...
+```
+
+In your `set_kernel_args()` function, you can check `params->kernel_variant` to set arguments correctly:
+
+```c
+int myalgo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
+                           cl_mem output_buf, const OpParams* params) {
+    cl_uint arg_idx = 0;
+
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf);
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf);
+
+    if (params->kernel_variant == 1) {
+        // Variant 1: add tmp buffer and size
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[0].size_bytes);
+    } else if (params->kernel_variant == 2) {
+        // Variant 2: add two tmp buffers and sizes
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[0].size_bytes);
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[1].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[1].size_bytes);
+    }
+
+    clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
+    clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
+    return 0;
+}
+```
+
+**Note:** If not specified, `kernel_variant` defaults to 0. Use this field only when you need to distinguish between different kernel signatures.
 
 ## Configuration Best Practices
 

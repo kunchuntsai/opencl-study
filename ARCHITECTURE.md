@@ -182,8 +182,14 @@ END: Return to menu or exit
 │      char name[64], id[32];       /* Display & ID */              │
 │      void (*reference_impl)(OpParams*);  /* C reference */        │
 │      int (*verify_result)(OpParams*, float*);  /* Verification */ │
-│      int (*set_kernel_args)(cl_kernel, cl_mem, cl_mem, OpParams); │
+│      int (*set_kernel_args)(cl_kernel, cl_mem, cl_mem,            │
+│                             const OpParams*);  /* Set args */     │
 │  } Algorithm;                                                     │
+│                                                                   │
+│  OpParams includes:                                               │
+│  - host_type: HOST_TYPE_STANDARD or HOST_TYPE_CL_EXTENSION       │
+│  - kernel_variant: ID to distinguish different kernel signatures │
+│  - custom_buffers: RuntimeBuffer array with metadata (type, size)│
 └───────────────────────────────────────────────────────────────────┘
                               ▲
                               │ Implements
@@ -268,10 +274,30 @@ data_type = float
 num_elements = 5
 source_file = test_data/gaussian5x5/kernel_y.bin
 
-# Kernel variant
+# Kernel variants (supports multiple variants with different signatures)
 [kernel.v0]
+host_type = standard
+kernel_variant = 0
 kernel_file = src/gaussian/cl/gaussian0.cl
 kernel_function = gaussian5x5
+work_dim = 2
+global_work_size = 1920,1088
+local_work_size = 16,16
+
+[kernel.v1]
+host_type = cl_extension
+kernel_variant = 1
+kernel_file = src/gaussian/cl/gaussian1.cl
+kernel_function = gaussian5x5_optimized
+work_dim = 2
+global_work_size = 1920,1088
+local_work_size = 16,16
+
+[kernel.v2]
+host_type = cl_extension
+kernel_variant = 2
+kernel_file = src/gaussian/cl/gaussian2.cl
+kernel_function = gaussian5x5_horizontal
 work_dim = 2
 global_work_size = 1920,1088
 local_work_size = 16,16
@@ -413,8 +439,18 @@ test_data/gaussian5x5/
 │  source_file = test_data/gaussian5x5/kernel_y.bin            │
 │                                                               │
 │  [kernel.v0]                  ← Kernel variant 0             │
+│  host_type = standard                                        │
+│  kernel_variant = 0                                          │
 │  kernel_file = src/gaussian/cl/gaussian0.cl                  │
 │  kernel_function = gaussian5x5                               │
+│  global_work_size = 1920,1088                                │
+│  local_work_size = 16,16                                     │
+│                                                               │
+│  [kernel.v1]                  ← Kernel variant 1 (optimized) │
+│  host_type = cl_extension                                    │
+│  kernel_variant = 1                                          │
+│  kernel_file = src/gaussian/cl/gaussian1.cl                  │
+│  kernel_function = gaussian5x5_optimized                     │
 │  global_work_size = 1920,1088                                │
 │  local_work_size = 16,16                                     │
 └───────────────────────────────────────────────────────────────┘
@@ -431,7 +467,8 @@ test_data/gaussian5x5/
 │     → BufferConfig[] (type, size, source)                    │
 │                                                               │
 │  3. Parse [kernel.*] sections                                │
-│     → KernelConfig[] (file, function, work sizes)            │
+│     → KernelConfig[] (file, function, work sizes,            │
+│                       host_type, kernel_variant)             │
 │                                                               │
 │  4. Validate & store in AlgorithmConfig                      │
 └───────────────────────────────────────────────────────────────┘

@@ -100,7 +100,31 @@ Run an algorithm by name with a variant index:
 
 Want to add your own image processing algorithm? It's straightforward!
 
-**Three simple steps:**
+**Quick start with automation:**
+
+Use the `create_new_algo` script to generate all required files automatically:
+
+```bash
+# Interactive mode
+./scripts/create_new_algo.sh
+
+# Or with arguments
+./scripts/create_new_algo.sh myalgo "My Algorithm Description"
+```
+
+This creates:
+- Configuration file: `config/myalgo.ini`
+- C reference: `src/myalgo/c_ref/myalgo_ref.c` (with 3 required functions)
+- OpenCL kernel: `src/myalgo/cl/myalgo0.cl`
+- Test data directory: `test_data/myalgo/`
+
+Then build and run:
+```bash
+./scripts/build.sh
+./build/opencl_host myalgo 0
+```
+
+**Manual approach (three simple steps):**
 
 1. **Create a configuration file:** `config/myalgo.ini`
 2. **Implement C reference:** `src/myalgo/c_ref/myalgo_ref.c` (3 required functions)
@@ -172,8 +196,12 @@ local_work_size = 16,16
 │   └── Doxyfile                    # Doxygen documentation config
 ├── scripts/
 │   ├── build.sh                    # Build script (with --clean option)
-│   ├── generate_registry.sh       # Auto-generate algorithm registry
-│   ├── generate_test_image.py     # Test image generator
+│   ├── create_new_algo.sh          # Generate new algorithm template (shell)
+│   ├── create_new_algo.py          # Generate new algorithm template (Python)
+│   ├── create_new_algo.c           # Generate new algorithm template (C)
+│   ├── generate_registry.sh        # Auto-generate algorithm registry
+│   ├── generate_test_image.py      # Test image generator
+│   ├── generate_gaussian_kernels.py # Generate Gaussian kernel weights
 │   └── run.sh                      # Interactive run script
 ├── src/
 │   ├── main.c                      # Entry point with CLI parsing
@@ -262,7 +290,7 @@ cd src && make clean && make      # Clean build (removes build/ only)
 
 **Available algorithms:**
 - `dilate3x3` - Morphological dilation (variants: v0, v1)
-- `gaussian5x5` - Gaussian blur (variants: v0, v1)
+- `gaussian5x5` - Gaussian blur (variants: v0, v1, v2)
 
 ### Caching System
 

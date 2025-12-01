@@ -85,6 +85,8 @@ local_work_size = 16,16
 | `work_dim` | Work dimensions (1, 2, or 3) | `2` |
 | `global_work_size` | Global work size (comma-separated) | `1920,1088` |
 | `local_work_size` | Local work size (comma-separated) | `16,16` |
+| `host_type` | Host API type: `standard` or `cl_extension` (optional) | `standard` |
+| `kernel_variant` | Kernel signature variant ID (optional, defaults to 0) | `0` |
 
 ### Custom Buffers
 
@@ -266,9 +268,9 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
 - Buffers indexed in order they appear in `.ini` file
 - First `[buffer.*]` → `custom->buffers[0]`, second → `custom->buffers[1]`, etc.
 
-### Adapting Arguments Based on Host Type
+### Adapting Arguments Based on Kernel Variant
 
-If your algorithm has multiple kernel variants with different signatures, use `params->host_type`:
+If your algorithm has multiple kernel variants with different signatures, use `params->kernel_variant`:
 
 ```c
 int my_algo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
@@ -281,17 +283,27 @@ int my_algo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
     clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf);
     clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf);
 
-    // Variant-specific arguments based on host_type
-    if (params->host_type == HOST_TYPE_STANDARD) {
-        // Standard variant: simple arguments
+    // Variant-specific arguments based on kernel_variant
+    if (params->kernel_variant == 0) {
+        // Variant 0: Simple signature (input, output, width, height)
         clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
         clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
-    } else if (params->host_type == HOST_TYPE_CL_EXTENSION) {
-        // Extension variant: uses local memory, needs local_size argument
-        size_t local_size = 16 * 16 * sizeof(float);
+    } else if (params->kernel_variant == 1) {
+        // Variant 1: Extended signature with buffer and size
+        CustomBuffers* custom = params->custom_buffers;
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[0].size_bytes);
         clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
         clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
-        clSetKernelArg(kernel, arg_idx++, local_size, NULL);  // Local memory
+    } else if (params->kernel_variant == 2) {
+        // Variant 2: Two-pass signature with two buffers
+        CustomBuffers* custom = params->custom_buffers;
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[0].size_bytes);
+        clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[1].buffer);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &custom->buffers[1].size_bytes);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
     }
 
     return 0;
@@ -299,9 +311,12 @@ int my_algo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
 ```
 
 **Use cases:**
-- Different kernel signatures for standard vs. optimized variants
-- Local memory allocation that varies by variant
+- Different kernel signatures for different optimization strategies
+- Varying number of buffers per variant
 - Different buffer configurations per variant
+- Local memory allocation that varies by variant
+
+**Note:** You can also use `params->host_type` in combination with `params->kernel_variant` for even more fine-grained control.
 
 ### Using Buffer Metadata
 
