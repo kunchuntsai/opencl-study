@@ -266,6 +266,43 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
 - Buffers indexed in order they appear in `.ini` file
 - First `[buffer.*]` → `custom->buffers[0]`, second → `custom->buffers[1]`, etc.
 
+### Adapting Arguments Based on Host Type
+
+If your algorithm has multiple kernel variants with different signatures, use `params->host_type`:
+
+```c
+int my_algo_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
+                            cl_mem output_buf, const OpParams* params) {
+    if (!kernel || !params) return -1;
+
+    cl_uint arg_idx = 0;
+
+    // Standard arguments for all variants
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf);
+    clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf);
+
+    // Variant-specific arguments based on host_type
+    if (params->host_type == HOST_TYPE_STANDARD) {
+        // Standard variant: simple arguments
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
+    } else if (params->host_type == HOST_TYPE_CL_EXTENSION) {
+        // Extension variant: uses local memory, needs local_size argument
+        size_t local_size = 16 * 16 * sizeof(float);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width);
+        clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height);
+        clSetKernelArg(kernel, arg_idx++, local_size, NULL);  // Local memory
+    }
+
+    return 0;
+}
+```
+
+**Use cases:**
+- Different kernel signatures for standard vs. optimized variants
+- Local memory allocation that varies by variant
+- Different buffer configurations per variant
+
 ---
 
 ## 3. Auto-Registration System

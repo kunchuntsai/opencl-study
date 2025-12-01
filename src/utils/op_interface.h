@@ -26,6 +26,12 @@
 /** Maximum number of custom buffers per algorithm */
 #define MAX_CUSTOM_BUFFERS 8
 
+/** Host type enumeration for OpenCL API selection */
+typedef enum {
+    HOST_TYPE_STANDARD = 0,     /**< Standard OpenCL API (default) */
+    HOST_TYPE_CL_EXTENSION      /**< Custom CL extension API */
+} HostType;
+
 /** Border handling modes */
 typedef enum {
     BORDER_CLAMP = 0,      /**< Clamp to edge (replicate edge pixels) */
@@ -95,6 +101,9 @@ typedef struct {
 
     /* Custom buffers (for algorithms needing additional data) */
     CustomBuffers* custom_buffers;  /**< Pointer to custom buffer collection (NULL if none) */
+
+    /* Kernel variant information */
+    HostType host_type;  /**< Host API type for current kernel variant */
 } OpParams;
 
 

@@ -220,6 +220,8 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     (void)printf("\n=== Running OpenCL Kernel ===\n");
 
     /* Note: op_params.custom_buffers already set earlier if custom buffers exist */
+    /* Set host type for this kernel variant */
+    op_params.host_type = kernel_cfg->host_type;
 
     run_result = opencl_run_kernel(env, kernel, algo,
                                   input_buf, output_buf, &op_params,
