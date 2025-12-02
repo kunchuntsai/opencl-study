@@ -1,4 +1,5 @@
 #include "op_registry.h"
+#include "config.h"
 #include <stdio.h>
 #include <string.h>
 
@@ -53,12 +54,43 @@ int get_algorithm_count(void) {
 
 void list_algorithms(void) {
     int i;
+    int j;
+    char config_path[256];
+    Config config;
+    KernelConfig* variants[MAX_KERNEL_CONFIGS];
+    int variant_count;
+    int parse_result;
+    int get_variants_result;
 
     for (i = 0; i < algorithm_count; i++) {
         if (registered_algorithms[i] != NULL) {
             (void)printf("  %d - %s (ID: %s)\n", i,
                          registered_algorithms[i]->name,
                          registered_algorithms[i]->id);
+
+            /* Construct config path for this algorithm */
+            (void)snprintf(config_path, sizeof(config_path), "config/%s.ini",
+                          registered_algorithms[i]->id);
+
+            /* Try to load and parse config for this algorithm */
+            parse_result = parse_config(config_path, &config);
+            if (parse_result == 0) {
+                /* Set op_id from algorithm ID if not already set */
+                if ((config.op_id[0] == '\0') || (strcmp(config.op_id, "config") == 0)) {
+                    (void)strncpy(config.op_id, registered_algorithms[i]->id, sizeof(config.op_id) - 1U);
+                    config.op_id[sizeof(config.op_id) - 1U] = '\0';
+                }
+
+                /* Get variants for this algorithm */
+                get_variants_result = get_op_variants(&config, registered_algorithms[i]->id,
+                                                     variants, &variant_count);
+                if ((get_variants_result == 0) && (variant_count > 0)) {
+                    /* Display variants */
+                    for (j = 0; j < variant_count; j++) {
+                        (void)printf("      [%d] %s\n", j, variants[j]->variant_id);
+                    }
+                }
+            }
         }
     }
 }
