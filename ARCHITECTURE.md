@@ -8,19 +8,6 @@ Visual diagrams to understand the system architecture and execution flow.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         DEVELOPMENT TOOLING                          │
-│                          (scripts/ dir)                              │
-│                                                                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │ Build System │  │ Benchmarking │  │   Metadata   │              │
-│  │   & Auto-    │  │    Tools     │  │  Extraction  │              │
-│  │  Registry    │  │              │  │    (JSON)    │              │
-│  └──────────────┘  └──────────────┘  └──────────────┘              │
-└─────────────────────────────────────────────────────────────────────┘
-         │                      │                     │
-         └──────────────────────┼─────────────────────┘
-                                ▼
-┌─────────────────────────────────────────────────────────────────────┐
 │                       CLI / USER INTERFACE                           │
 │                          (src/main.c)                                │
 │            • Argument parsing  • Menu system  • User I/O             │
