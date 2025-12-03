@@ -15,7 +15,7 @@ else
 endif
 
 # Directories
-BUILD_DIR = ../build
+BUILD_DIR = ../out
 OBJ_DIR = $(BUILD_DIR)/obj
 TARGET = $(BUILD_DIR)/opencl_host
 
@@ -44,6 +44,6 @@ clean:
 	rm -rf $(BUILD_DIR)
 
 run: $(TARGET)
-	cd .. && ./build/opencl_host
+	cd .. && ./out/opencl_host
 
 .PHONY: all clean run

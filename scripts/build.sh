@@ -10,7 +10,7 @@ set -e  # Exit on error
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BUILD_DIR="$PROJECT_ROOT/build"
+BUILD_DIR="$PROJECT_ROOT/out"
 SRC_DIR="$PROJECT_ROOT/src"
 
 show_help() {
@@ -24,20 +24,19 @@ show_help() {
     echo "Build artifacts:"
     echo "  Executable: $BUILD_DIR/opencl_host"
     echo "  Objects:    $BUILD_DIR/obj/"
-    echo "  Cache:      test_data/{algorithm}/kernels/ and test_data/{algorithm}/golden/"
+    echo "  Output:     out/{algorithm}_{variant}_{timestamp}/"
 }
 
 clean_all() {
-    echo "=== Cleaning All Build Artifacts and Cache ==="
+    echo "=== Cleaning All Build Artifacts and Output ==="
 
     if [ -d "$BUILD_DIR" ]; then
         echo "Removing build directory: $BUILD_DIR"
         rm -rf "$BUILD_DIR"
     fi
 
-    # Remove cache directories from test_data/
-    echo "Removing cache directories from test_data/"
-    find "$PROJECT_ROOT/test_data" -type d \( -name "kernels" -o -name "golden" \) -exec rm -rf {} + 2>/dev/null || true
+    # Note: Output directories with timestamps are now in out/
+    # test_data/ only contains input test data
 
     echo "Clean complete"
     echo ""

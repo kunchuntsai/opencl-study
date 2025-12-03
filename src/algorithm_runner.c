@@ -276,13 +276,29 @@ void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
     (void)printf("Verification:     %s\n", (passed != 0) ? "PASSED" : "FAILED");
     (void)printf("Max error:        %.2f\n", (double)max_error);
 
-    /* Save output */
-    write_result = write_image(config->output_image, gpu_output_buffer,
-                              config->src_width, config->src_height);
-    if (write_result == 0) {
-        (void)printf("Output saved to: %s\n", config->output_image);
-    } else {
-        (void)fprintf(stderr, "Failed to save output image\n");
+    /* Save output to timestamped directory */
+    {
+        const char* run_dir;
+        char output_path[512];
+        int path_result;
+
+        run_dir = cache_get_run_dir();
+        if (run_dir != NULL) {
+            path_result = snprintf(output_path, sizeof(output_path), "%s/out.bin", run_dir);
+            if ((path_result >= 0) && ((size_t)path_result < sizeof(output_path))) {
+                write_result = write_image(output_path, gpu_output_buffer,
+                                          config->src_width, config->src_height);
+                if (write_result == 0) {
+                    (void)printf("Output saved to: %s\n", output_path);
+                } else {
+                    (void)fprintf(stderr, "Failed to save output image\n");
+                }
+            } else {
+                (void)fprintf(stderr, "Failed to construct output path\n");
+            }
+        } else {
+            (void)fprintf(stderr, "Warning: Run directory not initialized, output not saved\n");
+        }
     }
 
 cleanup:

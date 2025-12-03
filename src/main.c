@@ -108,7 +108,7 @@ int main(int argc, char** argv) {
     }
 
     /* 5. Initialize cache directories for this algorithm */
-    if (cache_init(algo->id) != 0) {
+    if (cache_init(algo->id, variants[variant_index]->variant_id) != 0) {
         (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
     }
 
