@@ -266,13 +266,19 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
   (void)printf("Verification:     %s\n", (passed != 0) ? "PASSED" : "FAILED");
   (void)printf("Max error:        %.2f\n", (double)max_error);
 
-  /* Save output */
-  write_result =
-      WriteImage(config->output_image, gpu_output_buffer, config->src_width, config->src_height);
-  if (write_result == 0) {
-    (void)printf("Output saved to: %s\n", config->output_image);
-  } else {
-    (void)fprintf(stderr, "Failed to save output image\n");
+  /* Save output to timestamped run directory */
+  {
+    char output_path[512];
+    const char* run_dir = CacheGetRunDir();
+    if (run_dir != NULL) {
+      (void)snprintf(output_path, sizeof(output_path), "%s/out.bin", run_dir);
+      write_result = WriteImage(output_path, gpu_output_buffer, config->src_width, config->src_height);
+      if (write_result == 0) {
+        (void)printf("Output saved to: %s\n", output_path);
+      } else {
+        (void)fprintf(stderr, "Failed to save output image\n");
+      }
+    }
   }
 
 cleanup:

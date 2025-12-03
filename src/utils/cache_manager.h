@@ -28,7 +28,7 @@
 #include <stddef.h>
 
 /* Cache base directory (organized per algorithm) */
-#define CACHE_BASE_DIR "test_data"
+#define CACHE_BASE_DIR "out"
 
 /* Maximum filename length for cache files */
 #define MAX_CACHE_FILENAME 256
@@ -38,14 +38,23 @@
  * @brief Initialize cache directory structure for an algorithm
  *
  * Creates the cache directories if they don't exist:
- * - test_data/{algorithm}/
- * - test_data/{algorithm}/kernels/
- * - test_data/{algorithm}/golden/
+ * - out/{algorithm}_{variant}_{timestamp}/
  *
  * @param algorithm_id Unique identifier for the algorithm (e.g., "dilate3x3")
+ * @param variant_id Variant identifier (e.g., "v0", "v1")
  * @return 0 on success, -1 on error
  */
-int CacheInit(const char* algorithm_id);
+int CacheInit(const char* algorithm_id, const char* variant_id);
+
+/**
+ * @brief Get the current run directory path
+ *
+ * Returns the timestamped directory path for the current run,
+ * which was set by CacheInit.
+ *
+ * @return Pointer to the current run directory path, or NULL if not initialized
+ */
+const char* CacheGetRunDir(void);
 
 /* ============================================================================
  * KERNEL BINARY CACHING

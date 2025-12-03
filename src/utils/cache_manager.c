@@ -10,6 +10,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
+#include <time.h>
 
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 #define MAX_KERNEL_BINARY_SIZE (10 * 1024 * 1024) /* 10MB max */
@@ -18,15 +19,40 @@
 static unsigned char kernel_binary_buffer[MAX_KERNEL_BINARY_SIZE];
 static unsigned char golden_sample_buffer[MAX_GOLDEN_SAMPLE_SIZE];
 
-/* Helper function to construct algorithm cache directory path */
-static int BuildAlgorithmDir(const char* algorithm_id, char* path, size_t path_size) {
-  int result;
+/* Global storage for current run directory (set by CacheInit) */
+static char current_run_dir[MAX_CACHE_PATH] = {0};
 
-  if ((algorithm_id == NULL) || (path == NULL) || (path_size == 0U)) {
+/* Helper function to generate timestamp in mmddhhmm format */
+static void GetTimestamp(char* buffer, size_t size) {
+  time_t now;
+  struct tm* timeinfo;
+
+  if ((buffer == NULL) || (size < 9U)) {
+    return;
+  }
+
+  now = time(NULL);
+  timeinfo = localtime(&now);
+
+  if (timeinfo != NULL) {
+    (void)snprintf(buffer, size, "%02d%02d%02d%02d", timeinfo->tm_mon + 1, timeinfo->tm_mday,
+                   timeinfo->tm_hour, timeinfo->tm_min);
+  }
+}
+
+/* Helper function to construct algorithm cache directory path with timestamp */
+static int BuildAlgorithmDir(const char* algorithm_id, const char* variant_id, char* path,
+                             size_t path_size) {
+  int result;
+  char timestamp[16];
+
+  if ((algorithm_id == NULL) || (variant_id == NULL) || (path == NULL) || (path_size == 0U)) {
     return -1;
   }
 
-  result = snprintf(path, path_size, "%s/%s", CACHE_BASE_DIR, algorithm_id);
+  GetTimestamp(timestamp, sizeof(timestamp));
+  result = snprintf(path, path_size, "%s/%s_%s_%s", CACHE_BASE_DIR, algorithm_id, variant_id,
+                    timestamp);
 
   if ((result < 0) || ((size_t)result >= path_size)) {
     return -1;
@@ -44,8 +70,12 @@ static int BuildKernelCachePath(const char* algorithm_id, const char* kernel_nam
     return -1;
   }
 
-  result =
-      snprintf(path, path_size, "%s/%s/kernels/%s.bin", CACHE_BASE_DIR, algorithm_id, kernel_name);
+  /* Use current run directory if available, otherwise fall back to algorithm_id */
+  if (current_run_dir[0] != '\0') {
+    result = snprintf(path, path_size, "%s/%s.bin", current_run_dir, kernel_name);
+  } else {
+    result = snprintf(path, path_size, "%s/%s/%s.bin", CACHE_BASE_DIR, algorithm_id, kernel_name);
+  }
 
   if ((result < 0) || ((size_t)result >= path_size)) {
     return -1;
@@ -62,8 +92,12 @@ static int BuildGoldenCachePath(const char* algorithm_id, char* path, size_t pat
     return -1;
   }
 
-  result =
-      snprintf(path, path_size, "%s/%s/golden/%s.bin", CACHE_BASE_DIR, algorithm_id, algorithm_id);
+  /* Use current run directory if available, otherwise fall back to algorithm_id */
+  if (current_run_dir[0] != '\0') {
+    result = snprintf(path, path_size, "%s/golden.bin", current_run_dir);
+  } else {
+    result = snprintf(path, path_size, "%s/%s/%s.bin", CACHE_BASE_DIR, algorithm_id, algorithm_id);
+  }
 
   if ((result < 0) || ((size_t)result >= path_size)) {
     return -1;
@@ -72,28 +106,13 @@ static int BuildGoldenCachePath(const char* algorithm_id, char* path, size_t pat
   return 0;
 }
 
-int CacheInit(const char* algorithm_id) {
-  char algo_dir[MAX_CACHE_PATH];
-  char kernel_dir[MAX_CACHE_PATH];
-  char golden_dir[MAX_CACHE_PATH];
-  int result;
-
-  if (algorithm_id == NULL) {
+int CacheInit(const char* algorithm_id, const char* variant_id) {
+  if ((algorithm_id == NULL) || (variant_id == NULL)) {
     return -1;
   }
 
-  /* Build directory paths */
-  if (BuildAlgorithmDir(algorithm_id, algo_dir, sizeof(algo_dir)) != 0) {
-    return -1;
-  }
-
-  result = snprintf(kernel_dir, sizeof(kernel_dir), "%s/kernels", algo_dir);
-  if ((result < 0) || ((size_t)result >= sizeof(kernel_dir))) {
-    return -1;
-  }
-
-  result = snprintf(golden_dir, sizeof(golden_dir), "%s/golden", algo_dir);
-  if ((result < 0) || ((size_t)result >= sizeof(golden_dir))) {
+  /* Build timestamped run directory path */
+  if (BuildAlgorithmDir(algorithm_id, variant_id, current_run_dir, sizeof(current_run_dir)) != 0) {
     return -1;
   }
 
@@ -101,11 +120,18 @@ int CacheInit(const char* algorithm_id) {
   /* MISRA-C:2023 Rule 17.7: We can ignore the return here as
    * mkdir returns error if directory exists, which is okay */
   (void)mkdir(CACHE_BASE_DIR, 0755);
-  (void)mkdir(algo_dir, 0755);
-  (void)mkdir(kernel_dir, 0755);
-  (void)mkdir(golden_dir, 0755);
+  (void)mkdir(current_run_dir, 0755);
+
+  (void)printf("Cache directory: %s\n", current_run_dir);
 
   return 0;
+}
+
+const char* CacheGetRunDir(void) {
+  if (current_run_dir[0] == '\0') {
+    return NULL;
+  }
+  return current_run_dir;
 }
 
 /* ============================================================================
