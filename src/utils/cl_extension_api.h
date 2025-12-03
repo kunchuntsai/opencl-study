@@ -28,8 +28,8 @@
  * This is a placeholder for custom implementation-specific data.
  */
 typedef struct {
-    void* extension_data;       /**< Custom extension-specific data */
-    int initialized;            /**< Initialization flag */
+  void* extension_data; /**< Custom extension-specific data */
+  int initialized;      /**< Initialization flag */
 } CLExtensionContext;
 
 /**
@@ -71,15 +71,10 @@ void cl_extension_cleanup(CLExtensionContext* ctx);
  * @return CL_SUCCESS on success, error code otherwise
  */
 cl_int cl_extension_enqueue_ndrange_kernel(
-    CLExtensionContext* ctx,
-    cl_command_queue command_queue,
-    cl_kernel kernel,
-    cl_uint work_dim,
-    const size_t* global_work_offset,
-    const size_t* global_work_size,
-    const size_t* local_work_size,
-    cl_uint num_events_in_wait_list,
-    const cl_event* event_wait_list,
+    CLExtensionContext* ctx, cl_command_queue command_queue, cl_kernel kernel,
+    cl_uint work_dim, const size_t* global_work_offset,
+    const size_t* global_work_size, const size_t* local_work_size,
+    cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
     cl_event* event);
 
 /**
@@ -96,13 +91,9 @@ cl_int cl_extension_enqueue_ndrange_kernel(
  * @param[out] errcode_ret Error code return
  * @return Created buffer object, or NULL on error
  */
-cl_mem cl_extension_create_buffer(
-    CLExtensionContext* ctx,
-    cl_context context,
-    cl_mem_flags flags,
-    size_t size,
-    void* host_ptr,
-    cl_int* errcode_ret);
+cl_mem cl_extension_create_buffer(CLExtensionContext* ctx, cl_context context,
+                                  cl_mem_flags flags, size_t size,
+                                  void* host_ptr, cl_int* errcode_ret);
 
 /**
  * @brief Custom implementation of clFinish
@@ -114,9 +105,8 @@ cl_mem cl_extension_create_buffer(
  * @param[in] command_queue Command queue to finish
  * @return CL_SUCCESS on success, error code otherwise
  */
-cl_int cl_extension_finish(
-    CLExtensionContext* ctx,
-    cl_command_queue command_queue);
+cl_int cl_extension_finish(CLExtensionContext* ctx,
+                           cl_command_queue command_queue);
 
 /**
  * @brief Print custom CL extension information

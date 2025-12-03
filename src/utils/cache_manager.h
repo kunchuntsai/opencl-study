@@ -49,7 +49,8 @@ int cache_init(const char* algorithm_id);
 
 /* ============================================================================
  * KERNEL BINARY CACHING
- * ============================================================================ */
+ * ============================================================================
+ */
 
 /**
  * @brief Check if a cached kernel binary exists
@@ -73,7 +74,7 @@ int cache_kernel_exists(const char* algorithm_id, const char* kernel_name);
  * @return 0 on success, -1 on error
  */
 int cache_save_kernel_binary(cl_program program, cl_device_id device,
-                              const char* algorithm_id, const char* kernel_name);
+                             const char* algorithm_id, const char* kernel_name);
 
 /**
  * @brief Load cached kernel binary and create program
@@ -88,11 +89,13 @@ int cache_save_kernel_binary(cl_program program, cl_device_id device,
  * @return OpenCL program object, or NULL on error
  */
 cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
-                                     const char* algorithm_id, const char* kernel_name);
+                                    const char* algorithm_id,
+                                    const char* kernel_name);
 
 /* ============================================================================
  * GOLDEN SAMPLE CACHING
- * ============================================================================ */
+ * ============================================================================
+ */
 
 /**
  * @brief Check if a golden sample exists

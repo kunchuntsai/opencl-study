@@ -78,18 +78,21 @@ void list_algorithms(void);
  * Convenience macro that eliminates registration boilerplate.
  * Creates an Algorithm struct and registers it before main() runs.
  *
- * Usage: REGISTER_ALGORITHM(op_id, "Display Name", ref_func, verify_func, set_args_func)
+ * Usage: REGISTER_ALGORITHM(op_id, "Display Name", ref_func, verify_func,
+ * set_args_func)
  *
  * Example:
  *   static int dilate3x3_set_kernel_args(...) { ... }
- *   REGISTER_ALGORITHM(dilate3x3, "Dilate 3x3", dilate3x3_ref, dilate3x3_verify, dilate3x3_set_kernel_args)
+ *   REGISTER_ALGORITHM(dilate3x3, "Dilate 3x3", dilate3x3_ref,
+ * dilate3x3_verify, dilate3x3_set_kernel_args)
  *
  * To add a new algorithm:
  * 1. Implement the reference function (e.g., myalgo_ref)
  * 2. Implement the verify function (e.g., myalgo_verify)
  * 3. Implement the set_kernel_args function (e.g., myalgo_set_kernel_args)
  * 4. At the end of your .c file, add one line:
- *    REGISTER_ALGORITHM(myalgo, "My Algorithm", myalgo_ref, myalgo_verify, myalgo_set_kernel_args)
+ *    REGISTER_ALGORITHM(myalgo, "My Algorithm", myalgo_ref, myalgo_verify,
+ * myalgo_set_kernel_args)
  * 5. In config.ini, set: op_id = myalgo
  *
  * The macro generates:
@@ -110,20 +113,19 @@ void list_algorithms(void);
  * @param display_name Human-readable name shown in UI
  * @param ref_func C reference implementation: void func(const OpParams*)
  * @param verify_func GPU verification: int func(const OpParams*, float*)
- * @param set_args_func Kernel argument setter: int func(cl_kernel, cl_mem, cl_mem, const OpParams*, void*)
+ * @param set_args_func Kernel argument setter: int func(cl_kernel, cl_mem,
+ * cl_mem, const OpParams*, void*)
  */
-#define REGISTER_ALGORITHM(op_id, display_name, ref_func, verify_func, set_args_func) \
-    static Algorithm op_id##_algorithm = { \
-        .name = display_name, \
-        .id = #op_id, \
-        .reference_impl = ref_func, \
-        .verify_result = verify_func, \
-        .create_buffers = NULL, \
-        .destroy_buffers = NULL, \
-        .set_kernel_args = set_args_func \
-    }; \
-    \
-    __attribute__((constructor)) \
-    static void op_id##_init(void) { \
-        register_algorithm(&op_id##_algorithm); \
-    }
+#define REGISTER_ALGORITHM(op_id, display_name, ref_func, verify_func,     \
+                           set_args_func)                                  \
+  static Algorithm op_id##_algorithm = {.name = display_name,              \
+                                        .id = #op_id,                      \
+                                        .reference_impl = ref_func,        \
+                                        .verify_result = verify_func,      \
+                                        .create_buffers = NULL,            \
+                                        .destroy_buffers = NULL,           \
+                                        .set_kernel_args = set_args_func}; \
+                                                                           \
+  __attribute__((constructor)) static void op_id##_init(void) {            \
+    register_algorithm(&op_id##_algorithm);                                \
+  }

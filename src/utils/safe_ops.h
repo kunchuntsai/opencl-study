@@ -14,10 +14,10 @@
 
 #pragma once
 
-#include <stdint.h>
+#include <errno.h>
 #include <limits.h>
 #include <stdbool.h>
-#include <errno.h>
+#include <stdint.h>
 #include <stdlib.h>
 
 /**
@@ -33,29 +33,29 @@
  * @return true if multiplication succeeded without overflow, false otherwise
  */
 static inline bool safe_mul_int(int a, int b, int* result) {
-    if (a > 0) {
-        if (b > 0) {
-            if (a > (INT_MAX / b)) {
-                return false;  /* Overflow */
-            }
-        } else {
-            if (b < (INT_MIN / a)) {
-                return false;  /* Underflow */
-            }
-        }
+  if (a > 0) {
+    if (b > 0) {
+      if (a > (INT_MAX / b)) {
+        return false; /* Overflow */
+      }
     } else {
-        if (b > 0) {
-            if (a < (INT_MIN / b)) {
-                return false;  /* Underflow */
-            }
-        } else {
-            if ((a != 0) && (b < (INT_MAX / a))) {
-                return false;  /* Overflow */
-            }
-        }
+      if (b < (INT_MIN / a)) {
+        return false; /* Underflow */
+      }
     }
-    *result = a * b;
-    return true;
+  } else {
+    if (b > 0) {
+      if (a < (INT_MIN / b)) {
+        return false; /* Underflow */
+      }
+    } else {
+      if ((a != 0) && (b < (INT_MAX / a))) {
+        return false; /* Overflow */
+      }
+    }
+  }
+  *result = a * b;
+  return true;
 }
 
 /**
@@ -71,11 +71,11 @@ static inline bool safe_mul_int(int a, int b, int* result) {
  * @return true if multiplication succeeded without overflow, false otherwise
  */
 static inline bool safe_mul_size(size_t a, size_t b, size_t* result) {
-    if ((b != 0U) && (a > (SIZE_MAX / b))) {
-        return false;  /* Overflow */
-    }
-    *result = a * b;
-    return true;
+  if ((b != 0U) && (a > (SIZE_MAX / b))) {
+    return false; /* Overflow */
+  }
+  *result = a * b;
+  return true;
 }
 
 /**
@@ -91,11 +91,11 @@ static inline bool safe_mul_size(size_t a, size_t b, size_t* result) {
  * @return true if addition succeeded without overflow, false otherwise
  */
 static inline bool safe_add_size(size_t a, size_t b, size_t* result) {
-    if (a > (SIZE_MAX - b)) {
-        return false;  /* Overflow */
-    }
-    *result = a + b;
-    return true;
+  if (a > (SIZE_MAX - b)) {
+    return false; /* Overflow */
+  }
+  *result = a + b;
+  return true;
 }
 
 /**
@@ -107,26 +107,27 @@ static inline bool safe_add_size(size_t a, size_t b, size_t* result) {
  *
  * @param[in] str Input string to convert (must be null-terminated)
  * @param[out] result Pointer to store the converted long value
- * @return true if conversion succeeded, false on error (invalid format, overflow, etc.)
+ * @return true if conversion succeeded, false on error (invalid format,
+ * overflow, etc.)
  */
 static inline bool safe_strtol(const char* str, long* result) {
-    char* endptr = NULL;
-    long val;
+  char* endptr = NULL;
+  long val;
 
-    if ((str == NULL) || (*str == '\0')) {
-        return false;
-    }
+  if ((str == NULL) || (*str == '\0')) {
+    return false;
+  }
 
-    errno = 0;
-    val = strtol(str, &endptr, 10);
+  errno = 0;
+  val = strtol(str, &endptr, 10);
 
-    /* Check for various conversion errors */
-    if ((errno == ERANGE) || (endptr == str) || (*endptr != '\0')) {
-        return false;
-    }
+  /* Check for various conversion errors */
+  if ((errno == ERANGE) || (endptr == str) || (*endptr != '\0')) {
+    return false;
+  }
 
-    *result = val;
-    return true;
+  *result = val;
+  return true;
 }
 
 /**
@@ -138,19 +139,20 @@ static inline bool safe_strtol(const char* str, long* result) {
  *
  * @param[in] str Input string to convert (must be null-terminated)
  * @param[out] result Pointer to store the converted size_t value
- * @return true if conversion succeeded, false on error (invalid format, negative, overflow)
+ * @return true if conversion succeeded, false on error (invalid format,
+ * negative, overflow)
  */
 static inline bool safe_str_to_size(const char* str, size_t* result) {
-    long val;
+  long val;
 
-    if (!safe_strtol(str, &val)) {
-        return false;
-    }
+  if (!safe_strtol(str, &val)) {
+    return false;
+  }
 
-    if (val < 0) {
-        return false;  /* Negative value */
-    }
+  if (val < 0) {
+    return false; /* Negative value */
+  }
 
-    *result = (size_t)val;
-    return true;
+  *result = (size_t)val;
+  return true;
 }

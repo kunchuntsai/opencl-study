@@ -1,6 +1,7 @@
 /**
  * @file opencl_utils.h
- * @brief OpenCL utility functions for device initialization and kernel execution
+ * @brief OpenCL utility functions for device initialization and kernel
+ * execution
  *
  * Provides high-level wrappers around OpenCL API for:
  * - Platform and device initialization
@@ -23,8 +24,8 @@
 #endif
 
 /* Include op_interface for Algorithm and OpParams */
-#include "op_interface.h"
 #include "cl_extension_api.h"
+#include "op_interface.h"
 
 /**
  * @brief OpenCL environment containing all required resources
@@ -33,11 +34,11 @@
  * platform, device, context, and command queue.
  */
 typedef struct {
-    cl_platform_id platform;    /**< OpenCL platform (e.g., Apple, NVIDIA) */
-    cl_device_id device;        /**< OpenCL device (GPU/CPU) */
-    cl_context context;         /**< OpenCL context for device */
-    cl_command_queue queue;     /**< Command queue for kernel execution */
-    CLExtensionContext ext_ctx; /**< Custom CL extension context */
+  cl_platform_id platform;    /**< OpenCL platform (e.g., Apple, NVIDIA) */
+  cl_device_id device;        /**< OpenCL device (GPU/CPU) */
+  cl_context context;         /**< OpenCL context for device */
+  cl_command_queue queue;     /**< Command queue for kernel execution */
+  CLExtensionContext ext_ctx; /**< Custom CL extension context */
 } OpenCLEnv;
 
 /**
@@ -67,7 +68,7 @@ int opencl_init(OpenCLEnv* env);
  * @return OpenCL kernel object, or NULL on error
  */
 cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
-                               const char* kernel_file, const char* kernel_name);
+                              const char* kernel_file, const char* kernel_name);
 
 /**
  * @brief Execute OpenCL kernel with timing
@@ -92,15 +93,11 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
  * @param[out] gpu_time_ms Execution time in milliseconds
  * @return 0 on success, -1 on error
  */
-int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
-                      const Algorithm* algo,
+int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo,
                       cl_mem input_buf, cl_mem output_buf,
-                      const OpParams* params,
-                      const size_t* global_work_size,
-                      const size_t* local_work_size,
-                      int work_dim,
-                      HostType host_type,
-                      double* gpu_time_ms);
+                      const OpParams* params, const size_t* global_work_size,
+                      const size_t* local_work_size, int work_dim,
+                      HostType host_type, double* gpu_time_ms);
 
 /**
  * @brief Create OpenCL buffer with error checking
@@ -115,9 +112,8 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
  * @param[in] buffer_name Descriptive name for error messages
  * @return OpenCL buffer object, or NULL on error
  */
-cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags,
-                             size_t size, void* host_ptr,
-                             const char* buffer_name);
+cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags, size_t size,
+                            void* host_ptr, const char* buffer_name);
 
 /**
  * @brief Release OpenCL memory object with error checking

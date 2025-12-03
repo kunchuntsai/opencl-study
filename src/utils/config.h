@@ -36,7 +36,8 @@
 #pragma once
 
 #include <stddef.h>
-#include "op_interface.h"  /* For MAX_CUSTOM_BUFFERS and CustomBuffers type */
+
+#include "op_interface.h" /* For MAX_CUSTOM_BUFFERS and CustomBuffers type */
 
 /** Maximum number of kernel configurations per algorithm */
 #define MAX_KERNEL_CONFIGS 32
@@ -50,37 +51,36 @@
  * including work group dimensions and kernel source location.
  */
 typedef struct {
-    char variant_id[32];        /**< Variant identifier (e.g., "v0", "v1") */
-    char kernel_file[256];      /**< Path to OpenCL kernel source file */
-    char kernel_function[64];   /**< Kernel function name to execute */
-    int work_dim;               /**< Work dimensions (1, 2, or 3) */
-    size_t global_work_size[3]; /**< Global work size for each dimension */
-    size_t local_work_size[3];  /**< Local work group size for each dimension */
-    HostType host_type;         /**< Host API type (standard or cl_extension) */
-    int kernel_variant;         /**< Kernel signature variant auto-derived from variant_id (v0->0, v1->1, etc.) */
+  char variant_id[32];        /**< Variant identifier (e.g., "v0", "v1") */
+  char kernel_file[256];      /**< Path to OpenCL kernel source file */
+  char kernel_function[64];   /**< Kernel function name to execute */
+  int work_dim;               /**< Work dimensions (1, 2, or 3) */
+  size_t global_work_size[3]; /**< Global work size for each dimension */
+  size_t local_work_size[3];  /**< Local work group size for each dimension */
+  HostType host_type;         /**< Host API type (standard or cl_extension) */
+  int kernel_variant; /**< Kernel signature variant auto-derived from variant_id
+                         (v0->0, v1->1, etc.) */
 } KernelConfig;
 
 /* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
 
 /** Data type enumeration for buffer elements */
 typedef enum {
-    DATA_TYPE_NONE = 0,
-    DATA_TYPE_FLOAT,    /**< 32-bit floating point (4 bytes) */
-    DATA_TYPE_UCHAR,    /**< 8-bit unsigned char (1 byte) */
-    DATA_TYPE_INT,      /**< 32-bit signed integer (4 bytes) */
-    DATA_TYPE_SHORT     /**< 16-bit signed integer (2 bytes) */
+  DATA_TYPE_NONE = 0,
+  DATA_TYPE_FLOAT, /**< 32-bit floating point (4 bytes) */
+  DATA_TYPE_UCHAR, /**< 8-bit unsigned char (1 byte) */
+  DATA_TYPE_INT,   /**< 32-bit signed integer (4 bytes) */
+  DATA_TYPE_SHORT  /**< 16-bit signed integer (2 bytes) */
 } DataType;
 
 /**
  * @brief Custom buffer configuration
  *
- * Describes a custom OpenCL buffer that will be created and passed to the kernel.
- * Buffers are set as kernel arguments sequentially after input/output buffers.
- * Order in config file determines kernel argument order:
- *   arg 0: input (standard)
- *   arg 1: output (standard)
- *   arg 2: first custom buffer
- *   arg 3: second custom buffer
+ * Describes a custom OpenCL buffer that will be created and passed to the
+ * kernel. Buffers are set as kernel arguments sequentially after input/output
+ * buffers. Order in config file determines kernel argument order: arg 0: input
+ * (standard) arg 1: output (standard) arg 2: first custom buffer arg 3: second
+ * custom buffer
  *   ...
  *
  * Buffers can either be:
@@ -88,27 +88,30 @@ typedef enum {
  * - Empty: Allocated with size_bytes, no initialization
  */
 typedef struct {
-    char name[64];              /**< Buffer name (from [buffer.NAME] section) */
-    BufferType type;            /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
+  char name[64]; /**< Buffer name (from [buffer.NAME] section) */
+  BufferType
+      type; /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
 
-    /* File-backed buffer fields */
-    char source_file[256];      /**< Path to data file (empty string if not file-backed) */
-    DataType data_type;         /**< Element data type (for file-backed buffers) */
-    int num_elements;           /**< Number of elements (for file-backed buffers) */
+  /* File-backed buffer fields */
+  char source_file[256]; /**< Path to data file (empty string if not
+                            file-backed) */
+  DataType data_type;    /**< Element data type (for file-backed buffers) */
+  int num_elements;      /**< Number of elements (for file-backed buffers) */
 
-    /* Empty buffer fields */
-    size_t size_bytes;          /**< Direct size specification (for empty buffers) */
+  /* Empty buffer fields */
+  size_t size_bytes; /**< Direct size specification (for empty buffers) */
 } CustomBufferConfig;
 
 /**
  * @brief Scalar argument configuration
  *
- * Describes a scalar argument to be passed to the kernel (e.g., filter_width, filter_height).
- * Scalars are set as kernel arguments sequentially after all custom buffers.
+ * Describes a scalar argument to be passed to the kernel (e.g., filter_width,
+ * filter_height). Scalars are set as kernel arguments sequentially after all
+ * custom buffers.
  */
 typedef struct {
-    char name[64];              /**< Argument name */
-    int value;                  /**< Scalar integer value */
+  char name[64]; /**< Argument name */
+  int value;     /**< Scalar integer value */
 } ScalarArgConfig;
 
 /** Maximum number of scalar arguments */
@@ -121,32 +124,36 @@ typedef struct {
  * framework, including image parameters and all kernel variants.
  */
 typedef struct {
-    char op_id[32];             /**< Algorithm identifier (e.g., "dilate3x3") */
-    char input_image[256];      /**< Path to input image file */
-    char output_image[256];     /**< Path to output image file */
-    int src_width;              /**< Source image width in pixels */
-    int src_height;             /**< Source image height in pixels */
-    int dst_width;              /**< Destination image width (for resize ops) */
-    int dst_height;             /**< Destination image height (for resize ops) */
-    int num_kernels;            /**< Number of kernel variants configured */
-    KernelConfig kernels[MAX_KERNEL_CONFIGS]; /**< Array of kernel configurations */
+  char op_id[32];         /**< Algorithm identifier (e.g., "dilate3x3") */
+  char input_image[256];  /**< Path to input image file */
+  char output_image[256]; /**< Path to output image file */
+  int src_width;          /**< Source image width in pixels */
+  int src_height;         /**< Source image height in pixels */
+  int dst_width;          /**< Destination image width (for resize ops) */
+  int dst_height;         /**< Destination image height (for resize ops) */
+  int num_kernels;        /**< Number of kernel variants configured */
+  KernelConfig
+      kernels[MAX_KERNEL_CONFIGS]; /**< Array of kernel configurations */
 
-    /* DEPRECATED: Legacy buffer files (kept for backward compatibility) */
-    char kernel_x_file[256];    /**< Path to kernel_x weight file */
-    char kernel_y_file[256];    /**< Path to kernel_y weight file */
+  /* DEPRECATED: Legacy buffer files (kept for backward compatibility) */
+  char kernel_x_file[256]; /**< Path to kernel_x weight file */
+  char kernel_y_file[256]; /**< Path to kernel_y weight file */
 
-    /* DEPRECATED: Legacy buffer configuration (kept for backward compatibility) */
-    BufferType cl_buffer_type[MAX_CUSTOM_BUFFERS]; /**< Buffer types */
-    size_t cl_buffer_size[MAX_CUSTOM_BUFFERS];     /**< Buffer sizes */
-    int num_buffers;            /**< Number of configured buffers */
+  /* DEPRECATED: Legacy buffer configuration (kept for backward compatibility)
+   */
+  BufferType cl_buffer_type[MAX_CUSTOM_BUFFERS]; /**< Buffer types */
+  size_t cl_buffer_size[MAX_CUSTOM_BUFFERS];     /**< Buffer sizes */
+  int num_buffers; /**< Number of configured buffers */
 
-    /* NEW: Custom buffer configuration (replaces legacy approach) */
-    CustomBufferConfig custom_buffers[MAX_CUSTOM_BUFFERS]; /**< Custom buffer configurations */
-    int custom_buffer_count;    /**< Number of custom buffers configured */
+  /* NEW: Custom buffer configuration (replaces legacy approach) */
+  CustomBufferConfig
+      custom_buffers[MAX_CUSTOM_BUFFERS]; /**< Custom buffer configurations */
+  int custom_buffer_count; /**< Number of custom buffers configured */
 
-    /* NEW: Scalar argument configuration */
-    ScalarArgConfig scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
-    int scalar_arg_count;       /**< Number of scalar arguments configured */
+  /* NEW: Scalar argument configuration */
+  ScalarArgConfig
+      scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
+  int scalar_arg_count; /**< Number of scalar arguments configured */
 } Config;
 
 /**
@@ -206,4 +213,5 @@ int resolve_config_path(const char* input, char* output, size_t output_size);
  * @param[in] op_id_size Size of op_id buffer
  * @return 0 on success, -1 on error
  */
-int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size);
+int extract_op_id_from_path(const char* config_path, char* op_id,
+                            size_t op_id_size);

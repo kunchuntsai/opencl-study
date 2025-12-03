@@ -48,4 +48,5 @@ unsigned char* read_image(const char* filename, int width, int height);
  * @param[in] height Image height in pixels
  * @return 0 on success, -1 on error
  */
-int write_image(const char* filename, const unsigned char* data, int width, int height);
+int write_image(const char* filename, const unsigned char* data, int width,
+                int height);
