@@ -11,19 +11,19 @@
 #define MAX_IMAGE_SIZE (4096 * 4096) /* Maximum 4K x 4K image */
 static unsigned char image_buffer[MAX_IMAGE_SIZE];
 
-unsigned char* read_image(const char* filename, int width, int height) {
+unsigned char* ReadImage(const char* filename, int width, int height) {
   FILE* fp;
   int img_size;
   size_t read_count;
   size_t expected_size;
 
   if ((filename == NULL) || (width <= 0) || (height <= 0)) {
-    (void)fprintf(stderr, "Error: Invalid parameters for read_image\n");
+    (void)fprintf(stderr, "Error: Invalid parameters for ReadImage\n");
     return NULL;
   }
 
   /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-  if (!safe_mul_int(width, height, &img_size)) {
+  if (!SafeMulInt(width, height, &img_size)) {
     (void)fprintf(stderr, "Error: Image size overflow (width=%d, height=%d)\n", width, height);
     return NULL;
   }
@@ -57,19 +57,19 @@ unsigned char* read_image(const char* filename, int width, int height) {
   return image_buffer;
 }
 
-int write_image(const char* filename, const unsigned char* data, int width, int height) {
+int WriteImage(const char* filename, const unsigned char* data, int width, int height) {
   FILE* fp;
   int img_size;
   size_t write_count;
   size_t expected_size;
 
   if ((filename == NULL) || (data == NULL) || (width <= 0) || (height <= 0)) {
-    (void)fprintf(stderr, "Error: Invalid parameters for write_image\n");
+    (void)fprintf(stderr, "Error: Invalid parameters for WriteImage\n");
     return -1;
   }
 
   /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-  if (!safe_mul_int(width, height, &img_size)) {
+  if (!SafeMulInt(width, height, &img_size)) {
     (void)fprintf(stderr, "Error: Image size overflow (width=%d, height=%d)\n", width, height);
     return -1;
   }

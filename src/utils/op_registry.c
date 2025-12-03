@@ -9,7 +9,7 @@
 static Algorithm* registered_algorithms[MAX_ALGORITHMS];
 static int algorithm_count = 0;
 
-void register_algorithm(Algorithm* op) {
+void RegisterAlgorithm(Algorithm* op) {
   if (op == NULL) {
     (void)fprintf(stderr, "Error: NULL algorithm pointer\n");
     return;
@@ -25,7 +25,7 @@ void register_algorithm(Algorithm* op) {
   (void)printf("Registered algorithm: %s (ID: %s)\n", op->name, op->id);
 }
 
-Algorithm* find_algorithm(const char* op_id) {
+Algorithm* FindAlgorithm(const char* op_id) {
   int i;
 
   if (op_id == NULL) {
@@ -42,18 +42,18 @@ Algorithm* find_algorithm(const char* op_id) {
   return NULL;
 }
 
-Algorithm* get_algorithm_by_index(int index) {
+Algorithm* GetAlgorithmByIndex(int index) {
   if ((index < 0) || (index >= algorithm_count)) {
     return NULL;
   }
   return registered_algorithms[index];
 }
 
-int get_algorithm_count(void) {
+int GetAlgorithmCount(void) {
   return algorithm_count;
 }
 
-void list_algorithms(void) {
+void ListAlgorithms(void) {
   int i;
   int j;
   char config_path[256];
@@ -73,7 +73,7 @@ void list_algorithms(void) {
                      registered_algorithms[i]->id);
 
       /* Try to load and parse config for this algorithm */
-      parse_result = parse_config(config_path, &config);
+      parse_result = ParseConfig(config_path, &config);
       if (parse_result == 0) {
         /* Set op_id from algorithm ID if not already set */
         if ((config.op_id[0] == '\0') || (strcmp(config.op_id, "config") == 0)) {
@@ -83,7 +83,7 @@ void list_algorithms(void) {
 
         /* Get variants for this algorithm */
         get_variants_result =
-            get_op_variants(&config, registered_algorithms[i]->id, variants, &variant_count);
+            GetOpVariants(&config, registered_algorithms[i]->id, variants, &variant_count);
         if ((get_variants_result == 0) && (variant_count > 0)) {
           /* Display variants */
           for (j = 0; j < variant_count; j++) {

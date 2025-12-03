@@ -19,7 +19,7 @@ static char kernel_source_buffer[MAX_KERNEL_SOURCE_SIZE];
 static char build_log_buffer[MAX_BUILD_LOG_SIZE];
 
 /* Helper function to extract cache name from kernel file path */
-static int extract_cache_name(const char* kernel_file, char* cache_name, size_t max_size) {
+static int ExtractCacheName(const char* kernel_file, char* cache_name, size_t max_size) {
   const char* filename_start;
   const char* ext_start;
   size_t name_len;
@@ -58,7 +58,7 @@ static int extract_cache_name(const char* kernel_file, char* cache_name, size_t 
 }
 
 /* Helper function to read kernel source from file */
-static int read_kernel_source(const char* filename, char* buffer, size_t max_size, size_t* length) {
+static int ReadKernelSource(const char* filename, char* buffer, size_t max_size, size_t* length) {
   FILE* fp;
   size_t read_size;
   long file_size;
@@ -112,7 +112,7 @@ static int read_kernel_source(const char* filename, char* buffer, size_t max_siz
   return 0;
 }
 
-int opencl_init(OpenCLEnv* env) {
+int OpenclInit(OpenCLEnv* env) {
   cl_int err;
   cl_uint num_platforms;
   cl_uint num_devices;
@@ -172,7 +172,7 @@ int opencl_init(OpenCLEnv* env) {
   }
 
   /* Initialize custom CL extension context */
-  if (cl_extension_init(&env->ext_ctx) != 0) {
+  if (ClExtensionInit(&env->ext_ctx) != 0) {
     (void)fprintf(stderr, "Warning: Failed to initialize CL extension context\n");
     /* Continue anyway - standard API will still work */
   }
@@ -181,7 +181,7 @@ int opencl_init(OpenCLEnv* env) {
   return 0;
 }
 
-cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
+cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
                               const char* kernel_name) {
   cl_int err;
   size_t source_length;
@@ -198,15 +198,15 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id, const ch
 
   /* Extract cache name from kernel file (e.g., "dilate0" from
    * "src/dilate/cl/dilate0.cl") */
-  if (extract_cache_name(kernel_file, cache_name, sizeof(cache_name)) != 0) {
+  if (ExtractCacheName(kernel_file, cache_name, sizeof(cache_name)) != 0) {
     (void)fprintf(stderr, "Error: Failed to extract cache name from %s\n", kernel_file);
     return NULL;
   }
 
   /* Check if cached kernel binary exists */
-  if (cache_kernel_exists(algorithm_id, cache_name) != 0) {
+  if (CacheKernelExists(algorithm_id, cache_name) != 0) {
     (void)printf("Found cached kernel binary for %s, loading...\n", cache_name);
-    program = cache_load_kernel_binary(env->context, env->device, algorithm_id, cache_name);
+    program = CacheLoadKernelBinary(env->context, env->device, algorithm_id, cache_name);
     if (program != NULL) {
       used_cache = 1;
       (void)printf("Using cached kernel binary: %s\n", cache_name);
@@ -218,7 +218,7 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id, const ch
   /* If no cached binary or loading failed, compile from source */
   if (used_cache == 0) {
     /* Read kernel source from file */
-    if (read_kernel_source(kernel_file, kernel_source_buffer, MAX_KERNEL_SOURCE_SIZE,
+    if (ReadKernelSource(kernel_file, kernel_source_buffer, MAX_KERNEL_SOURCE_SIZE,
                            &source_length) != 0) {
       return NULL;
     }
@@ -261,7 +261,7 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id, const ch
     (void)printf("Kernel compiled successfully\n");
 
     /* Save compiled binary to cache for future runs */
-    if (cache_save_kernel_binary(program, env->device, algorithm_id, cache_name) != 0) {
+    if (CacheSaveKernelBinary(program, env->device, algorithm_id, cache_name) != 0) {
       (void)fprintf(stderr, "Warning: Failed to cache kernel binary\n");
     }
   }
@@ -293,7 +293,7 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id, const ch
   return kernel;
 }
 
-int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
+int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
                       cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
                       const size_t* local_work_size, int work_dim, HostType host_type,
                       double* gpu_time_ms) {
@@ -321,7 +321,7 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, c
   /* Execute kernel using appropriate API based on host_type */
   if (host_type == HOST_TYPE_CL_EXTENSION) {
     (void)printf("\n=== Using Custom CL Extension API ===\n");
-    err = cl_extension_enqueue_ndrange_kernel(
+    err = ClExtensionEnqueueNdrangeKernel(
         &env->ext_ctx, env->queue, kernel, (cl_uint)work_dim, NULL, global_work_size,
         (local_work_size[0] == 0U) ? NULL : local_work_size, 0U, NULL, &event);
   } else {
@@ -339,7 +339,7 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, c
 
   /* Wait for completion - use custom API if configured */
   if (host_type == HOST_TYPE_CL_EXTENSION) {
-    err = cl_extension_finish(&env->ext_ctx, env->queue);
+    err = ClExtensionFinish(&env->ext_ctx, env->queue);
   } else {
     err = clFinish(env->queue);
   }
@@ -380,13 +380,13 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, c
 /* MISRA-C:2023 Rule 2.2: Removed dead code (function was never called) */
 /* The opencl_execute_kernel function has been removed as it was unused */
 
-cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags, size_t size, void* host_ptr,
+cl_mem OpenclCreateBuffer(cl_context context, cl_mem_flags flags, size_t size, void* host_ptr,
                             const char* buffer_name) {
   cl_int err;
   cl_mem buffer;
 
   if ((context == NULL) || (buffer_name == NULL)) {
-    (void)fprintf(stderr, "Error: Invalid parameters to opencl_create_buffer\n");
+    (void)fprintf(stderr, "Error: Invalid parameters to OpenclCreateBuffer\n");
     return NULL;
   }
 
@@ -398,7 +398,7 @@ cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags, size_t size,
   return buffer;
 }
 
-void opencl_release_mem_object(cl_mem mem_obj, const char* name) {
+void OpenclReleaseMemObject(cl_mem mem_obj, const char* name) {
   cl_int err;
 
   if (mem_obj != NULL) {
@@ -410,7 +410,7 @@ void opencl_release_mem_object(cl_mem mem_obj, const char* name) {
   }
 }
 
-void opencl_release_kernel(cl_kernel kernel) {
+void OpenclReleaseKernel(cl_kernel kernel) {
   cl_int err;
 
   if (kernel != NULL) {
@@ -421,7 +421,7 @@ void opencl_release_kernel(cl_kernel kernel) {
   }
 }
 
-void opencl_cleanup(OpenCLEnv* env) {
+void OpenclCleanup(OpenCLEnv* env) {
   cl_int err;
 
   if (env == NULL) {
@@ -429,7 +429,7 @@ void opencl_cleanup(OpenCLEnv* env) {
   }
 
   /* Cleanup custom CL extension context */
-  cl_extension_cleanup(&env->ext_ctx);
+  ClExtensionCleanup(&env->ext_ctx);
 
   if (env->queue != NULL) {
     /* MISRA-C:2023 Rule 17.7: Check return value */

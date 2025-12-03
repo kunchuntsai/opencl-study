@@ -16,7 +16,7 @@ static unsigned char gpu_output_buffer[MAX_IMAGE_SIZE];
 static unsigned char ref_output_buffer[MAX_IMAGE_SIZE];
 
 /* Forward declarations */
-static int select_algorithm_and_variant(const Config* config, int provided_variant_index,
+static int SelectAlgorithmAndVariant(const Config* config, int provided_variant_index,
                                         Algorithm** selected_algo, KernelConfig** variants,
                                         int* variant_count, int* selected_variant_index);
 
@@ -39,7 +39,7 @@ int main(int argc, char** argv) {
     (void)printf("Usage: %s <algorithm> [variant_index]\n", argv[0]);
     (void)printf("\n");
     (void)printf("Available Algorithms:\n");
-    list_algorithms();
+    ListAlgorithms();
     return 0;
   }
 
@@ -56,7 +56,7 @@ int main(int argc, char** argv) {
     (void)fprintf(stderr, "Error: Algorithm name required\n");
     (void)fprintf(stderr, "Usage: %s <algorithm> [variant_index]\n", argv[0]);
     (void)fprintf(stderr, "\nAvailable algorithms:\n");
-    list_algorithms();
+    ListAlgorithms();
     (void)fprintf(stderr, "\nRun '%s --help' for more information\n", argv[0]);
     return 1;
   }
@@ -66,7 +66,7 @@ int main(int argc, char** argv) {
 
   /* Argument 2: Variant index (optional, default: interactive) */
   if (argc == 3) {
-    if (!safe_strtol(argv[2], &temp_index)) {
+    if (!SafeStrtol(argv[2], &temp_index)) {
       (void)fprintf(stderr, "Invalid variant index: %s\n", argv[2]);
       return 1;
     }
@@ -76,13 +76,13 @@ int main(int argc, char** argv) {
   }
 
   /* Resolve algorithm name to config path (config/<name>.ini) */
-  if (resolve_config_path(config_input, config_path, sizeof(config_path)) != 0) {
+  if (ResolveConfigPath(config_input, config_path, sizeof(config_path)) != 0) {
     (void)fprintf(stderr, "Failed to resolve config path: %s\n", config_input);
     return 1;
   }
 
   /* 1. Parse configuration */
-  parse_result = parse_config(config_path, &config);
+  parse_result = ParseConfig(config_path, &config);
   if (parse_result != 0) {
     (void)fprintf(stderr, "Failed to parse %s\n", config_path);
     return 1;
@@ -90,37 +90,37 @@ int main(int argc, char** argv) {
 
   /* Auto-derive op_id from filename if not specified in config */
   if ((config.op_id[0] == '\0') || (strcmp(config.op_id, "config") == 0)) {
-    if (extract_op_id_from_path(config_path, config.op_id, sizeof(config.op_id)) != 0) {
+    if (ExtractOpIdFromPath(config_path, config.op_id, sizeof(config.op_id)) != 0) {
       (void)fprintf(stderr, "Warning: Could not derive op_id from filename\n");
     }
   }
 
   /* 3. Select algorithm and kernel variant (with user interaction if needed) */
-  if (select_algorithm_and_variant(&config, variant_index, &algo, variants, &variant_count,
+  if (SelectAlgorithmAndVariant(&config, variant_index, &algo, variants, &variant_count,
                                    &variant_index) != 0) {
     return 1;
   }
 
   /* 2. Initialize OpenCL */
   (void)printf("=== OpenCL Initialization ===\n");
-  opencl_result = opencl_init(&env);
+  opencl_result = OpenclInit(&env);
   if (opencl_result != 0) {
     (void)fprintf(stderr, "Failed to initialize OpenCL\n");
     return 1;
   }
 
   /* 5. Initialize cache directories for this algorithm */
-  if (cache_init(algo->id) != 0) {
+  if (CacheInit(algo->id) != 0) {
     (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
   }
 
   /* 7. Run algorithm */
   (void)printf("\n=== Running %s (variant: %s) ===\n", algo->name,
                variants[variant_index]->variant_id);
-  run_algorithm(algo, variants[variant_index], &config, &env, gpu_output_buffer, ref_output_buffer);
+  RunAlgorithm(algo, variants[variant_index], &config, &env, gpu_output_buffer, ref_output_buffer);
 
   /* Cleanup */
-  opencl_cleanup(&env);
+  OpenclCleanup(&env);
   return 0;
 }
 
@@ -142,7 +142,7 @@ int main(int argc, char** argv) {
  * @param[out] selected_variant_index The selected variant index
  * @return 0 on success, -1 on error
  */
-static int select_algorithm_and_variant(const Config* config, int provided_variant_index,
+static int SelectAlgorithmAndVariant(const Config* config, int provided_variant_index,
                                         Algorithm** selected_algo, KernelConfig** variants,
                                         int* variant_count, int* selected_variant_index) {
   Algorithm* algo;
@@ -159,11 +159,11 @@ static int select_algorithm_and_variant(const Config* config, int provided_varia
 
   /* Step 1: Display available algorithms */
   (void)printf("\n=== Available Algorithms ===\n");
-  list_algorithms();
+  ListAlgorithms();
   (void)printf("\n");
 
   /* Step 2: Find selected algorithm based on config.op_id */
-  algo = find_algorithm(config->op_id);
+  algo = FindAlgorithm(config->op_id);
   if (algo == NULL) {
     (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n", config->op_id);
     (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
@@ -172,7 +172,7 @@ static int select_algorithm_and_variant(const Config* config, int provided_varia
   (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name, algo->id);
 
   /* Step 3: Get kernel variants for selected algorithm */
-  get_variants_result = get_op_variants(config, algo->id, variants, variant_count);
+  get_variants_result = GetOpVariants(config, algo->id, variants, variant_count);
   if ((get_variants_result != 0) || (*variant_count == 0)) {
     (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
     return -1;
@@ -212,7 +212,7 @@ static int select_algorithm_and_variant(const Config* config, int provided_varia
     if (input_buffer[0] == '\0') {
       *selected_variant_index = 0;
     } else {
-      if (!safe_strtol(input_buffer, &temp_index)) {
+      if (!SafeStrtol(input_buffer, &temp_index)) {
         (void)fprintf(stderr, "Invalid variant selection\n");
         return -1;
       }

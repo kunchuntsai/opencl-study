@@ -13,9 +13,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-int cl_extension_init(CLExtensionContext* ctx) {
+int ClExtensionInit(CLExtensionContext* ctx) {
   if (ctx == NULL) {
-    (void)fprintf(stderr, "Error: NULL context in cl_extension_init\n");
+    (void)fprintf(stderr, "Error: NULL context in ClExtensionInit\n");
     return -1;
   }
 
@@ -27,7 +27,7 @@ int cl_extension_init(CLExtensionContext* ctx) {
   return 0;
 }
 
-void cl_extension_cleanup(CLExtensionContext* ctx) {
+void ClExtensionCleanup(CLExtensionContext* ctx) {
   if (ctx == NULL) {
     return;
   }
@@ -42,7 +42,7 @@ void cl_extension_cleanup(CLExtensionContext* ctx) {
   (void)printf("[CL_EXT] Custom CL extension API cleaned up\n");
 }
 
-cl_int cl_extension_enqueue_ndrange_kernel(
+cl_int ClExtensionEnqueueNdrangeKernel(
     CLExtensionContext* ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim,
     const size_t* global_work_offset, const size_t* global_work_size, const size_t* local_work_size,
     cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event) {
@@ -97,7 +97,7 @@ cl_int cl_extension_enqueue_ndrange_kernel(
   return err;
 }
 
-cl_mem cl_extension_create_buffer(CLExtensionContext* ctx, cl_context context, cl_mem_flags flags,
+cl_mem ClExtensionCreateBuffer(CLExtensionContext* ctx, cl_context context, cl_mem_flags flags,
                                   size_t size, void* host_ptr, cl_int* errcode_ret) {
   cl_mem buffer;
   const char* flag_desc = "UNKNOWN";
@@ -145,7 +145,7 @@ cl_mem cl_extension_create_buffer(CLExtensionContext* ctx, cl_context context, c
   return buffer;
 }
 
-cl_int cl_extension_finish(CLExtensionContext* ctx, cl_command_queue command_queue) {
+cl_int ClExtensionFinish(CLExtensionContext* ctx, cl_command_queue command_queue) {
   cl_int err;
 
   if (ctx == NULL) {
@@ -174,7 +174,7 @@ cl_int cl_extension_finish(CLExtensionContext* ctx, cl_command_queue command_que
   return err;
 }
 
-void cl_extension_print_info(const CLExtensionContext* ctx) {
+void ClExtensionPrintInfo(const CLExtensionContext* ctx) {
   if (ctx == NULL) {
     (void)printf("[CL_EXT] Context: NULL\n");
     return;

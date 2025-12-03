@@ -34,7 +34,7 @@
  * @note Fails silently if MAX_ALGORITHMS is exceeded
  * @note Not thread-safe - should only be called during initialization
  */
-void register_algorithm(Algorithm* op);
+void RegisterAlgorithm(Algorithm* op);
 
 /**
  * @brief Find algorithm by unique identifier
@@ -44,7 +44,7 @@ void register_algorithm(Algorithm* op);
  * @param[in] op_id Algorithm identifier (e.g., "dilate3x3")
  * @return Pointer to algorithm, or NULL if not found
  */
-Algorithm* find_algorithm(const char* op_id);
+Algorithm* FindAlgorithm(const char* op_id);
 
 /**
  * @brief Get algorithm by index
@@ -52,17 +52,17 @@ Algorithm* find_algorithm(const char* op_id);
  * Retrieves algorithm at specified index in registry.
  * Used for menu display and iteration.
  *
- * @param[in] index Zero-based index (0 to get_algorithm_count()-1)
+ * @param[in] index Zero-based index (0 to GetAlgorithmCount()-1)
  * @return Pointer to algorithm, or NULL if index out of range
  */
-Algorithm* get_algorithm_by_index(int index);
+Algorithm* GetAlgorithmByIndex(int index);
 
 /**
  * @brief Get number of registered algorithms
  *
  * @return Total count of algorithms in registry
  */
-int get_algorithm_count(void);
+int GetAlgorithmCount(void);
 
 /**
  * @brief List all registered algorithms to stdout
@@ -70,7 +70,7 @@ int get_algorithm_count(void);
  * Prints a formatted list of all available algorithms with
  * their indices, names, and IDs.
  */
-void list_algorithms(void);
+void ListAlgorithms(void);
 
 /**
  * @brief Macro to define and auto-register an algorithm
@@ -82,9 +82,9 @@ void list_algorithms(void);
  * set_args_func)
  *
  * Example:
- *   static int dilate3x3_set_kernel_args(...) { ... }
- *   REGISTER_ALGORITHM(dilate3x3, "Dilate 3x3", dilate3x3_ref,
- * dilate3x3_verify, dilate3x3_set_kernel_args)
+ *   static int Dilate3x3SetKernelArgs(...) { ... }
+ *   REGISTER_ALGORITHM(dilate3x3, "Dilate 3x3", Dilate3x3Ref,
+ * Dilate3x3Verify, Dilate3x3SetKernelArgs)
  *
  * To add a new algorithm:
  * 1. Implement the reference function (e.g., myalgo_ref)
@@ -126,5 +126,5 @@ void list_algorithms(void);
                                         .set_kernel_args = set_args_func};            \
                                                                                       \
   __attribute__((constructor)) static void op_id##_init(void) {                       \
-    register_algorithm(&op_id##_algorithm);                                           \
+    RegisterAlgorithm(&op_id##_algorithm);                                           \
   }

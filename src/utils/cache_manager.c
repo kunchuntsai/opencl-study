@@ -19,7 +19,7 @@ static unsigned char kernel_binary_buffer[MAX_KERNEL_BINARY_SIZE];
 static unsigned char golden_sample_buffer[MAX_GOLDEN_SAMPLE_SIZE];
 
 /* Helper function to construct algorithm cache directory path */
-static int build_algorithm_dir(const char* algorithm_id, char* path, size_t path_size) {
+static int BuildAlgorithmDir(const char* algorithm_id, char* path, size_t path_size) {
   int result;
 
   if ((algorithm_id == NULL) || (path == NULL) || (path_size == 0U)) {
@@ -36,7 +36,7 @@ static int build_algorithm_dir(const char* algorithm_id, char* path, size_t path
 }
 
 /* Helper function to construct kernel cache file path */
-static int build_kernel_cache_path(const char* algorithm_id, const char* kernel_name, char* path,
+static int BuildKernelCachePath(const char* algorithm_id, const char* kernel_name, char* path,
                                    size_t path_size) {
   int result;
 
@@ -55,7 +55,7 @@ static int build_kernel_cache_path(const char* algorithm_id, const char* kernel_
 }
 
 /* Helper function to construct golden sample cache file path */
-static int build_golden_cache_path(const char* algorithm_id, char* path, size_t path_size) {
+static int BuildGoldenCachePath(const char* algorithm_id, char* path, size_t path_size) {
   int result;
 
   if ((algorithm_id == NULL) || (path == NULL) || (path_size == 0U)) {
@@ -72,7 +72,7 @@ static int build_golden_cache_path(const char* algorithm_id, char* path, size_t 
   return 0;
 }
 
-int cache_init(const char* algorithm_id) {
+int CacheInit(const char* algorithm_id) {
   char algo_dir[MAX_CACHE_PATH];
   char kernel_dir[MAX_CACHE_PATH];
   char golden_dir[MAX_CACHE_PATH];
@@ -83,7 +83,7 @@ int cache_init(const char* algorithm_id) {
   }
 
   /* Build directory paths */
-  if (build_algorithm_dir(algorithm_id, algo_dir, sizeof(algo_dir)) != 0) {
+  if (BuildAlgorithmDir(algorithm_id, algo_dir, sizeof(algo_dir)) != 0) {
     return -1;
   }
 
@@ -113,7 +113,7 @@ int cache_init(const char* algorithm_id) {
  * ============================================================================
  */
 
-int cache_kernel_exists(const char* algorithm_id, const char* kernel_name) {
+int CacheKernelExists(const char* algorithm_id, const char* kernel_name) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
 
@@ -121,7 +121,7 @@ int cache_kernel_exists(const char* algorithm_id, const char* kernel_name) {
     return 0;
   }
 
-  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
+  if (BuildKernelCachePath(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
     return 0;
   }
 
@@ -134,7 +134,7 @@ int cache_kernel_exists(const char* algorithm_id, const char* kernel_name) {
   return 1;
 }
 
-int cache_save_kernel_binary(cl_program program, cl_device_id device, const char* algorithm_id,
+int CacheSaveKernelBinary(cl_program program, cl_device_id device, const char* algorithm_id,
                              const char* kernel_name) {
   cl_int err;
   size_t binary_size;
@@ -169,7 +169,7 @@ int cache_save_kernel_binary(cl_program program, cl_device_id device, const char
   }
 
   /* Build cache file path */
-  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
+  if (BuildKernelCachePath(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return -1;
   }
@@ -197,7 +197,7 @@ int cache_save_kernel_binary(cl_program program, cl_device_id device, const char
   return 0;
 }
 
-cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
+cl_program CacheLoadKernelBinary(cl_context context, cl_device_id device,
                                     const char* algorithm_id, const char* kernel_name) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
@@ -214,7 +214,7 @@ cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
   }
 
   /* Build cache file path */
-  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
+  if (BuildKernelCachePath(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return NULL;
   }
@@ -295,7 +295,7 @@ cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
  * ============================================================================
  */
 
-int cache_golden_exists(const char* algorithm_id, const char* variant_id) {
+int CacheGoldenExists(const char* algorithm_id, const char* variant_id) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
 
@@ -307,7 +307,7 @@ int cache_golden_exists(const char* algorithm_id, const char* variant_id) {
    */
   (void)variant_id;
 
-  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
+  if (BuildGoldenCachePath(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
     return 0;
   }
 
@@ -320,7 +320,7 @@ int cache_golden_exists(const char* algorithm_id, const char* variant_id) {
   return 1;
 }
 
-int cache_save_golden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
+int CacheSaveGolden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
                       size_t size) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
@@ -341,7 +341,7 @@ int cache_save_golden(const char* algorithm_id, const char* variant_id, const un
   }
 
   /* Build cache file path */
-  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
+  if (BuildGoldenCachePath(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return -1;
   }
@@ -369,7 +369,7 @@ int cache_save_golden(const char* algorithm_id, const char* variant_id, const un
   return 0;
 }
 
-int cache_load_golden(const char* algorithm_id, const char* variant_id, unsigned char* buffer,
+int CacheLoadGolden(const char* algorithm_id, const char* variant_id, unsigned char* buffer,
                       size_t buffer_size, size_t* actual_size) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
@@ -385,7 +385,7 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id, unsigned
   (void)variant_id;
 
   /* Build cache file path */
-  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
+  if (BuildGoldenCachePath(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return -1;
   }
@@ -443,7 +443,7 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id, unsigned
   return 0;
 }
 
-int cache_verify_golden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
+int CacheVerifyGolden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
                         size_t size, size_t* differences) {
   size_t golden_size;
   size_t i;
@@ -454,7 +454,7 @@ int cache_verify_golden(const char* algorithm_id, const char* variant_id, const 
   }
 
   /* Load golden sample - variant_id can be NULL */
-  if (cache_load_golden(algorithm_id, variant_id, golden_sample_buffer, MAX_GOLDEN_SAMPLE_SIZE,
+  if (CacheLoadGolden(algorithm_id, variant_id, golden_sample_buffer, MAX_GOLDEN_SAMPLE_SIZE,
                         &golden_size) != 0) {
     return -1;
   }

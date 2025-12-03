@@ -53,6 +53,6 @@
  * @param[out] ref_output_buffer Buffer for reference output (must be >= image
  * size)
  */
-void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
+void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
                    OpenCLEnv* env, unsigned char* gpu_output_buffer,
                    unsigned char* ref_output_buffer);

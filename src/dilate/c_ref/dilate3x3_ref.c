@@ -6,7 +6,7 @@
 #include "../../utils/verify.h"
 
 /* Helper function to clamp coordinates to image bounds */
-static int clamp_coord(int coord, int max_coord) {
+static int ClampCoord(int coord, int max_coord) {
   int result;
 
   if (coord < 0) {
@@ -21,7 +21,7 @@ static int clamp_coord(int coord, int max_coord) {
 }
 
 /* MISRA-C:2023 Rule 18.1: Add bounds checking for array access */
-static unsigned char get_pixel_safe(const unsigned char* input, int x, int y, int width,
+static unsigned char GetPixelSafe(const unsigned char* input, int x, int y, int width,
                                     int height) {
   int clamped_x;
   int clamped_y;
@@ -31,14 +31,14 @@ static unsigned char get_pixel_safe(const unsigned char* input, int x, int y, in
     return 0U;
   }
 
-  clamped_x = clamp_coord(x, width);
-  clamped_y = clamp_coord(y, height);
+  clamped_x = ClampCoord(x, width);
+  clamped_y = ClampCoord(y, height);
   index = clamped_y * width + clamped_x;
 
   return input[index];
 }
 
-void dilate3x3_ref(const OpParams* params) {
+void Dilate3x3Ref(const OpParams* params) {
   int y;
   int x;
   int dy;
@@ -69,7 +69,7 @@ void dilate3x3_ref(const OpParams* params) {
   }
 
   /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-  if (!safe_mul_int(width, height, &total_pixels)) {
+  if (!SafeMulInt(width, height, &total_pixels)) {
     return; /* Overflow detected */
   }
 
@@ -85,7 +85,7 @@ void dilate3x3_ref(const OpParams* params) {
           nx = x + dx;
 
           /* Get pixel value with bounds checking */
-          val = get_pixel_safe(input, nx, ny, width, height);
+          val = GetPixelSafe(input, nx, ny, width, height);
           if (val > max_val) {
             max_val = val;
           }
@@ -103,7 +103,7 @@ void dilate3x3_ref(const OpParams* params) {
 }
 
 /* Verification: check if GPU and reference outputs match exactly */
-int dilate3x3_verify(const OpParams* params, float* max_error) {
+int Dilate3x3Verify(const OpParams* params, float* max_error) {
   int result;
 
   if (params == NULL) {
@@ -111,7 +111,7 @@ int dilate3x3_verify(const OpParams* params, float* max_error) {
   }
 
   /* Use tolerance of 0 for exact match */
-  result = verify_exact_match(params->gpu_output, params->ref_output, params->dst_width,
+  result = VerifyExactMatch(params->gpu_output, params->ref_output, params->dst_width,
                               params->dst_height, 0);
 
   /* Set max_error to 0 if verification passed */
@@ -123,7 +123,7 @@ int dilate3x3_verify(const OpParams* params, float* max_error) {
 }
 
 /* Kernel argument setter - sets 4 standard arguments */
-int dilate3x3_set_kernel_args(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
+int Dilate3x3SetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
                               const OpParams* params) {
   cl_uint arg_idx = 0U;
 

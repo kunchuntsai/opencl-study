@@ -8,7 +8,7 @@
 #include "../../utils/verify.h"
 
 /* Helper function to clamp coordinates to image bounds */
-static int clamp_coord(int coord, int max_coord) {
+static int ClampCoord(int coord, int max_coord) {
   int result;
 
   if (coord < 0) {
@@ -23,7 +23,7 @@ static int clamp_coord(int coord, int max_coord) {
 }
 
 /* MISRA-C:2023 Rule 18.1: Add bounds checking for array access */
-static int get_pixel_safe(const unsigned char* input, int x, int y, int width, int height) {
+static int GetPixelSafe(const unsigned char* input, int x, int y, int width, int height) {
   int clamped_x;
   int clamped_y;
   int index;
@@ -32,14 +32,14 @@ static int get_pixel_safe(const unsigned char* input, int x, int y, int width, i
     return 0;
   }
 
-  clamped_x = clamp_coord(x, width);
-  clamped_y = clamp_coord(y, height);
+  clamped_x = ClampCoord(x, width);
+  clamped_y = ClampCoord(y, height);
   index = clamped_y * width + clamped_x;
 
   return (int)input[index];
 }
 
-void gaussian5x5_ref(const OpParams* params) {
+void Gaussian5x5Ref(const OpParams* params) {
   /* Separable Gaussian 5x5 using 1D kernels from custom buffers */
   /* This matches the OpenCL implementation which uses kernel_x and kernel_y */
   int y;
@@ -111,7 +111,7 @@ void gaussian5x5_ref(const OpParams* params) {
   }
 
   /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-  if (!safe_mul_int(width, height, &total_pixels)) {
+  if (!SafeMulInt(width, height, &total_pixels)) {
     return; /* Overflow detected */
   }
 
@@ -128,7 +128,7 @@ void gaussian5x5_ref(const OpParams* params) {
           nx = x + dx;
 
           /* Get pixel value with bounds checking */
-          pixel_val = get_pixel_safe(input, nx, ny, width, height);
+          pixel_val = GetPixelSafe(input, nx, ny, width, height);
 
           /* Compute 2D weight as outer product of 1D kernels */
           weight = kernel_y[dy + 2] * kernel_x[dx + 2];
@@ -150,13 +150,13 @@ void gaussian5x5_ref(const OpParams* params) {
 }
 
 /* Verification with tolerance for floating-point differences */
-int gaussian5x5_verify(const OpParams* params, float* max_error) {
+int Gaussian5x5Verify(const OpParams* params, float* max_error) {
   if (params == NULL) {
     return 0;
   }
   /* Allow 1 intensity level difference due to rounding, pass if < 0.1% pixels
    * differ */
-  return verify_with_tolerance(params->gpu_output, params->ref_output, params->dst_width,
+  return VerifyWithTolerance(params->gpu_output, params->ref_output, params->dst_width,
                                params->dst_height, 1.0f, 0.001f, max_error);
 }
 
@@ -197,7 +197,7 @@ int gaussian5x5_verify(const OpParams* params, float* max_error) {
  *   arg 8: kernel_x (custom_buffers[2])
  *   arg 9: kernel_y (custom_buffers[3])
  */
-int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
+int Gaussian5x5SetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
                                 const OpParams* params) {
   CustomBuffers* custom_buffers;
   int arg_idx = 0;

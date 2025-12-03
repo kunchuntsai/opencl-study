@@ -1,6 +1,15 @@
 ---
 # Google C++ Style Guide
 # https://google.github.io/styleguide/cppguide.html
+#
+# NAMING CONVENTIONS (enforced manually, not by clang-format):
+# - Functions: PascalCase (e.g., RunAlgorithm, ParseConfig)
+# - Variables: snake_case (e.g., input_buffer, max_error)
+# - Constants/Macros: UPPER_SNAKE_CASE (e.g., MAX_IMAGE_SIZE)
+# - Types (struct/enum): PascalCase (e.g., Algorithm, KernelConfig)
+# - Enum values: UPPER_SNAKE_CASE (e.g., BUFFER_TYPE_READ_ONLY)
+#
+# Note: clang-format handles formatting only. Use clang-tidy for naming enforcement.
 
 Language: Cpp
 BasedOnStyle: Google

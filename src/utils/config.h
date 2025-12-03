@@ -29,7 +29,7 @@
  *
  * MISRA C 2023 Compliance:
  * - Rule 21.7: Uses strtok_r (reentrant) instead of strtok
- * - Rule 21.8: Uses safe_strtol instead of atoi
+ * - Rule 21.8: Uses SafeStrtol instead of atoi
  * - Rule 8.14: All structures properly tagged
  */
 
@@ -162,7 +162,7 @@ typedef struct {
  * @param[out] config Configuration structure to populate
  * @return 0 on success, -1 on error
  */
-int parse_config(const char* filename, Config* config);
+int ParseConfig(const char* filename, Config* config);
 
 /**
  * @brief Get all kernel variants for a specific algorithm
@@ -178,7 +178,7 @@ int parse_config(const char* filename, Config* config);
  * @param[out] count Number of variants found
  * @return 0 on success, -1 on error
  */
-int get_op_variants(const Config* config, const char* op_id, KernelConfig* variants[], int* count);
+int GetOpVariants(const Config* config, const char* op_id, KernelConfig* variants[], int* count);
 
 /**
  * @brief Resolve config path from algorithm name or explicit path
@@ -195,7 +195,7 @@ int get_op_variants(const Config* config, const char* op_id, KernelConfig* varia
  * @param[in] output_size Size of output buffer
  * @return 0 on success, -1 on error
  */
-int resolve_config_path(const char* input, char* output, size_t output_size);
+int ResolveConfigPath(const char* input, char* output, size_t output_size);
 
 /**
  * @brief Extract op_id from config file path
@@ -208,4 +208,4 @@ int resolve_config_path(const char* input, char* output, size_t output_size);
  * @param[in] op_id_size Size of op_id buffer
  * @return 0 on success, -1 on error
  */
-int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size);
+int ExtractOpIdFromPath(const char* config_path, char* op_id, size_t op_id_size);

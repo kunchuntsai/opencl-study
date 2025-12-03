@@ -32,7 +32,7 @@
  * @param[out] result Pointer to store the multiplication result
  * @return true if multiplication succeeded without overflow, false otherwise
  */
-static inline bool safe_mul_int(int a, int b, int* result) {
+static inline bool SafeMulInt(int a, int b, int* result) {
   if (a > 0) {
     if (b > 0) {
       if (a > (INT_MAX / b)) {
@@ -70,7 +70,7 @@ static inline bool safe_mul_int(int a, int b, int* result) {
  * @param[out] result Pointer to store the multiplication result
  * @return true if multiplication succeeded without overflow, false otherwise
  */
-static inline bool safe_mul_size(size_t a, size_t b, size_t* result) {
+static inline bool SafeMulSize(size_t a, size_t b, size_t* result) {
   if ((b != 0U) && (a > (SIZE_MAX / b))) {
     return false; /* Overflow */
   }
@@ -90,7 +90,7 @@ static inline bool safe_mul_size(size_t a, size_t b, size_t* result) {
  * @param[out] result Pointer to store the addition result
  * @return true if addition succeeded without overflow, false otherwise
  */
-static inline bool safe_add_size(size_t a, size_t b, size_t* result) {
+static inline bool SafeAddSize(size_t a, size_t b, size_t* result) {
   if (a > (SIZE_MAX - b)) {
     return false; /* Overflow */
   }
@@ -110,7 +110,7 @@ static inline bool safe_add_size(size_t a, size_t b, size_t* result) {
  * @return true if conversion succeeded, false on error (invalid format,
  * overflow, etc.)
  */
-static inline bool safe_strtol(const char* str, long* result) {
+static inline bool SafeStrtol(const char* str, long* result) {
   char* endptr = NULL;
   long val;
 
@@ -142,10 +142,10 @@ static inline bool safe_strtol(const char* str, long* result) {
  * @return true if conversion succeeded, false on error (invalid format,
  * negative, overflow)
  */
-static inline bool safe_str_to_size(const char* str, size_t* result) {
+static inline bool SafeStrToSize(const char* str, size_t* result) {
   long val;
 
-  if (!safe_strtol(str, &val)) {
+  if (!SafeStrtol(str, &val)) {
     return false;
   }
 
