@@ -32,7 +32,7 @@
  * @note Returns pointer to static buffer - not thread-safe
  * @note Image size must not exceed MAX_IMAGE_SIZE (defined in implementation)
  */
-unsigned char* read_image(const char* filename, int width, int height);
+unsigned char* ReadImage(const char* filename, int width, int height);
 
 /**
  * @brief Write raw grayscale image to file
@@ -48,4 +48,4 @@ unsigned char* read_image(const char* filename, int width, int height);
  * @param[in] height Image height in pixels
  * @return 0 on success, -1 on error
  */
-int write_image(const char* filename, const unsigned char* data, int width, int height);
+int WriteImage(const char* filename, const unsigned char* data, int width, int height);

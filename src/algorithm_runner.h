@@ -16,8 +16,8 @@
 #pragma once
 
 #include "utils/config.h"
-#include "utils/opencl_utils.h"
 #include "utils/op_registry.h"
+#include "utils/opencl_utils.h"
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -28,7 +28,8 @@
 /** Maximum image size (used for static buffer allocation) */
 #define MAX_IMAGE_SIZE (4096 * 4096)
 
-/* Note: RuntimeBuffer and CustomBuffers types are defined in utils/op_interface.h */
+/* Note: RuntimeBuffer and CustomBuffers types are defined in
+ * utils/op_interface.h */
 
 /**
  * @brief Run complete algorithm execution pipeline
@@ -49,9 +50,9 @@
  * @param[in] config Full configuration (image paths, dimensions, buffers)
  * @param[in] env Initialized OpenCL environment
  * @param[out] gpu_output_buffer Buffer for GPU output (must be >= image size)
- * @param[out] ref_output_buffer Buffer for reference output (must be >= image size)
+ * @param[out] ref_output_buffer Buffer for reference output (must be >= image
+ * size)
  */
-void run_algorithm(const Algorithm* algo, const KernelConfig* kernel_cfg,
-                   const Config* config, OpenCLEnv* env,
-                   unsigned char* gpu_output_buffer,
+void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
+                   OpenCLEnv* env, unsigned char* gpu_output_buffer,
                    unsigned char* ref_output_buffer);

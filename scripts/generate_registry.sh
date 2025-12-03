@@ -45,11 +45,14 @@ for file in $ALGO_FILES; do
 
     echo "Found algorithm: $algo_name"
 
+    # Convert snake_case to PascalCase (e.g., dilate3x3 -> Dilate3x3)
+    pascal_name=$(echo "$algo_name" | awk -F'_' '{for(i=1;i<=NF;i++) printf "%s", toupper(substr($i,1,1)) substr($i,2)}')
+
     # Add extern declarations for standard functions
     cat >> "$OUTPUT_FILE" <<EOF
-extern void ${algo_name}_ref(const OpParams* params);
-extern int ${algo_name}_verify(const OpParams* params, float* max_error);
-extern int ${algo_name}_set_kernel_args(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf, const OpParams* params);
+extern void ${pascal_name}Ref(const OpParams* params);
+extern int ${pascal_name}Verify(const OpParams* params, float* max_error);
+extern int ${pascal_name}SetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf, const OpParams* params);
 EOF
 done
 
@@ -59,6 +62,9 @@ echo "// Algorithm structures" >> "$OUTPUT_FILE"
 for file in $ALGO_FILES; do
     basename=$(basename "$file" .c)
     algo_name=${basename%_ref}
+
+    # Convert snake_case to PascalCase (e.g., dilate3x3 -> Dilate3x3)
+    pascal_name=$(echo "$algo_name" | awk -F'_' '{for(i=1;i<=NF;i++) printf "%s", toupper(substr($i,1,1)) substr($i,2)}')
 
     # Extract display name from config file first line
     # Config files start with: "# Dilate 3x3 Algorithm Configuration"
@@ -83,9 +89,9 @@ for file in $ALGO_FILES; do
 static Algorithm ${algo_name}_algorithm = {
     .name = "$display_name",
     .id = "$algo_name",
-    .reference_impl = ${algo_name}_ref,
-    .verify_result = ${algo_name}_verify,
-    .set_kernel_args = ${algo_name}_set_kernel_args
+    .reference_impl = ${pascal_name}Ref,
+    .verify_result = ${pascal_name}Verify,
+    .set_kernel_args = ${pascal_name}SetKernelArgs
 };
 
 EOF
@@ -107,7 +113,7 @@ for file in $ALGO_FILES; do
     basename=$(basename "$file" .c)
     algo_name=${basename%_ref}
 
-    echo "    register_algorithm(&${algo_name}_algorithm);" >> "$OUTPUT_FILE"
+    echo "    RegisterAlgorithm(&${algo_name}_algorithm);" >> "$OUTPUT_FILE"
 done
 
 cat >> "$OUTPUT_FILE" <<'EOF'

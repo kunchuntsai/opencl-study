@@ -28,40 +28,40 @@
 
 /** Buffer type enumeration */
 typedef enum {
-    BUFFER_TYPE_NONE = 0,
-    BUFFER_TYPE_READ_ONLY,
-    BUFFER_TYPE_WRITE_ONLY,
-    BUFFER_TYPE_READ_WRITE
+  BUFFER_TYPE_NONE = 0,
+  BUFFER_TYPE_READ_ONLY,
+  BUFFER_TYPE_WRITE_ONLY,
+  BUFFER_TYPE_READ_WRITE
 } BufferType;
 
 /** Host type enumeration for OpenCL API selection */
 typedef enum {
-    HOST_TYPE_STANDARD = 0,     /**< Standard OpenCL API (default) */
-    HOST_TYPE_CL_EXTENSION      /**< Custom CL extension API */
+  HOST_TYPE_STANDARD = 0, /**< Standard OpenCL API (default) */
+  HOST_TYPE_CL_EXTENSION  /**< Custom CL extension API */
 } HostType;
 
 /** Border handling modes */
 typedef enum {
-    BORDER_CLAMP = 0,      /**< Clamp to edge (replicate edge pixels) */
-    BORDER_REPLICATE = 1,  /**< Same as clamp */
-    BORDER_CONSTANT = 2,   /**< Use constant border value */
-    BORDER_REFLECT = 3,    /**< Reflect border pixels */
-    BORDER_WRAP = 4        /**< Wrap around (periodic) */
+  BORDER_CLAMP = 0,     /**< Clamp to edge (replicate edge pixels) */
+  BORDER_REPLICATE = 1, /**< Same as clamp */
+  BORDER_CONSTANT = 2,  /**< Use constant border value */
+  BORDER_REFLECT = 3,   /**< Reflect border pixels */
+  BORDER_WRAP = 4       /**< Wrap around (periodic) */
 } BorderMode;
 
 /**
  * @brief Runtime buffer structure
  *
- * Holds OpenCL buffer handle, optional host data, and buffer configuration metadata.
- * Used for managing custom buffers during algorithm execution.
+ * Holds OpenCL buffer handle, optional host data, and buffer configuration
+ * metadata. Used for managing custom buffers during algorithm execution.
  * Configuration metadata (type, size) is needed by set_kernel_args() for
  * variant-specific argument handling (e.g., allocating local memory).
  */
 typedef struct {
-    cl_mem buffer;                  /**< OpenCL buffer handle */
-    unsigned char* host_data;       /**< Host data (for file-backed buffers, NULL otherwise) */
-    BufferType type;                /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
-    size_t size_bytes;              /**< Buffer size in bytes */
+  cl_mem buffer;            /**< OpenCL buffer handle */
+  unsigned char* host_data; /**< Host data (for file-backed buffers, NULL otherwise) */
+  BufferType type;          /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
+  size_t size_bytes;        /**< Buffer size in bytes */
 } RuntimeBuffer;
 
 /**
@@ -73,8 +73,8 @@ typedef struct {
  *   arg 2+: custom_buffers[0], custom_buffers[1], ... in order
  */
 typedef struct {
-    RuntimeBuffer buffers[MAX_CUSTOM_BUFFERS];  /**< Array of runtime buffers */
-    int count;                                   /**< Number of buffers */
+  RuntimeBuffer buffers[MAX_CUSTOM_BUFFERS]; /**< Array of runtime buffers */
+  int count;                                 /**< Number of buffers */
 } CustomBuffers;
 
 /**
@@ -91,34 +91,35 @@ typedef struct {
  * - Verification: Use ref_output and gpu_output for comparison
  */
 typedef struct {
-    /* Input image */
-    unsigned char* input;   /**< Input image buffer */
-    int src_width;          /**< Source width in pixels */
-    int src_height;         /**< Source height in pixels */
-    int src_stride;         /**< Source stride in bytes (0 = packed, width * channels) */
+  /* Input image */
+  unsigned char* input; /**< Input image buffer */
+  int src_width;        /**< Source width in pixels */
+  int src_height;       /**< Source height in pixels */
+  int src_stride;       /**< Source stride in bytes (0 = packed, width * channels) */
 
-    /* Output image */
-    unsigned char* output;  /**< Output image buffer (for reference_impl) */
-    int dst_width;          /**< Destination width in pixels */
-    int dst_height;         /**< Destination height in pixels */
-    int dst_stride;         /**< Destination stride in bytes (0 = packed, width * channels) */
+  /* Output image */
+  unsigned char* output; /**< Output image buffer (for reference_impl) */
+  int dst_width;         /**< Destination width in pixels */
+  int dst_height;        /**< Destination height in pixels */
+  int dst_stride;        /**< Destination stride in bytes (0 = packed, width *
+                            channels) */
 
-    /* Verification buffers (for verify_result only) */
-    unsigned char* ref_output;  /**< Reference implementation output buffer */
-    unsigned char* gpu_output;  /**< GPU implementation output buffer */
+  /* Verification buffers (for verify_result only) */
+  unsigned char* ref_output; /**< Reference implementation output buffer */
+  unsigned char* gpu_output; /**< GPU implementation output buffer */
 
-    /* Border handling */
-    BorderMode border_mode; /**< How to handle pixels outside image bounds */
-    unsigned char border_value; /**< Constant value for BORDER_CONSTANT mode */
+  /* Border handling */
+  BorderMode border_mode;     /**< How to handle pixels outside image bounds */
+  unsigned char border_value; /**< Constant value for BORDER_CONSTANT mode */
 
-    /* Custom buffers (for algorithms needing additional data) */
-    CustomBuffers* custom_buffers;  /**< Pointer to custom buffer collection (NULL if none) */
+  /* Custom buffers (for algorithms needing additional data) */
+  CustomBuffers* custom_buffers; /**< Pointer to custom buffer collection (NULL if none) */
 
-    /* Kernel variant information */
-    HostType host_type;  /**< Host API type for current kernel variant */
-    int kernel_variant;  /**< Kernel signature variant ID (0, 1, 2, etc.) for handling different argument layouts */
+  /* Kernel variant information */
+  HostType host_type; /**< Host API type for current kernel variant */
+  int kernel_variant; /**< Kernel signature variant ID (0, 1, 2, etc.) for
+                         handling different argument layouts */
 } OpParams;
-
 
 /**
  * @brief Kernel argument setter callback
@@ -133,9 +134,7 @@ typedef struct {
  * @param[in] params Operation parameters containing dimensions
  * @return 0 on success, -1 on error
  */
-typedef int (*SetKernelArgsFunc)(cl_kernel kernel,
-                                 cl_mem input_buf,
-                                 cl_mem output_buf,
+typedef int (*SetKernelArgsFunc)(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
                                  const OpParams* params);
 
 /**
@@ -149,53 +148,53 @@ typedef int (*SetKernelArgsFunc)(cl_kernel kernel,
  * parameter requirements while maintaining a consistent API.
  */
 typedef struct {
-    char name[64];              /**< Human-readable name (e.g., "Dilate 3x3") */
-    char id[32];                /**< Unique identifier (e.g., "dilate3x3") */
+  char name[64]; /**< Human-readable name (e.g., "Dilate 3x3") */
+  char id[32];   /**< Unique identifier (e.g., "dilate3x3") */
 
-    /**
-     * @brief C reference implementation
-     *
-     * Executes the algorithm on CPU as a reference for correctness.
-     * Used for:
-     * - Generating golden samples
-     * - Verifying GPU output
-     * - Performance comparison
-     *
-     * Algorithms should read parameters from the OpParams struct
-     * and use only what they need. For example:
-     * - Simple filters: Use input, output, src_width, src_height
-     * - Resize: Use both src and dst dimensions
-     * - Convolution: Access kernel weights via custom_buffers
-     *
-     * @param[in] params Operation parameters (input, output, dimensions, etc.)
-     */
-    void (*reference_impl)(const OpParams* params);
+  /**
+   * @brief C reference implementation
+   *
+   * Executes the algorithm on CPU as a reference for correctness.
+   * Used for:
+   * - Generating golden samples
+   * - Verifying GPU output
+   * - Performance comparison
+   *
+   * Algorithms should read parameters from the OpParams struct
+   * and use only what they need. For example:
+   * - Simple filters: Use input, output, src_width, src_height
+   * - Resize: Use both src and dst dimensions
+   * - Convolution: Access kernel weights via custom_buffers
+   *
+   * @param[in] params Operation parameters (input, output, dimensions, etc.)
+   */
+  void (*reference_impl)(const OpParams* params);
 
-    /**
-     * @brief Verify GPU result against reference
-     *
-     * Compares GPU output with reference implementation output
-     * and calculates error metrics. Dimensions are provided
-     * via OpParams to support operations with different input/output sizes.
-     *
-     * @param[in] params Operation parameters (contains dimensions and buffers)
-     * @param[out] max_error Maximum absolute difference found
-     * @return 1 if verification passed, 0 if failed
-     */
-    int (*verify_result)(const OpParams* params, float* max_error);
+  /**
+   * @brief Verify GPU result against reference
+   *
+   * Compares GPU output with reference implementation output
+   * and calculates error metrics. Dimensions are provided
+   * via OpParams to support operations with different input/output sizes.
+   *
+   * @param[in] params Operation parameters (contains dimensions and buffers)
+   * @param[out] max_error Maximum absolute difference found
+   * @return 1 if verification passed, 0 if failed
+   */
+  int (*verify_result)(const OpParams* params, float* max_error);
 
-    /**
-     * @brief Set kernel arguments (REQUIRED)
-     *
-     * Every algorithm MUST provide this callback to set its kernel arguments.
-     * This ensures each algorithm explicitly declares what arguments it needs.
-     *
-     * The function should set all kernel arguments in order, including:
-     * - Standard buffers (input, output)
-     * - Additional buffers (configured via .ini files)
-     * - Scalar parameters (width, height, stride, etc.)
-     *
-     * @see SetKernelArgsFunc
-     */
-    SetKernelArgsFunc set_kernel_args;
+  /**
+   * @brief Set kernel arguments (REQUIRED)
+   *
+   * Every algorithm MUST provide this callback to set its kernel arguments.
+   * This ensures each algorithm explicitly declares what arguments it needs.
+   *
+   * The function should set all kernel arguments in order, including:
+   * - Standard buffers (input, output)
+   * - Additional buffers (configured via .ini files)
+   * - Scalar parameters (width, height, stride, etc.)
+   *
+   * @see SetKernelArgsFunc
+   */
+  SetKernelArgsFunc set_kernel_args;
 } Algorithm;

@@ -1,6 +1,7 @@
 /**
  * @file opencl_utils.h
- * @brief OpenCL utility functions for device initialization and kernel execution
+ * @brief OpenCL utility functions for device initialization and kernel
+ * execution
  *
  * Provides high-level wrappers around OpenCL API for:
  * - Platform and device initialization
@@ -23,8 +24,8 @@
 #endif
 
 /* Include op_interface for Algorithm and OpParams */
-#include "op_interface.h"
 #include "cl_extension_api.h"
+#include "op_interface.h"
 
 /**
  * @brief OpenCL environment containing all required resources
@@ -33,11 +34,11 @@
  * platform, device, context, and command queue.
  */
 typedef struct {
-    cl_platform_id platform;    /**< OpenCL platform (e.g., Apple, NVIDIA) */
-    cl_device_id device;        /**< OpenCL device (GPU/CPU) */
-    cl_context context;         /**< OpenCL context for device */
-    cl_command_queue queue;     /**< Command queue for kernel execution */
-    CLExtensionContext ext_ctx; /**< Custom CL extension context */
+  cl_platform_id platform;    /**< OpenCL platform (e.g., Apple, NVIDIA) */
+  cl_device_id device;        /**< OpenCL device (GPU/CPU) */
+  cl_context context;         /**< OpenCL context for device */
+  cl_command_queue queue;     /**< Command queue for kernel execution */
+  CLExtensionContext ext_ctx; /**< Custom CL extension context */
 } OpenCLEnv;
 
 /**
@@ -50,7 +51,7 @@ typedef struct {
  * @param[out] env OpenCL environment structure to initialize
  * @return 0 on success, -1 on error
  */
-int opencl_init(OpenCLEnv* env);
+int OpenclInit(OpenCLEnv* env);
 
 /**
  * @brief Build OpenCL kernel from source file with caching
@@ -66,8 +67,8 @@ int opencl_init(OpenCLEnv* env);
  * @param[in] kernel_name Name of kernel function in source
  * @return OpenCL kernel object, or NULL on error
  */
-cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
-                               const char* kernel_file, const char* kernel_name);
+cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
+                              const char* kernel_name);
 
 /**
  * @brief Execute OpenCL kernel with timing
@@ -92,14 +93,9 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
  * @param[out] gpu_time_ms Execution time in milliseconds
  * @return 0 on success, -1 on error
  */
-int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
-                      const Algorithm* algo,
-                      cl_mem input_buf, cl_mem output_buf,
-                      const OpParams* params,
-                      const size_t* global_work_size,
-                      const size_t* local_work_size,
-                      int work_dim,
-                      HostType host_type,
+int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
+                      cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
+                      const size_t* local_work_size, int work_dim, HostType host_type,
                       double* gpu_time_ms);
 
 /**
@@ -115,9 +111,8 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel,
  * @param[in] buffer_name Descriptive name for error messages
  * @return OpenCL buffer object, or NULL on error
  */
-cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags,
-                             size_t size, void* host_ptr,
-                             const char* buffer_name);
+cl_mem OpenclCreateBuffer(cl_context context, cl_mem_flags flags, size_t size, void* host_ptr,
+                            const char* buffer_name);
 
 /**
  * @brief Release OpenCL memory object with error checking
@@ -128,7 +123,7 @@ cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags,
  * @param[in] mem_obj OpenCL memory object to release (can be NULL)
  * @param[in] name Descriptive name for error messages
  */
-void opencl_release_mem_object(cl_mem mem_obj, const char* name);
+void OpenclReleaseMemObject(cl_mem mem_obj, const char* name);
 
 /**
  * @brief Release OpenCL kernel with error checking
@@ -138,7 +133,7 @@ void opencl_release_mem_object(cl_mem mem_obj, const char* name);
  *
  * @param[in] kernel OpenCL kernel to release (can be NULL)
  */
-void opencl_release_kernel(cl_kernel kernel);
+void OpenclReleaseKernel(cl_kernel kernel);
 
 /**
  * @brief Clean up OpenCL resources
@@ -148,4 +143,4 @@ void opencl_release_kernel(cl_kernel kernel);
  *
  * @param[in,out] env OpenCL environment to clean up
  */
-void opencl_cleanup(OpenCLEnv* env);
+void OpenclCleanup(OpenCLEnv* env);

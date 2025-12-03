@@ -22,8 +22,8 @@
  * @param[in] tolerance Maximum acceptable pixel difference
  * @return 1 if verification passed, 0 if failed
  */
-int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output,
-                       int width, int height, int tolerance);
+int VerifyExactMatch(unsigned char* gpu_output, unsigned char* ref_output, int width, int height,
+                       int tolerance);
 
 /**
  * @brief Verify pixel match with tolerance and error rate threshold
@@ -37,10 +37,11 @@ int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output,
  * @param[in] width Image width in pixels
  * @param[in] height Image height in pixels
  * @param[in] tolerance Maximum acceptable pixel difference
- * @param[in] error_rate_threshold Maximum acceptable fraction of differing pixels
+ * @param[in] error_rate_threshold Maximum acceptable fraction of differing
+ * pixels
  * @param[out] max_error Maximum absolute difference found
  * @return 1 if verification passed (error rate below threshold), 0 if failed
  */
-int verify_with_tolerance(unsigned char* gpu_output, unsigned char* ref_output,
-                          int width, int height, float tolerance,
-                          float error_rate_threshold, float* max_error);
+int VerifyWithTolerance(unsigned char* gpu_output, unsigned char* ref_output, int width,
+                          int height, float tolerance, float error_rate_threshold,
+                          float* max_error);
