@@ -21,12 +21,20 @@ Visual diagrams to understand the system architecture and execution flow.
          └──────────────────────┼─────────────────────┘
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                            MAIN PROGRAM                              │
-│                            (src/main.c)                              │
+│                       CLI / USER INTERFACE                           │
+│                          (src/main.c)                                │
+│            • Argument parsing  • Menu system  • User I/O             │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     EXECUTION PIPELINE                               │
+│                   (src/algorithm_runner.c)                           │
+│     • Algorithm orchestration  • Buffer mgmt  • Verification         │
 │                                                                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │  Algorithm   │  │   OpenCL     │  │    Image     │              │
-│  │   Registry   │  │   Manager    │  │     I/O      │              │
+│  │  Algorithm   │  │   OpenCL     │  │    Cache     │              │
+│  │   Registry   │  │    Utils     │  │   Manager    │              │
 │  └──────────────┘  └──────────────┘  └──────────────┘              │
 └─────────────────────────────────────────────────────────────────────┘
          │                      │                     │
