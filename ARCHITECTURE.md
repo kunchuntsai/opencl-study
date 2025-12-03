@@ -8,12 +8,20 @@ Visual diagrams to understand the system architecture and execution flow.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
-│                            MAIN PROGRAM                              │
-│                            (src/main.c)                              │
+│                       CLI / USER INTERFACE                           │
+│                          (src/main.c)                                │
+│            • Argument parsing  • Menu system  • User I/O             │
+└─────────────────────────────────────────────────────────────────────┘
+                                │
+                                ▼
+┌─────────────────────────────────────────────────────────────────────┐
+│                     EXECUTION PIPELINE                               │
+│                   (src/algorithm_runner.c)                           │
+│     • Algorithm orchestration  • Buffer mgmt  • Verification         │
 │                                                                       │
 │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │  Algorithm   │  │   OpenCL     │  │    Image     │              │
-│  │   Registry   │  │   Manager    │  │     I/O      │              │
+│  │  Algorithm   │  │   OpenCL     │  │    Cache     │              │
+│  │   Registry   │  │    Utils     │  │   Manager    │              │
 │  └──────────────┘  └──────────────┘  └──────────────┘              │
 └─────────────────────────────────────────────────────────────────────┘
          │                      │                     │
@@ -635,9 +643,24 @@ Maximum supported image: 4096 x 4096 pixels (16 MB)
 
 ---
 
-## 10. Build System & Dependencies
+## 10. Build System & Automation Tooling
 
 ```
+                  ┌────────────────────────────────┐
+                  │    scripts/build.sh            │
+                  │  • Auto-generate registry      │
+                  │  • Incremental compilation     │
+                  │  • Clean option                │
+                  └──────────────┬─────────────────┘
+                                 │
+                  ┌──────────────┴─────────────────┐
+                  │  scripts/generate_registry.sh  │
+                  │  • Scans for *_ref.c files     │
+                  │  • Auto-generates registry     │
+                  │  • Extracts display names      │
+                  └──────────────┬─────────────────┘
+                                 │
+                                 ▼
                       ┌────────────────┐
                       │  src/Makefile  │
                       └────────┬───────┘
@@ -685,9 +708,43 @@ Maximum supported image: 4096 x 4096 pixels (16 MB)
                    │     (70 KB exec)       │
                    └────────────────────────┘
 
+AUTOMATION SCRIPTS (scripts/ directory):
+
+BUILD & REGISTRY:
+  • build.sh (2.3KB) - Main build script with auto-registry generation
+  • generate_registry.sh (3.6KB) - Auto-discovers and registers algorithms
+  • run.sh (543B) - Quick run wrapper
+
+BENCHMARKING & TESTING:
+  • run_all_variants.sh (6.6KB) - Comprehensive benchmarking tool
+    - Runs all algorithm variants automatically
+    - Real-time progress display with spinner
+    - Performance rankings by GPU time
+    - Colored output (PASSED/FAILED)
+    - Summary report with speedup metrics
+  • benchmark.sh (375B) - Build and benchmark all variants
+
+METADATA EXTRACTION:
+  • generate_kernel_json.py (6.1KB) - Extract kernel signatures to JSON
+    - Parses .ini configuration files
+    - Extracts OpenCL kernel function signatures
+    - Generates structured JSON metadata
+  • generate_all_kernel_json.sh (923B) - Batch JSON generation
+
+ALGORITHM CREATION:
+  • create_new_algo.sh (11KB) - Algorithm template generator
+    - Creates directory structure
+    - Generates C reference template
+    - Generates OpenCL kernel template
+    - Generates .ini configuration
+
+TEST DATA GENERATION:
+  • generate_test_image.py (1.2KB) - Synthetic test image generator
+  • generate_gaussian_kernels.py (1.6KB) - Gaussian kernel weight generator
+
 MODULAR STRUCTURE:
-  • main.c (230 lines) - CLI only
-  • algorithm_runner.c (266 lines) - Execution pipeline
+  • main.c (231 lines) - CLI only
+  • algorithm_runner.c (413 lines) - Execution pipeline
   • utils/config.c - Extended with path utilities
   • Algorithm modules - Self-contained plugins
 
@@ -695,9 +752,279 @@ EXTERNAL DEPENDENCIES:
   • OpenCL Runtime (GPU drivers)
   • Standard C library (libc)
   • Math library (libm)
+  • Python 3 (for scripts)
+  • Bash (for build automation)
 
 NO EXTERNAL LIBRARIES REQUIRED!
 All algorithms self-contained.
+```
+
+---
+
+## 11. Scripts & Automation Infrastructure
+
+The `scripts/` directory contains comprehensive automation tooling for development, testing, and benchmarking.
+
+### Build & Registry Automation
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                    BUILD WORKFLOW                               │
+└─────────────────────────────────────────────────────────────────┘
+
+1. scripts/build.sh
+   │
+   ├─► Invokes generate_registry.sh
+   │   │
+   │   ├─► Scans src/ for *_ref.c files
+   │   │   - Finds: dilate3x3_ref.c, gaussian5x5_ref.c
+   │   │
+   │   ├─► Extracts algorithm IDs and display names
+   │   │   - Reads config/*.ini files
+   │   │   - Extracts [image] display_name fields
+   │   │
+   │   └─► Generates src/utils/auto_registry.c
+   │       - Auto-generated extern declarations
+   │       - Auto-populated algorithms[] array
+   │       - Uses GCC constructor for pre-main init
+   │
+   ├─► Compiles source files
+   │   - Incremental compilation (only changed files)
+   │   - Generates build/obj/*.o
+   │
+   ├─► Links executable
+   │   - Creates build/opencl_host
+   │
+   └─► Optional: Clean mode (./build.sh clean)
+       - Removes build artifacts
+       - Removes cache (golden/, kernels/)
+
+OUTPUT: Ready-to-run executable with auto-discovered algorithms
+```
+
+### Benchmarking System
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│            AUTOMATED BENCHMARKING WORKFLOW                      │
+│               (scripts/run_all_variants.sh)                     │
+└─────────────────────────────────────────────────────────────────┘
+
+For each algorithm (dilate3x3, gaussian5x5):
+  For each variant (v0, v1, v2, ...):
+    │
+    ├─► Execute: build/opencl_host <algo_id> <variant>
+    │
+    ├─► Capture output and parse:
+    │   - Verification status (PASSED/FAILED)
+    │   - CPU time (ms)
+    │   - GPU time (ms)
+    │   - Speedup (Nx)
+    │
+    ├─► Display real-time progress:
+    │   [Running dilate3x3 v0... ⠋]
+    │   ✓ dilate3x3 v0: PASSED (GPU: 0.003ms, Speedup: 817x)
+    │
+    └─► Handle errors gracefully:
+        ✗ gaussian5x5 v2: FAILED (verification error)
+
+Final Report:
+┌─────────────────────────────────────────────────────────────────┐
+│ Performance Ranking (by GPU time):                             │
+│ 1. dilate3x3 v1:    0.002ms  (Speedup: 1250x)  ✓               │
+│ 2. dilate3x3 v0:    0.003ms  (Speedup: 817x)   ✓               │
+│ 3. gaussian5x5 v0:  0.012ms  (Speedup: 208x)   ✓               │
+│ 4. gaussian5x5 v1:  0.015ms  (Speedup: 167x)   ✓               │
+│ 5. gaussian5x5 v2:  0.008ms  (Speedup: 312x)   ✗ FAILED        │
+└─────────────────────────────────────────────────────────────────┘
+
+FEATURES:
+  ✓ Real-time progress with spinner animation
+  ✓ Colored output (green=PASSED, red=FAILED)
+  ✓ Performance ranking by GPU execution time
+  ✓ Automatic failure detection and reporting
+  ✓ Summary statistics across all variants
+```
+
+### Metadata Extraction System
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│            KERNEL METADATA EXTRACTION                           │
+│          (scripts/generate_kernel_json.py)                      │
+└─────────────────────────────────────────────────────────────────┘
+
+INPUT: config/gaussian5x5.ini
+
+PROCESSING:
+1. Parse INI file
+   ├─► Extract kernel variant sections ([kernel.v0], [kernel.v1], ...)
+   └─► Extract kernel_file paths
+
+2. For each kernel variant:
+   ├─► Read OpenCL kernel source (.cl file)
+   ├─► Parse __kernel function signature
+   │   - Extract function name
+   │   - Extract parameter types and names
+   │   - Handle __global, __local, __constant qualifiers
+   └─► Build structured metadata
+
+OUTPUT: JSON metadata file
+{
+  "algorithm": "gaussian5x5",
+  "variants": [
+    {
+      "variant_id": 0,
+      "kernel_file": "src/gaussian/cl/gaussian0.cl",
+      "function_name": "gaussian5x5",
+      "host_type": "standard",
+      "parameters": [
+        {"type": "__global uchar*", "name": "input"},
+        {"type": "__global uchar*", "name": "output"},
+        {"type": "int", "name": "width"},
+        {"type": "int", "name": "height"},
+        {"type": "__global float*", "name": "kernel_x"},
+        {"type": "__global float*", "name": "kernel_y"}
+      ]
+    },
+    {
+      "variant_id": 1,
+      "kernel_file": "src/gaussian/cl/gaussian1.cl",
+      "function_name": "gaussian5x5_optimized",
+      "host_type": "cl_extension",
+      "parameters": [
+        {"type": "__global uchar*", "name": "input"},
+        {"type": "__global uchar*", "name": "tmp_global"},
+        {"type": "__global uchar*", "name": "output"},
+        {"type": "int", "name": "width"},
+        {"type": "int", "name": "height"},
+        {"type": "__global float*", "name": "kernel_x"},
+        {"type": "__global float*", "name": "kernel_y"}
+      ]
+    }
+  ]
+}
+
+USE CASES:
+  • Documentation generation
+  • IDE code completion
+  • Automated testing
+  • API documentation
+  • Code analysis
+```
+
+### Algorithm Creation Workflow
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│           NEW ALGORITHM CREATION                                │
+│          (scripts/create_new_algo.sh)                           │
+└─────────────────────────────────────────────────────────────────┘
+
+Usage: ./create_new_algo.sh <algorithm_name>
+Example: ./create_new_algo.sh sobel3x3
+
+PROCESS:
+1. Validate algorithm name
+   - Check format (lowercase, alphanumeric + underscore)
+   - Check for duplicates
+
+2. Create directory structure:
+   src/<algo_name>/
+   ├── <algo_name>.h          ← Public interface header
+   ├── <algo_name>.c          ← Main implementation with callbacks
+   ├── c_ref/
+   │   ├── <algo_name>_ref.h  ← C reference header
+   │   └── <algo_name>_ref.c  ← C reference implementation
+   └── cl/
+       └── <algo_name>0.cl    ← OpenCL kernel template
+
+3. Generate template files:
+   ├─► <algo_name>.c contains:
+   │   - reference_impl() function (calls C reference)
+   │   - verify_result() function (tolerance-based comparison)
+   │   - set_kernel_args() function (sets CL kernel arguments)
+   │   - Algorithm struct registration
+   │
+   ├─► c_ref/*.c contains:
+   │   - CPU reference implementation skeleton
+   │   - TODO comments for implementation
+   │
+   └─► cl/*.cl contains:
+       - __kernel function skeleton
+       - Work-item ID calculations
+       - TODO comments for implementation
+
+4. Generate configuration file:
+   config/<algo_name>.ini
+   ├─► [image] section (I/O configuration)
+   ├─► [buffer.*] sections (custom buffers, if needed)
+   └─► [kernel.v0] section (kernel variant configuration)
+
+5. Instructions displayed:
+   ✓ Algorithm structure created in src/<algo_name>/
+   ✓ Configuration created in config/<algo_name>.ini
+
+   NEXT STEPS:
+   1. Implement C reference in src/<algo_name>/c_ref/
+   2. Implement OpenCL kernel in src/<algo_name>/cl/
+   3. Update set_kernel_args() for your buffer layout
+   4. Run: ./scripts/build.sh && ./scripts/run.sh
+```
+
+### Test Data Generation
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              TEST DATA GENERATION                               │
+└─────────────────────────────────────────────────────────────────┘
+
+scripts/generate_test_image.py
+├─► Creates synthetic test images
+├─► Supports various patterns:
+│   - Checkerboard
+│   - Gradients
+│   - Geometric shapes
+└─► Output: Binary .raw format (unsigned char)
+
+scripts/generate_gaussian_kernels.py
+├─► Generates Gaussian kernel weights
+├─► Configurable sigma parameter
+├─► Creates separable 1D kernels
+└─► Output: kernel_x.bin, kernel_y.bin (float32)
+
+Usage Examples:
+  python3 scripts/generate_test_image.py 1024 1024 checkerboard
+  python3 scripts/generate_gaussian_kernels.py --sigma 1.4 --size 5
+```
+
+### Quick Reference Commands
+
+```bash
+# Build the project (auto-generates registry)
+./scripts/build.sh
+
+# Clean build (removes artifacts and cache)
+./scripts/build.sh clean
+
+# Run executable
+./scripts/run.sh
+
+# Benchmark all algorithm variants
+./scripts/benchmark.sh
+
+# Run specific algorithm variant
+build/opencl_host dilate3x3 0    # Run dilate3x3 variant 0
+build/opencl_host gaussian5x5 1  # Run gaussian5x5 variant 1
+
+# Create new algorithm
+./scripts/create_new_algo.sh my_algorithm
+
+# Extract kernel metadata to JSON
+python3 scripts/generate_kernel_json.py config/gaussian5x5.ini
+
+# Generate all JSON metadata
+./scripts/generate_all_kernel_json.sh
 ```
 
 ---
@@ -707,26 +1034,53 @@ All algorithms self-contained.
 This architecture provides:
 
 1. **Modularity** - Self-contained algorithm plugins with clean interfaces
-   - CLI layer (main.c) - 230 lines
-   - Execution pipeline (algorithm_runner.c) - 266 lines
+   - CLI layer (main.c) - 231 lines
+   - Execution pipeline (algorithm_runner.c) - 413 lines
    - Infrastructure utilities (utils/) - Reusable components
+   - 2 complete algorithms with 5 kernel variants
 
 2. **Extensibility** - Add algorithms without modifying core code
+   - Auto-discovery system scans for new algorithms
+   - Template generator (create_new_algo.sh) for rapid development
+   - No manual registration required
 
 3. **Flexibility** - Per-algorithm INI files with custom buffer configuration
+   - Support for file-backed and empty buffers
+   - Multiple kernel variants per algorithm
+   - Auto-derived variant IDs from section names
 
 4. **Performance** - Binary caching accelerates iteration (50-60x)
+   - Kernel binary caching (~100x faster compilation)
+   - Golden sample caching (~50x faster CPU reference)
+   - Automated benchmarking for performance tracking
 
 5. **Safety** - MISRA-C compliant (static allocation, safe arithmetic)
+   - No dynamic allocation in hot paths
+   - Bounds checking and safe operations
+   - Deterministic memory layout
 
 6. **Verification** - CPU reference validates GPU correctness
+   - Algorithm-specific tolerance levels
+   - Automatic verification on every run
+   - Detailed error reporting
 
 7. **Scalability** - Multiple algorithms, multiple variants per algorithm
+   - Clean variant management system
+   - Support for different optimization strategies
+   - API selection (standard vs. cl_extension)
 
-8. **Maintainability** - Clear separation of concerns:
+8. **Automation** - Comprehensive tooling infrastructure
+   - **Build automation**: Auto-registry generation and incremental compilation
+   - **Benchmarking**: Automated performance testing across all variants
+   - **Metadata extraction**: JSON export for documentation and analysis
+   - **Algorithm creation**: Template generator for new algorithms
+   - **Test data generation**: Synthetic image and kernel weight generation
+
+9. **Maintainability** - Clear separation of concerns:
    - Application layer: CLI interface
    - Execution layer: Algorithm orchestration
    - Algorithm layer: Self-contained plugins
    - Infrastructure layer: Reusable utilities
+   - Automation layer: Development and testing scripts
 
-The design follows professional software engineering practices suitable for client demonstrations and production deployment.
+The design follows professional software engineering practices suitable for client demonstrations, research, and production deployment. The comprehensive automation infrastructure enables rapid algorithm development, testing, and performance optimization.
