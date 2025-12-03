@@ -8,7 +8,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Check if build is needed
-if [ ! -f "$PROJECT_ROOT/build/opencl_host" ]; then
+if [ ! -f "$PROJECT_ROOT/out/opencl_host" ]; then
     echo "Building project..."
     "$SCRIPT_DIR/build.sh"
     echo ""

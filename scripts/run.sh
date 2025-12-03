@@ -4,7 +4,7 @@
 
 cd "$(dirname "$0")/.."
 
-if [ ! -f "build/opencl_host" ]; then
+if [ ! -f "out/opencl_host" ]; then
     echo "Executable not found. Please run build.sh first."
     exit 1
 fi
@@ -12,11 +12,11 @@ fi
 # If argument provided, pass all arguments to opencl_host
 if [ $# -ge 1 ]; then
     echo "Running with arguments: $@"
-    ./build/opencl_host "$@"
+    ./out/opencl_host "$@"
     exit $?
 fi
 
 # No arguments - run interactively (program will prompt for variant)
 echo "Running OpenCL Image Processing Framework (algorithm from config.ini)..."
 echo ""
-./build/opencl_host
+./out/opencl_host
