@@ -16,8 +16,7 @@ void register_algorithm(Algorithm* op) {
   }
 
   if (algorithm_count >= MAX_ALGORITHMS) {
-    (void)fprintf(stderr, "Error: Maximum number of algorithms (%d) exceeded\n",
-                  MAX_ALGORITHMS);
+    (void)fprintf(stderr, "Error: Maximum number of algorithms (%d) exceeded\n", MAX_ALGORITHMS);
     return;
   }
 
@@ -77,16 +76,14 @@ void list_algorithms(void) {
       parse_result = parse_config(config_path, &config);
       if (parse_result == 0) {
         /* Set op_id from algorithm ID if not already set */
-        if ((config.op_id[0] == '\0') ||
-            (strcmp(config.op_id, "config") == 0)) {
-          (void)strncpy(config.op_id, registered_algorithms[i]->id,
-                        sizeof(config.op_id) - 1U);
+        if ((config.op_id[0] == '\0') || (strcmp(config.op_id, "config") == 0)) {
+          (void)strncpy(config.op_id, registered_algorithms[i]->id, sizeof(config.op_id) - 1U);
           config.op_id[sizeof(config.op_id) - 1U] = '\0';
         }
 
         /* Get variants for this algorithm */
-        get_variants_result = get_op_variants(
-            &config, registered_algorithms[i]->id, variants, &variant_count);
+        get_variants_result =
+            get_op_variants(&config, registered_algorithms[i]->id, variants, &variant_count);
         if ((get_variants_result == 0) && (variant_count > 0)) {
           /* Display variants */
           for (j = 0; j < variant_count; j++) {

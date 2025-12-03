@@ -58,8 +58,8 @@ typedef struct {
   size_t global_work_size[3]; /**< Global work size for each dimension */
   size_t local_work_size[3];  /**< Local work group size for each dimension */
   HostType host_type;         /**< Host API type (standard or cl_extension) */
-  int kernel_variant; /**< Kernel signature variant auto-derived from variant_id
-                         (v0->0, v1->1, etc.) */
+  int kernel_variant;         /**< Kernel signature variant auto-derived from variant_id
+                                 (v0->0, v1->1, etc.) */
 } KernelConfig;
 
 /* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
@@ -88,9 +88,8 @@ typedef enum {
  * - Empty: Allocated with size_bytes, no initialization
  */
 typedef struct {
-  char name[64]; /**< Buffer name (from [buffer.NAME] section) */
-  BufferType
-      type; /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
+  char name[64];   /**< Buffer name (from [buffer.NAME] section) */
+  BufferType type; /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
 
   /* File-backed buffer fields */
   char source_file[256]; /**< Path to data file (empty string if not
@@ -124,16 +123,15 @@ typedef struct {
  * framework, including image parameters and all kernel variants.
  */
 typedef struct {
-  char op_id[32];         /**< Algorithm identifier (e.g., "dilate3x3") */
-  char input_image[256];  /**< Path to input image file */
-  char output_image[256]; /**< Path to output image file */
-  int src_width;          /**< Source image width in pixels */
-  int src_height;         /**< Source image height in pixels */
-  int dst_width;          /**< Destination image width (for resize ops) */
-  int dst_height;         /**< Destination image height (for resize ops) */
-  int num_kernels;        /**< Number of kernel variants configured */
-  KernelConfig
-      kernels[MAX_KERNEL_CONFIGS]; /**< Array of kernel configurations */
+  char op_id[32];                           /**< Algorithm identifier (e.g., "dilate3x3") */
+  char input_image[256];                    /**< Path to input image file */
+  char output_image[256];                   /**< Path to output image file */
+  int src_width;                            /**< Source image width in pixels */
+  int src_height;                           /**< Source image height in pixels */
+  int dst_width;                            /**< Destination image width (for resize ops) */
+  int dst_height;                           /**< Destination image height (for resize ops) */
+  int num_kernels;                          /**< Number of kernel variants configured */
+  KernelConfig kernels[MAX_KERNEL_CONFIGS]; /**< Array of kernel configurations */
 
   /* DEPRECATED: Legacy buffer files (kept for backward compatibility) */
   char kernel_x_file[256]; /**< Path to kernel_x weight file */
@@ -143,17 +141,15 @@ typedef struct {
    */
   BufferType cl_buffer_type[MAX_CUSTOM_BUFFERS]; /**< Buffer types */
   size_t cl_buffer_size[MAX_CUSTOM_BUFFERS];     /**< Buffer sizes */
-  int num_buffers; /**< Number of configured buffers */
+  int num_buffers;                               /**< Number of configured buffers */
 
   /* NEW: Custom buffer configuration (replaces legacy approach) */
-  CustomBufferConfig
-      custom_buffers[MAX_CUSTOM_BUFFERS]; /**< Custom buffer configurations */
-  int custom_buffer_count; /**< Number of custom buffers configured */
+  CustomBufferConfig custom_buffers[MAX_CUSTOM_BUFFERS]; /**< Custom buffer configurations */
+  int custom_buffer_count;                               /**< Number of custom buffers configured */
 
   /* NEW: Scalar argument configuration */
-  ScalarArgConfig
-      scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
-  int scalar_arg_count; /**< Number of scalar arguments configured */
+  ScalarArgConfig scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
+  int scalar_arg_count;                         /**< Number of scalar arguments configured */
 } Config;
 
 /**
@@ -182,8 +178,7 @@ int parse_config(const char* filename, Config* config);
  * @param[out] count Number of variants found
  * @return 0 on success, -1 on error
  */
-int get_op_variants(const Config* config, const char* op_id,
-                    KernelConfig* variants[], int* count);
+int get_op_variants(const Config* config, const char* op_id, KernelConfig* variants[], int* count);
 
 /**
  * @brief Resolve config path from algorithm name or explicit path
@@ -213,5 +208,4 @@ int resolve_config_path(const char* input, char* output, size_t output_size);
  * @param[in] op_id_size Size of op_id buffer
  * @return 0 on success, -1 on error
  */
-int extract_op_id_from_path(const char* config_path, char* op_id,
-                            size_t op_id_size);
+int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size);

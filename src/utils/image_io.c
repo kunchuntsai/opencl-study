@@ -24,15 +24,13 @@ unsigned char* read_image(const char* filename, int width, int height) {
 
   /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
   if (!safe_mul_int(width, height, &img_size)) {
-    (void)fprintf(stderr, "Error: Image size overflow (width=%d, height=%d)\n",
-                  width, height);
+    (void)fprintf(stderr, "Error: Image size overflow (width=%d, height=%d)\n", width, height);
     return NULL;
   }
 
   /* Check if image fits in static buffer */
   if (img_size > MAX_IMAGE_SIZE) {
-    (void)fprintf(stderr, "Error: Image too large (%d bytes, max %d)\n",
-                  img_size, MAX_IMAGE_SIZE);
+    (void)fprintf(stderr, "Error: Image too large (%d bytes, max %d)\n", img_size, MAX_IMAGE_SIZE);
     return NULL;
   }
 
@@ -45,25 +43,21 @@ unsigned char* read_image(const char* filename, int width, int height) {
   expected_size = (size_t)img_size;
   read_count = fread(image_buffer, 1U, expected_size, fp);
   if (read_count != expected_size) {
-    (void)fprintf(
-        stderr,
-        "Error: Failed to read complete image (read %zu of %zu bytes)\n",
-        read_count, expected_size);
+    (void)fprintf(stderr, "Error: Failed to read complete image (read %zu of %zu bytes)\n",
+                  read_count, expected_size);
     (void)fclose(fp);
     return NULL;
   }
 
   if (fclose(fp) != 0) {
-    (void)fprintf(stderr, "Warning: Failed to close input file: %s\n",
-                  filename);
+    (void)fprintf(stderr, "Warning: Failed to close input file: %s\n", filename);
   }
 
   (void)printf("Read image from %s (%d x %d)\n", filename, width, height);
   return image_buffer;
 }
 
-int write_image(const char* filename, const unsigned char* data, int width,
-                int height) {
+int write_image(const char* filename, const unsigned char* data, int width, int height) {
   FILE* fp;
   int img_size;
   size_t write_count;
@@ -76,25 +70,21 @@ int write_image(const char* filename, const unsigned char* data, int width,
 
   /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
   if (!safe_mul_int(width, height, &img_size)) {
-    (void)fprintf(stderr, "Error: Image size overflow (width=%d, height=%d)\n",
-                  width, height);
+    (void)fprintf(stderr, "Error: Image size overflow (width=%d, height=%d)\n", width, height);
     return -1;
   }
 
   fp = fopen(filename, "wb");
   if (fp == NULL) {
-    (void)fprintf(stderr, "Error: Failed to create output file: %s\n",
-                  filename);
+    (void)fprintf(stderr, "Error: Failed to create output file: %s\n", filename);
     return -1;
   }
 
   expected_size = (size_t)img_size;
   write_count = fwrite(data, 1U, expected_size, fp);
   if (write_count != expected_size) {
-    (void)fprintf(
-        stderr,
-        "Error: Failed to write complete image (wrote %zu of %zu bytes)\n",
-        write_count, expected_size);
+    (void)fprintf(stderr, "Error: Failed to write complete image (wrote %zu of %zu bytes)\n",
+                  write_count, expected_size);
     (void)fclose(fp);
     return -1;
   }

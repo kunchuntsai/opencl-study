@@ -21,8 +21,8 @@ static int clamp_coord(int coord, int max_coord) {
 }
 
 /* MISRA-C:2023 Rule 18.1: Add bounds checking for array access */
-static unsigned char get_pixel_safe(const unsigned char* input, int x, int y,
-                                    int width, int height) {
+static unsigned char get_pixel_safe(const unsigned char* input, int x, int y, int width,
+                                    int height) {
   int clamped_x;
   int clamped_y;
   int index;
@@ -111,8 +111,8 @@ int dilate3x3_verify(const OpParams* params, float* max_error) {
   }
 
   /* Use tolerance of 0 for exact match */
-  result = verify_exact_match(params->gpu_output, params->ref_output,
-                              params->dst_width, params->dst_height, 0);
+  result = verify_exact_match(params->gpu_output, params->ref_output, params->dst_width,
+                              params->dst_height, 0);
 
   /* Set max_error to 0 if verification passed */
   if (max_error != NULL) {
@@ -123,8 +123,8 @@ int dilate3x3_verify(const OpParams* params, float* max_error) {
 }
 
 /* Kernel argument setter - sets 4 standard arguments */
-int dilate3x3_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
-                              cl_mem output_buf, const OpParams* params) {
+int dilate3x3_set_kernel_args(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
+                              const OpParams* params) {
   cl_uint arg_idx = 0U;
 
   if ((kernel == NULL) || (params == NULL)) {
@@ -132,20 +132,16 @@ int dilate3x3_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
   }
 
   /* Set all 4 kernel arguments */
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
     return -1;
   }
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
     return -1;
   }
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
     return -1;
   }
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
     return -1;
   }
 

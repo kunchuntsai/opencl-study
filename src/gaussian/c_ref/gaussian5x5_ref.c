@@ -23,8 +23,7 @@ static int clamp_coord(int coord, int max_coord) {
 }
 
 /* MISRA-C:2023 Rule 18.1: Add bounds checking for array access */
-static int get_pixel_safe(const unsigned char* input, int x, int y, int width,
-                          int height) {
+static int get_pixel_safe(const unsigned char* input, int x, int y, int width, int height) {
   int clamped_x;
   int clamped_y;
   int index;
@@ -80,9 +79,7 @@ void gaussian5x5_ref(const OpParams* params) {
 
   /* Get 1D kernels from custom buffers */
   if (params->custom_buffers == NULL) {
-    (void)fprintf(
-        stderr,
-        "Error: Gaussian reference requires custom buffers for kernel data\n");
+    (void)fprintf(stderr, "Error: Gaussian reference requires custom buffers for kernel data\n");
     return;
   }
   custom_buffers = params->custom_buffers;
@@ -159,9 +156,8 @@ int gaussian5x5_verify(const OpParams* params, float* max_error) {
   }
   /* Allow 1 intensity level difference due to rounding, pass if < 0.1% pixels
    * differ */
-  return verify_with_tolerance(params->gpu_output, params->ref_output,
-                               params->dst_width, params->dst_height, 1.0f,
-                               0.001f, max_error);
+  return verify_with_tolerance(params->gpu_output, params->ref_output, params->dst_width,
+                               params->dst_height, 1.0f, 0.001f, max_error);
 }
 
 /* NOTE: RuntimeBuffer and CustomBuffers are now defined in utils/op_interface.h
@@ -201,8 +197,8 @@ int gaussian5x5_verify(const OpParams* params, float* max_error) {
  *   arg 8: kernel_x (custom_buffers[2])
  *   arg 9: kernel_y (custom_buffers[3])
  */
-int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
-                                cl_mem output_buf, const OpParams* params) {
+int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
+                                const OpParams* params) {
   CustomBuffers* custom_buffers;
   int arg_idx = 0;
   size_t tmp_buffer_size, tmp_buffer_size2;
@@ -220,13 +216,11 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
   custom_buffers = params->custom_buffers;
 
   /* Set common arguments (input and output) */
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
     return -1;
   }
 
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
     return -1;
   }
 
@@ -237,8 +231,7 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
        * kernel_y) */
       /* No tmp buffers needed */
       if (custom_buffers->count < 3) {
-        (void)fprintf(stderr,
-                      "Error: Variant 0 requires at least 3 buffers (got %d)\n",
+        (void)fprintf(stderr, "Error: Variant 0 requires at least 3 buffers (got %d)\n",
                       custom_buffers->count);
         return -1;
       }
@@ -250,19 +243,18 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
       /* Variant 1: gaussian5x5_optimized(input, output, tmp_buffer,
        * tmp_buffer_size, width, height, kernel_x, kernel_y) */
       if (custom_buffers->count < 3) {
-        (void)fprintf(stderr,
-                      "Error: Variant 1 requires at least 3 buffers (got %d)\n",
+        (void)fprintf(stderr, "Error: Variant 1 requires at least 3 buffers (got %d)\n",
                       custom_buffers->count);
         return -1;
       }
 
       tmp_buffer_size = custom_buffers->buffers[0].size_bytes;
-      if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem),
-                         &custom_buffers->buffers[0].buffer) != CL_SUCCESS) {
+      if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom_buffers->buffers[0].buffer) !=
+          CL_SUCCESS) {
         return -1;
       }
-      if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long),
-                         &tmp_buffer_size) != CL_SUCCESS) {
+      if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long), &tmp_buffer_size) !=
+          CL_SUCCESS) {
         return -1;
       }
 
@@ -275,8 +267,7 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
        * tmp_buffer_size, tmp_buffer2, tmp_buffer_size2, width, height,
        * kernel_x, kernel_y) */
       if (custom_buffers->count < 4) {
-        (void)fprintf(stderr,
-                      "Error: Variant 2 requires at least 4 buffers (got %d)\n",
+        (void)fprintf(stderr, "Error: Variant 2 requires at least 4 buffers (got %d)\n",
                       custom_buffers->count);
         return -1;
       }
@@ -284,20 +275,20 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
       tmp_buffer_size = custom_buffers->buffers[0].size_bytes;
       tmp_buffer_size2 = custom_buffers->buffers[1].size_bytes;
 
-      if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem),
-                         &custom_buffers->buffers[0].buffer) != CL_SUCCESS) {
+      if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom_buffers->buffers[0].buffer) !=
+          CL_SUCCESS) {
         return -1;
       }
-      if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long),
-                         &tmp_buffer_size) != CL_SUCCESS) {
+      if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long), &tmp_buffer_size) !=
+          CL_SUCCESS) {
         return -1;
       }
-      if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem),
-                         &custom_buffers->buffers[1].buffer) != CL_SUCCESS) {
+      if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom_buffers->buffers[1].buffer) !=
+          CL_SUCCESS) {
         return -1;
       }
-      if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long),
-                         &tmp_buffer_size2) != CL_SUCCESS) {
+      if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long), &tmp_buffer_size2) !=
+          CL_SUCCESS) {
         return -1;
       }
 
@@ -306,31 +297,26 @@ int gaussian5x5_set_kernel_args(cl_kernel kernel, cl_mem input_buf,
       break;
 
     default:
-      (void)fprintf(stderr, "Error: Unknown kernel_variant %d\n",
-                    params->kernel_variant);
+      (void)fprintf(stderr, "Error: Unknown kernel_variant %d\n", params->kernel_variant);
       return -1;
   }
 
   /* Set common arguments (width, height, kernel_x, kernel_y) */
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
     return -1;
   }
 
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) !=
-      CL_SUCCESS) {
-    return -1;
-  }
-
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem),
-                     &custom_buffers->buffers[kernel_x_idx].buffer) !=
-      CL_SUCCESS) {
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
     return -1;
   }
 
   if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem),
-                     &custom_buffers->buffers[kernel_y_idx].buffer) !=
-      CL_SUCCESS) {
+                     &custom_buffers->buffers[kernel_x_idx].buffer) != CL_SUCCESS) {
+    return -1;
+  }
+
+  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem),
+                     &custom_buffers->buffers[kernel_y_idx].buffer) != CL_SUCCESS) {
     return -1;
   }
 

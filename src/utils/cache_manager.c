@@ -19,8 +19,7 @@ static unsigned char kernel_binary_buffer[MAX_KERNEL_BINARY_SIZE];
 static unsigned char golden_sample_buffer[MAX_GOLDEN_SAMPLE_SIZE];
 
 /* Helper function to construct algorithm cache directory path */
-static int build_algorithm_dir(const char* algorithm_id, char* path,
-                               size_t path_size) {
+static int build_algorithm_dir(const char* algorithm_id, char* path, size_t path_size) {
   int result;
 
   if ((algorithm_id == NULL) || (path == NULL) || (path_size == 0U)) {
@@ -37,18 +36,16 @@ static int build_algorithm_dir(const char* algorithm_id, char* path,
 }
 
 /* Helper function to construct kernel cache file path */
-static int build_kernel_cache_path(const char* algorithm_id,
-                                   const char* kernel_name, char* path,
+static int build_kernel_cache_path(const char* algorithm_id, const char* kernel_name, char* path,
                                    size_t path_size) {
   int result;
 
-  if ((algorithm_id == NULL) || (kernel_name == NULL) || (path == NULL) ||
-      (path_size == 0U)) {
+  if ((algorithm_id == NULL) || (kernel_name == NULL) || (path == NULL) || (path_size == 0U)) {
     return -1;
   }
 
-  result = snprintf(path, path_size, "%s/%s/kernels/%s.bin", CACHE_BASE_DIR,
-                    algorithm_id, kernel_name);
+  result =
+      snprintf(path, path_size, "%s/%s/kernels/%s.bin", CACHE_BASE_DIR, algorithm_id, kernel_name);
 
   if ((result < 0) || ((size_t)result >= path_size)) {
     return -1;
@@ -58,16 +55,15 @@ static int build_kernel_cache_path(const char* algorithm_id,
 }
 
 /* Helper function to construct golden sample cache file path */
-static int build_golden_cache_path(const char* algorithm_id, char* path,
-                                   size_t path_size) {
+static int build_golden_cache_path(const char* algorithm_id, char* path, size_t path_size) {
   int result;
 
   if ((algorithm_id == NULL) || (path == NULL) || (path_size == 0U)) {
     return -1;
   }
 
-  result = snprintf(path, path_size, "%s/%s/golden/%s.bin", CACHE_BASE_DIR,
-                    algorithm_id, algorithm_id);
+  result =
+      snprintf(path, path_size, "%s/%s/golden/%s.bin", CACHE_BASE_DIR, algorithm_id, algorithm_id);
 
   if ((result < 0) || ((size_t)result >= path_size)) {
     return -1;
@@ -125,8 +121,7 @@ int cache_kernel_exists(const char* algorithm_id, const char* kernel_name) {
     return 0;
   }
 
-  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path,
-                              sizeof(cache_path)) != 0) {
+  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
     return 0;
   }
 
@@ -139,8 +134,7 @@ int cache_kernel_exists(const char* algorithm_id, const char* kernel_name) {
   return 1;
 }
 
-int cache_save_kernel_binary(cl_program program, cl_device_id device,
-                             const char* algorithm_id,
+int cache_save_kernel_binary(cl_program program, cl_device_id device, const char* algorithm_id,
                              const char* kernel_name) {
   cl_int err;
   size_t binary_size;
@@ -154,34 +148,28 @@ int cache_save_kernel_binary(cl_program program, cl_device_id device,
   }
 
   /* Get binary size */
-  err = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t),
-                         &binary_size, NULL);
+  err = clGetProgramInfo(program, CL_PROGRAM_BINARY_SIZES, sizeof(size_t), &binary_size, NULL);
   if ((err != CL_SUCCESS) || (binary_size == 0U)) {
-    (void)fprintf(stderr,
-                  "Error: Failed to get kernel binary size (error: %d)\n", err);
+    (void)fprintf(stderr, "Error: Failed to get kernel binary size (error: %d)\n", err);
     return -1;
   }
 
   if (binary_size > MAX_KERNEL_BINARY_SIZE) {
-    (void)fprintf(stderr,
-                  "Error: Kernel binary too large (%zu bytes, max %u)\n",
-                  binary_size, MAX_KERNEL_BINARY_SIZE);
+    (void)fprintf(stderr, "Error: Kernel binary too large (%zu bytes, max %u)\n", binary_size,
+                  MAX_KERNEL_BINARY_SIZE);
     return -1;
   }
 
   /* Get binary data */
   binary_ptr = kernel_binary_buffer;
-  err = clGetProgramInfo(program, CL_PROGRAM_BINARIES, sizeof(unsigned char*),
-                         &binary_ptr, NULL);
+  err = clGetProgramInfo(program, CL_PROGRAM_BINARIES, sizeof(unsigned char*), &binary_ptr, NULL);
   if (err != CL_SUCCESS) {
-    (void)fprintf(stderr, "Error: Failed to get kernel binary (error: %d)\n",
-                  err);
+    (void)fprintf(stderr, "Error: Failed to get kernel binary (error: %d)\n", err);
     return -1;
   }
 
   /* Build cache file path */
-  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path,
-                              sizeof(cache_path)) != 0) {
+  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return -1;
   }
@@ -189,16 +177,14 @@ int cache_save_kernel_binary(cl_program program, cl_device_id device,
   /* Save to file */
   fp = fopen(cache_path, "wb");
   if (fp == NULL) {
-    (void)fprintf(stderr, "Error: Failed to create kernel cache file: %s\n",
-                  cache_path);
+    (void)fprintf(stderr, "Error: Failed to create kernel cache file: %s\n", cache_path);
     return -1;
   }
 
   written = fwrite(kernel_binary_buffer, 1U, binary_size, fp);
   if (written != binary_size) {
-    (void)fprintf(stderr,
-                  "Error: Failed to write kernel binary (%zu of %zu bytes)\n",
-                  written, binary_size);
+    (void)fprintf(stderr, "Error: Failed to write kernel binary (%zu of %zu bytes)\n", written,
+                  binary_size);
     (void)fclose(fp);
     return -1;
   }
@@ -207,14 +193,12 @@ int cache_save_kernel_binary(cl_program program, cl_device_id device,
     (void)fprintf(stderr, "Warning: Failed to close kernel cache file\n");
   }
 
-  (void)printf("Kernel binary cached (%zu bytes): %s\n", binary_size,
-               cache_path);
+  (void)printf("Kernel binary cached (%zu bytes): %s\n", binary_size, cache_path);
   return 0;
 }
 
 cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
-                                    const char* algorithm_id,
-                                    const char* kernel_name) {
+                                    const char* algorithm_id, const char* kernel_name) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
   long file_size;
@@ -230,8 +214,7 @@ cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
   }
 
   /* Build cache file path */
-  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path,
-                              sizeof(cache_path)) != 0) {
+  if (build_kernel_cache_path(algorithm_id, kernel_name, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return NULL;
   }
@@ -239,8 +222,7 @@ cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
   /* Open file */
   fp = fopen(cache_path, "rb");
   if (fp == NULL) {
-    (void)fprintf(stderr, "Error: Failed to open kernel cache file: %s\n",
-                  cache_path);
+    (void)fprintf(stderr, "Error: Failed to open kernel cache file: %s\n", cache_path);
     return NULL;
   }
 
@@ -260,8 +242,7 @@ cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
 
   binary_size = (size_t)file_size;
   if (binary_size > MAX_KERNEL_BINARY_SIZE) {
-    (void)fprintf(stderr, "Error: Cached binary too large (%zu bytes)\n",
-                  binary_size);
+    (void)fprintf(stderr, "Error: Cached binary too large (%zu bytes)\n", binary_size);
     (void)fclose(fp);
     return NULL;
   }
@@ -275,9 +256,8 @@ cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
   /* Read binary data */
   read_size = fread(kernel_binary_buffer, 1U, binary_size, fp);
   if (read_size != binary_size) {
-    (void)fprintf(stderr,
-                  "Error: Failed to read kernel binary (%zu of %zu bytes)\n",
-                  read_size, binary_size);
+    (void)fprintf(stderr, "Error: Failed to read kernel binary (%zu of %zu bytes)\n", read_size,
+                  binary_size);
     (void)fclose(fp);
     return NULL;
   }
@@ -286,26 +266,22 @@ cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
     (void)fprintf(stderr, "Warning: Failed to close cache file\n");
   }
 
-  (void)printf("Loaded cached kernel binary (%zu bytes): %s\n", binary_size,
-               cache_path);
+  (void)printf("Loaded cached kernel binary (%zu bytes): %s\n", binary_size, cache_path);
 
   /* Create program from binary */
   binary_ptr = kernel_binary_buffer;
-  program = clCreateProgramWithBinary(context, 1U, &device, &binary_size,
-                                      &binary_ptr, &binary_status, &err);
+  program = clCreateProgramWithBinary(context, 1U, &device, &binary_size, &binary_ptr,
+                                      &binary_status, &err);
   if ((err != CL_SUCCESS) || (binary_status != CL_SUCCESS)) {
-    (void)fprintf(
-        stderr,
-        "Error: Failed to create program from binary (err=%d, status=%d)\n",
-        err, binary_status);
+    (void)fprintf(stderr, "Error: Failed to create program from binary (err=%d, status=%d)\n", err,
+                  binary_status);
     return NULL;
   }
 
   /* Build the program (required even for binaries) */
   err = clBuildProgram(program, 1U, &device, NULL, NULL, NULL);
   if (err != CL_SUCCESS) {
-    (void)fprintf(stderr, "Error: Failed to build cached binary (error: %d)\n",
-                  err);
+    (void)fprintf(stderr, "Error: Failed to build cached binary (error: %d)\n", err);
     (void)clReleaseProgram(program);
     return NULL;
   }
@@ -331,8 +307,7 @@ int cache_golden_exists(const char* algorithm_id, const char* variant_id) {
    */
   (void)variant_id;
 
-  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) !=
-      0) {
+  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
     return 0;
   }
 
@@ -345,8 +320,8 @@ int cache_golden_exists(const char* algorithm_id, const char* variant_id) {
   return 1;
 }
 
-int cache_save_golden(const char* algorithm_id, const char* variant_id,
-                      const unsigned char* data, size_t size) {
+int cache_save_golden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
+                      size_t size) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
   size_t written;
@@ -360,15 +335,13 @@ int cache_save_golden(const char* algorithm_id, const char* variant_id,
   (void)variant_id;
 
   if (size > MAX_GOLDEN_SAMPLE_SIZE) {
-    (void)fprintf(stderr,
-                  "Error: Golden sample too large (%zu bytes, max %u)\n", size,
+    (void)fprintf(stderr, "Error: Golden sample too large (%zu bytes, max %u)\n", size,
                   MAX_GOLDEN_SAMPLE_SIZE);
     return -1;
   }
 
   /* Build cache file path */
-  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) !=
-      0) {
+  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return -1;
   }
@@ -376,16 +349,14 @@ int cache_save_golden(const char* algorithm_id, const char* variant_id,
   /* Save to file */
   fp = fopen(cache_path, "wb");
   if (fp == NULL) {
-    (void)fprintf(stderr, "Error: Failed to create golden sample file: %s\n",
-                  cache_path);
+    (void)fprintf(stderr, "Error: Failed to create golden sample file: %s\n", cache_path);
     return -1;
   }
 
   written = fwrite(data, 1U, size, fp);
   if (written != size) {
-    (void)fprintf(stderr,
-                  "Error: Failed to write golden sample (%zu of %zu bytes)\n",
-                  written, size);
+    (void)fprintf(stderr, "Error: Failed to write golden sample (%zu of %zu bytes)\n", written,
+                  size);
     (void)fclose(fp);
     return -1;
   }
@@ -398,9 +369,8 @@ int cache_save_golden(const char* algorithm_id, const char* variant_id,
   return 0;
 }
 
-int cache_load_golden(const char* algorithm_id, const char* variant_id,
-                      unsigned char* buffer, size_t buffer_size,
-                      size_t* actual_size) {
+int cache_load_golden(const char* algorithm_id, const char* variant_id, unsigned char* buffer,
+                      size_t buffer_size, size_t* actual_size) {
   char cache_path[MAX_CACHE_PATH];
   FILE* fp;
   long file_size;
@@ -415,8 +385,7 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id,
   (void)variant_id;
 
   /* Build cache file path */
-  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) !=
-      0) {
+  if (build_golden_cache_path(algorithm_id, cache_path, sizeof(cache_path)) != 0) {
     (void)fprintf(stderr, "Error: Failed to build cache path\n");
     return -1;
   }
@@ -424,8 +393,7 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id,
   /* Open file */
   fp = fopen(cache_path, "rb");
   if (fp == NULL) {
-    (void)fprintf(stderr, "Error: Failed to open golden sample file: %s\n",
-                  cache_path);
+    (void)fprintf(stderr, "Error: Failed to open golden sample file: %s\n", cache_path);
     return -1;
   }
 
@@ -444,9 +412,8 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id,
   }
 
   if ((size_t)file_size > buffer_size) {
-    (void)fprintf(stderr,
-                  "Error: Golden sample larger than buffer (%ld > %zu bytes)\n",
-                  file_size, buffer_size);
+    (void)fprintf(stderr, "Error: Golden sample larger than buffer (%ld > %zu bytes)\n", file_size,
+                  buffer_size);
     (void)fclose(fp);
     return -1;
   }
@@ -460,9 +427,8 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id,
   /* Read data */
   read_size = fread(buffer, 1U, (size_t)file_size, fp);
   if (read_size != (size_t)file_size) {
-    (void)fprintf(stderr,
-                  "Error: Failed to read golden sample (%zu of %ld bytes)\n",
-                  read_size, file_size);
+    (void)fprintf(stderr, "Error: Failed to read golden sample (%zu of %ld bytes)\n", read_size,
+                  file_size);
     (void)fclose(fp);
     return -1;
   }
@@ -477,9 +443,8 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id,
   return 0;
 }
 
-int cache_verify_golden(const char* algorithm_id, const char* variant_id,
-                        const unsigned char* data, size_t size,
-                        size_t* differences) {
+int cache_verify_golden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
+                        size_t size, size_t* differences) {
   size_t golden_size;
   size_t i;
   size_t diff_count;
@@ -489,16 +454,15 @@ int cache_verify_golden(const char* algorithm_id, const char* variant_id,
   }
 
   /* Load golden sample - variant_id can be NULL */
-  if (cache_load_golden(algorithm_id, variant_id, golden_sample_buffer,
-                        MAX_GOLDEN_SAMPLE_SIZE, &golden_size) != 0) {
+  if (cache_load_golden(algorithm_id, variant_id, golden_sample_buffer, MAX_GOLDEN_SAMPLE_SIZE,
+                        &golden_size) != 0) {
     return -1;
   }
 
   /* Check size match */
   if (golden_size != size) {
-    (void)fprintf(
-        stderr, "Error: Golden sample size mismatch (expected %zu, got %zu)\n",
-        golden_size, size);
+    (void)fprintf(stderr, "Error: Golden sample size mismatch (expected %zu, got %zu)\n",
+                  golden_size, size);
     return -1;
   }
 
@@ -513,8 +477,7 @@ int cache_verify_golden(const char* algorithm_id, const char* variant_id,
   *differences = diff_count;
 
   if (diff_count == 0U) {
-    (void)printf(
-        "✓ Verification PASSED: Output matches golden sample exactly\n");
+    (void)printf("✓ Verification PASSED: Output matches golden sample exactly\n");
     return 1;
   } else {
     (void)fprintf(stderr,

@@ -16,9 +16,9 @@ static unsigned char gpu_output_buffer[MAX_IMAGE_SIZE];
 static unsigned char ref_output_buffer[MAX_IMAGE_SIZE];
 
 /* Forward declarations */
-static int select_algorithm_and_variant(
-    const Config* config, int provided_variant_index, Algorithm** selected_algo,
-    KernelConfig** variants, int* variant_count, int* selected_variant_index);
+static int select_algorithm_and_variant(const Config* config, int provided_variant_index,
+                                        Algorithm** selected_algo, KernelConfig** variants,
+                                        int* variant_count, int* selected_variant_index);
 
 int main(int argc, char** argv) {
   Config config;
@@ -34,9 +34,8 @@ int main(int argc, char** argv) {
   const char* config_input;
 
   /* Check for help flags */
-  if ((argc == 2) &&
-      ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0) ||
-       (strcmp(argv[1], "help") == 0))) {
+  if ((argc == 2) && ((strcmp(argv[1], "--help") == 0) || (strcmp(argv[1], "-h") == 0) ||
+                      (strcmp(argv[1], "help") == 0))) {
     (void)printf("Usage: %s <algorithm> [variant_index]\n", argv[0]);
     (void)printf("\n");
     (void)printf("Available Algorithms:\n");
@@ -77,8 +76,7 @@ int main(int argc, char** argv) {
   }
 
   /* Resolve algorithm name to config path (config/<name>.ini) */
-  if (resolve_config_path(config_input, config_path, sizeof(config_path)) !=
-      0) {
+  if (resolve_config_path(config_input, config_path, sizeof(config_path)) != 0) {
     (void)fprintf(stderr, "Failed to resolve config path: %s\n", config_input);
     return 1;
   }
@@ -92,15 +90,14 @@ int main(int argc, char** argv) {
 
   /* Auto-derive op_id from filename if not specified in config */
   if ((config.op_id[0] == '\0') || (strcmp(config.op_id, "config") == 0)) {
-    if (extract_op_id_from_path(config_path, config.op_id,
-                                sizeof(config.op_id)) != 0) {
+    if (extract_op_id_from_path(config_path, config.op_id, sizeof(config.op_id)) != 0) {
       (void)fprintf(stderr, "Warning: Could not derive op_id from filename\n");
     }
   }
 
   /* 3. Select algorithm and kernel variant (with user interaction if needed) */
-  if (select_algorithm_and_variant(&config, variant_index, &algo, variants,
-                                   &variant_count, &variant_index) != 0) {
+  if (select_algorithm_and_variant(&config, variant_index, &algo, variants, &variant_count,
+                                   &variant_index) != 0) {
     return 1;
   }
 
@@ -114,16 +111,13 @@ int main(int argc, char** argv) {
 
   /* 5. Initialize cache directories for this algorithm */
   if (cache_init(algo->id) != 0) {
-    (void)fprintf(stderr,
-                  "Warning: Failed to initialize cache directories for %s\n",
-                  algo->id);
+    (void)fprintf(stderr, "Warning: Failed to initialize cache directories for %s\n", algo->id);
   }
 
   /* 7. Run algorithm */
   (void)printf("\n=== Running %s (variant: %s) ===\n", algo->name,
                variants[variant_index]->variant_id);
-  run_algorithm(algo, variants[variant_index], &config, &env, gpu_output_buffer,
-                ref_output_buffer);
+  run_algorithm(algo, variants[variant_index], &config, &env, gpu_output_buffer, ref_output_buffer);
 
   /* Cleanup */
   opencl_cleanup(&env);
@@ -148,9 +142,9 @@ int main(int argc, char** argv) {
  * @param[out] selected_variant_index The selected variant index
  * @return 0 on success, -1 on error
  */
-static int select_algorithm_and_variant(
-    const Config* config, int provided_variant_index, Algorithm** selected_algo,
-    KernelConfig** variants, int* variant_count, int* selected_variant_index) {
+static int select_algorithm_and_variant(const Config* config, int provided_variant_index,
+                                        Algorithm** selected_algo, KernelConfig** variants,
+                                        int* variant_count, int* selected_variant_index) {
   Algorithm* algo;
   int get_variants_result;
   int i;
@@ -171,18 +165,14 @@ static int select_algorithm_and_variant(
   /* Step 2: Find selected algorithm based on config.op_id */
   algo = find_algorithm(config->op_id);
   if (algo == NULL) {
-    (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n",
-                  config->op_id);
-    (void)fprintf(
-        stderr, "Please select from the available algorithms listed above.\n");
+    (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n", config->op_id);
+    (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
     return -1;
   }
-  (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name,
-               algo->id);
+  (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name, algo->id);
 
   /* Step 3: Get kernel variants for selected algorithm */
-  get_variants_result =
-      get_op_variants(config, algo->id, variants, variant_count);
+  get_variants_result = get_op_variants(config, algo->id, variants, variant_count);
   if ((get_variants_result != 0) || (*variant_count == 0)) {
     (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
     return -1;
@@ -199,10 +189,8 @@ static int select_algorithm_and_variant(
   if (provided_variant_index >= 0) {
     /* Variant index was provided via command line - validate it */
     *selected_variant_index = provided_variant_index;
-    if ((*selected_variant_index < 0) ||
-        (*selected_variant_index >= *variant_count)) {
-      (void)fprintf(stderr,
-                    "Error: Invalid variant index: %d (available: 0-%d)\n",
+    if ((*selected_variant_index < 0) || (*selected_variant_index >= *variant_count)) {
+      (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
                     *selected_variant_index, *variant_count - 1);
       return -1;
     }
@@ -231,10 +219,8 @@ static int select_algorithm_and_variant(
       *selected_variant_index = (int)temp_index;
 
       /* Validate range */
-      if ((*selected_variant_index < 0) ||
-          (*selected_variant_index >= *variant_count)) {
-        (void)fprintf(stderr,
-                      "Error: Invalid variant index: %d (available: 0-%d)\n",
+      if ((*selected_variant_index < 0) || (*selected_variant_index >= *variant_count)) {
+        (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
                       *selected_variant_index, *variant_count - 1);
         return -1;
       }

@@ -67,8 +67,8 @@ int opencl_init(OpenCLEnv* env);
  * @param[in] kernel_name Name of kernel function in source
  * @return OpenCL kernel object, or NULL on error
  */
-cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
-                              const char* kernel_file, const char* kernel_name);
+cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
+                              const char* kernel_name);
 
 /**
  * @brief Execute OpenCL kernel with timing
@@ -93,11 +93,10 @@ cl_kernel opencl_build_kernel(OpenCLEnv* env, const char* algorithm_id,
  * @param[out] gpu_time_ms Execution time in milliseconds
  * @return 0 on success, -1 on error
  */
-int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo,
-                      cl_mem input_buf, cl_mem output_buf,
-                      const OpParams* params, const size_t* global_work_size,
-                      const size_t* local_work_size, int work_dim,
-                      HostType host_type, double* gpu_time_ms);
+int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
+                      cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
+                      const size_t* local_work_size, int work_dim, HostType host_type,
+                      double* gpu_time_ms);
 
 /**
  * @brief Create OpenCL buffer with error checking
@@ -112,8 +111,8 @@ int opencl_run_kernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo,
  * @param[in] buffer_name Descriptive name for error messages
  * @return OpenCL buffer object, or NULL on error
  */
-cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags, size_t size,
-                            void* host_ptr, const char* buffer_name);
+cl_mem opencl_create_buffer(cl_context context, cl_mem_flags flags, size_t size, void* host_ptr,
+                            const char* buffer_name);
 
 /**
  * @brief Release OpenCL memory object with error checking

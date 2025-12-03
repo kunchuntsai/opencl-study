@@ -43,11 +43,9 @@ void cl_extension_cleanup(CLExtensionContext* ctx) {
 }
 
 cl_int cl_extension_enqueue_ndrange_kernel(
-    CLExtensionContext* ctx, cl_command_queue command_queue, cl_kernel kernel,
-    cl_uint work_dim, const size_t* global_work_offset,
-    const size_t* global_work_size, const size_t* local_work_size,
-    cl_uint num_events_in_wait_list, const cl_event* event_wait_list,
-    cl_event* event) {
+    CLExtensionContext* ctx, cl_command_queue command_queue, cl_kernel kernel, cl_uint work_dim,
+    const size_t* global_work_offset, const size_t* global_work_size, const size_t* local_work_size,
+    cl_uint num_events_in_wait_list, const cl_event* event_wait_list, cl_event* event) {
   cl_int err;
 
   if (ctx == NULL) {
@@ -69,8 +67,7 @@ cl_int cl_extension_enqueue_ndrange_kernel(
     {
       cl_uint i;
       for (i = 0; i < work_dim; i++) {
-        (void)printf("%zu%s", global_work_size[i],
-                     (i < work_dim - 1U) ? " x " : "\n");
+        (void)printf("%zu%s", global_work_size[i], (i < work_dim - 1U) ? " x " : "\n");
       }
     }
   }
@@ -80,17 +77,16 @@ cl_int cl_extension_enqueue_ndrange_kernel(
     {
       cl_uint i;
       for (i = 0; i < work_dim; i++) {
-        (void)printf("%zu%s", local_work_size[i],
-                     (i < work_dim - 1U) ? " x " : "\n");
+        (void)printf("%zu%s", local_work_size[i], (i < work_dim - 1U) ? " x " : "\n");
       }
     }
   }
 
   /* TODO: Add custom scheduling/optimization logic here */
   /* For now, just call the standard OpenCL API */
-  err = clEnqueueNDRangeKernel(
-      command_queue, kernel, work_dim, global_work_offset, global_work_size,
-      local_work_size, num_events_in_wait_list, event_wait_list, event);
+  err =
+      clEnqueueNDRangeKernel(command_queue, kernel, work_dim, global_work_offset, global_work_size,
+                             local_work_size, num_events_in_wait_list, event_wait_list, event);
 
   if (err != CL_SUCCESS) {
     (void)fprintf(stderr, "[CL_EXT] Kernel enqueue failed: %d\n", err);
@@ -101,9 +97,8 @@ cl_int cl_extension_enqueue_ndrange_kernel(
   return err;
 }
 
-cl_mem cl_extension_create_buffer(CLExtensionContext* ctx, cl_context context,
-                                  cl_mem_flags flags, size_t size,
-                                  void* host_ptr, cl_int* errcode_ret) {
+cl_mem cl_extension_create_buffer(CLExtensionContext* ctx, cl_context context, cl_mem_flags flags,
+                                  size_t size, void* host_ptr, cl_int* errcode_ret) {
   cl_mem buffer;
   const char* flag_desc = "UNKNOWN";
 
@@ -142,8 +137,7 @@ cl_mem cl_extension_create_buffer(CLExtensionContext* ctx, cl_context context,
   buffer = clCreateBuffer(context, flags, size, host_ptr, errcode_ret);
 
   if ((errcode_ret != NULL) && (*errcode_ret != CL_SUCCESS)) {
-    (void)fprintf(stderr, "[CL_EXT] Buffer creation failed: %d\n",
-                  *errcode_ret);
+    (void)fprintf(stderr, "[CL_EXT] Buffer creation failed: %d\n", *errcode_ret);
   } else {
     (void)printf("[CL_EXT] Buffer created successfully\n");
   }
@@ -151,8 +145,7 @@ cl_mem cl_extension_create_buffer(CLExtensionContext* ctx, cl_context context,
   return buffer;
 }
 
-cl_int cl_extension_finish(CLExtensionContext* ctx,
-                           cl_command_queue command_queue) {
+cl_int cl_extension_finish(CLExtensionContext* ctx, cl_command_queue command_queue) {
   cl_int err;
 
   if (ctx == NULL) {

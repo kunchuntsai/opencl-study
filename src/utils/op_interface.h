@@ -58,12 +58,10 @@ typedef enum {
  * variant-specific argument handling (e.g., allocating local memory).
  */
 typedef struct {
-  cl_mem buffer; /**< OpenCL buffer handle */
-  unsigned char*
-      host_data; /**< Host data (for file-backed buffers, NULL otherwise) */
-  BufferType
-      type; /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
-  size_t size_bytes; /**< Buffer size in bytes */
+  cl_mem buffer;            /**< OpenCL buffer handle */
+  unsigned char* host_data; /**< Host data (for file-backed buffers, NULL otherwise) */
+  BufferType type;          /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
+  size_t size_bytes;        /**< Buffer size in bytes */
 } RuntimeBuffer;
 
 /**
@@ -97,7 +95,7 @@ typedef struct {
   unsigned char* input; /**< Input image buffer */
   int src_width;        /**< Source width in pixels */
   int src_height;       /**< Source height in pixels */
-  int src_stride; /**< Source stride in bytes (0 = packed, width * channels) */
+  int src_stride;       /**< Source stride in bytes (0 = packed, width * channels) */
 
   /* Output image */
   unsigned char* output; /**< Output image buffer (for reference_impl) */
@@ -115,8 +113,7 @@ typedef struct {
   unsigned char border_value; /**< Constant value for BORDER_CONSTANT mode */
 
   /* Custom buffers (for algorithms needing additional data) */
-  CustomBuffers*
-      custom_buffers; /**< Pointer to custom buffer collection (NULL if none) */
+  CustomBuffers* custom_buffers; /**< Pointer to custom buffer collection (NULL if none) */
 
   /* Kernel variant information */
   HostType host_type; /**< Host API type for current kernel variant */
@@ -137,8 +134,8 @@ typedef struct {
  * @param[in] params Operation parameters containing dimensions
  * @return 0 on success, -1 on error
  */
-typedef int (*SetKernelArgsFunc)(cl_kernel kernel, cl_mem input_buf,
-                                 cl_mem output_buf, const OpParams* params);
+typedef int (*SetKernelArgsFunc)(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
+                                 const OpParams* params);
 
 /**
  * @brief Algorithm interface for image processing operations

@@ -73,8 +73,8 @@ int cache_kernel_exists(const char* algorithm_id, const char* kernel_name);
  * @param kernel_name Name of the kernel (for cache filename)
  * @return 0 on success, -1 on error
  */
-int cache_save_kernel_binary(cl_program program, cl_device_id device,
-                             const char* algorithm_id, const char* kernel_name);
+int cache_save_kernel_binary(cl_program program, cl_device_id device, const char* algorithm_id,
+                             const char* kernel_name);
 
 /**
  * @brief Load cached kernel binary and create program
@@ -89,8 +89,7 @@ int cache_save_kernel_binary(cl_program program, cl_device_id device,
  * @return OpenCL program object, or NULL on error
  */
 cl_program cache_load_kernel_binary(cl_context context, cl_device_id device,
-                                    const char* algorithm_id,
-                                    const char* kernel_name);
+                                    const char* algorithm_id, const char* kernel_name);
 
 /* ============================================================================
  * GOLDEN SAMPLE CACHING
@@ -118,8 +117,8 @@ int cache_golden_exists(const char* algorithm_id, const char* variant_id);
  * @param size Size of data in bytes
  * @return 0 on success, -1 on error
  */
-int cache_save_golden(const char* algorithm_id, const char* variant_id,
-                      const unsigned char* data, size_t size);
+int cache_save_golden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
+                      size_t size);
 
 /**
  * @brief Load golden sample from cache
@@ -133,9 +132,8 @@ int cache_save_golden(const char* algorithm_id, const char* variant_id,
  * @param[out] actual_size Actual size of data loaded
  * @return 0 on success, -1 on error
  */
-int cache_load_golden(const char* algorithm_id, const char* variant_id,
-                      unsigned char* buffer, size_t buffer_size,
-                      size_t* actual_size);
+int cache_load_golden(const char* algorithm_id, const char* variant_id, unsigned char* buffer,
+                      size_t buffer_size, size_t* actual_size);
 
 /**
  * @brief Verify output data against golden sample
@@ -149,6 +147,5 @@ int cache_load_golden(const char* algorithm_id, const char* variant_id,
  * @param[out] differences Number of byte differences found
  * @return 1 if verification passes (exact match), 0 otherwise, -1 on error
  */
-int cache_verify_golden(const char* algorithm_id, const char* variant_id,
-                        const unsigned char* data, size_t size,
-                        size_t* differences);
+int cache_verify_golden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
+                        size_t size, size_t* differences);

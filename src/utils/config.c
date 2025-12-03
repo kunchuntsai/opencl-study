@@ -42,8 +42,7 @@ static char* trim(char* str) {
 
 /* Parse kernel section name to extract variant_id */
 /* Format: "kernel.<variant_id>" */
-static int parse_kernel_section(const char* section, char* variant_id,
-                                size_t variant_id_size) {
+static int parse_kernel_section(const char* section, char* variant_id, size_t variant_id_size) {
   const char* first_dot;
   size_t variant_len;
 
@@ -89,8 +88,7 @@ static int extract_variant_number(const char* variant_id) {
   temp_long = strtol(variant_id + 1, &endptr, 10);
 
   /* Validate conversion */
-  if ((endptr == (variant_id + 1)) || (*endptr != '\0') || (temp_long < 0) ||
-      (temp_long > 99)) {
+  if ((endptr == (variant_id + 1)) || (*endptr != '\0') || (temp_long < 0) || (temp_long > 99)) {
     return -1; /* Invalid format or number out of range */
   }
 
@@ -99,8 +97,7 @@ static int extract_variant_number(const char* variant_id) {
 
 /* Parse buffer section name to extract buffer name */
 /* Format: "buffer.<name>" */
-static int parse_buffer_section(const char* section, char* name,
-                                size_t name_size) {
+static int parse_buffer_section(const char* section, char* name, size_t name_size) {
   const char* first_dot;
   size_t name_len;
 
@@ -128,8 +125,7 @@ static int parse_buffer_section(const char* section, char* name,
 
 /* Parse scalar section name to extract scalar name */
 /* Format: "scalar.<name>" */
-static int parse_scalar_section(const char* section, char* name,
-                                size_t name_size) {
+static int parse_scalar_section(const char* section, char* name, size_t name_size) {
   const char* first_dot;
   size_t name_len;
 
@@ -365,8 +361,7 @@ static int parse_buffer_sizes(const char* str, size_t* arr, int max_count) {
       arr[count] = val;
       count++;
     } else {
-      (void)fprintf(stderr, "Error: Invalid buffer size expression: %s\n",
-                    trim(token));
+      (void)fprintf(stderr, "Error: Invalid buffer size expression: %s\n", trim(token));
       return -1;
     }
     token = strtok_r(NULL, ",", &saveptr);
@@ -431,19 +426,15 @@ int parse_config(const char* filename, Config* config) {
           scalar_index = -1;
           config->num_kernels++;
           if (config->num_kernels > MAX_KERNEL_CONFIGS) {
-            (void)fprintf(stderr,
-                          "Error: Too many kernel configurations (max %d)\n",
+            (void)fprintf(stderr, "Error: Too many kernel configurations (max %d)\n",
                           MAX_KERNEL_CONFIGS);
             (void)fclose(fp);
             return -1;
           }
           /* Parse variant_id from section name */
-          if (parse_kernel_section(
-                  section, config->kernels[kernel_index].variant_id,
-                  sizeof(config->kernels[kernel_index].variant_id)) != 0) {
-            (void)fprintf(stderr,
-                          "Error: Invalid kernel section name format: %s\n",
-                          section);
+          if (parse_kernel_section(section, config->kernels[kernel_index].variant_id,
+                                   sizeof(config->kernels[kernel_index].variant_id)) != 0) {
+            (void)fprintf(stderr, "Error: Invalid kernel section name format: %s\n", section);
             (void)fprintf(stderr, "Expected format: kernel.<variant_id>\n");
             (void)fclose(fp);
             return -1;
@@ -452,8 +443,7 @@ int parse_config(const char* filename, Config* config) {
           config->kernels[kernel_index].host_type = HOST_TYPE_STANDARD;
           /* Auto-derive kernel_variant from variant_id (e.g., "v0" -> 0, "v1"
            * -> 1) */
-          variant_num =
-              extract_variant_number(config->kernels[kernel_index].variant_id);
+          variant_num = extract_variant_number(config->kernels[kernel_index].variant_id);
           if (variant_num < 0) {
             (void)fprintf(stderr,
                           "Error: Invalid variant_id format: %s (expected v0, "
@@ -472,18 +462,14 @@ int parse_config(const char* filename, Config* config) {
           scalar_index = -1;
           config->custom_buffer_count++;
           if (config->custom_buffer_count > MAX_CUSTOM_BUFFERS) {
-            (void)fprintf(stderr, "Error: Too many custom buffers (max %d)\n",
-                          MAX_CUSTOM_BUFFERS);
+            (void)fprintf(stderr, "Error: Too many custom buffers (max %d)\n", MAX_CUSTOM_BUFFERS);
             (void)fclose(fp);
             return -1;
           }
           /* Parse buffer name from section name */
-          if (parse_buffer_section(
-                  section, config->custom_buffers[buffer_index].name,
-                  sizeof(config->custom_buffers[buffer_index].name)) != 0) {
-            (void)fprintf(stderr,
-                          "Error: Invalid buffer section name format: %s\n",
-                          section);
+          if (parse_buffer_section(section, config->custom_buffers[buffer_index].name,
+                                   sizeof(config->custom_buffers[buffer_index].name)) != 0) {
+            (void)fprintf(stderr, "Error: Invalid buffer section name format: %s\n", section);
             (void)fprintf(stderr, "Expected format: buffer.<name>\n");
             (void)fclose(fp);
             return -1;
@@ -497,18 +483,14 @@ int parse_config(const char* filename, Config* config) {
           buffer_index = -1;
           config->scalar_arg_count++;
           if (config->scalar_arg_count > MAX_SCALAR_ARGS) {
-            (void)fprintf(stderr, "Error: Too many scalar arguments (max %d)\n",
-                          MAX_SCALAR_ARGS);
+            (void)fprintf(stderr, "Error: Too many scalar arguments (max %d)\n", MAX_SCALAR_ARGS);
             (void)fclose(fp);
             return -1;
           }
           /* Parse scalar name from section name */
-          if (parse_scalar_section(
-                  section, config->scalar_args[scalar_index].name,
-                  sizeof(config->scalar_args[scalar_index].name)) != 0) {
-            (void)fprintf(stderr,
-                          "Error: Invalid scalar section name format: %s\n",
-                          section);
+          if (parse_scalar_section(section, config->scalar_args[scalar_index].name,
+                                   sizeof(config->scalar_args[scalar_index].name)) != 0) {
+            (void)fprintf(stderr, "Error: Invalid scalar section name format: %s\n", section);
             (void)fprintf(stderr, "Expected format: scalar.<name>\n");
             (void)fclose(fp);
             return -1;
@@ -548,12 +530,10 @@ int parse_config(const char* filename, Config* config) {
         (void)strncpy(config->op_id, value, sizeof(config->op_id) - 1U);
         config->op_id[sizeof(config->op_id) - 1U] = '\0';
       } else if (strcmp(key, "input") == 0) {
-        (void)strncpy(config->input_image, value,
-                      sizeof(config->input_image) - 1U);
+        (void)strncpy(config->input_image, value, sizeof(config->input_image) - 1U);
         config->input_image[sizeof(config->input_image) - 1U] = '\0';
       } else if (strcmp(key, "output") == 0) {
-        (void)strncpy(config->output_image, value,
-                      sizeof(config->output_image) - 1U);
+        (void)strncpy(config->output_image, value, sizeof(config->output_image) - 1U);
         config->output_image[sizeof(config->output_image) - 1U] = '\0';
       } else if (strcmp(key, "src_width") == 0) {
         if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
@@ -588,16 +568,13 @@ int parse_config(const char* filename, Config* config) {
           return -1;
         }
       } else if (strcmp(key, "kernel_x_file") == 0) {
-        (void)strncpy(config->kernel_x_file, value,
-                      sizeof(config->kernel_x_file) - 1U);
+        (void)strncpy(config->kernel_x_file, value, sizeof(config->kernel_x_file) - 1U);
         config->kernel_x_file[sizeof(config->kernel_x_file) - 1U] = '\0';
       } else if (strcmp(key, "kernel_y_file") == 0) {
-        (void)strncpy(config->kernel_y_file, value,
-                      sizeof(config->kernel_y_file) - 1U);
+        (void)strncpy(config->kernel_y_file, value, sizeof(config->kernel_y_file) - 1U);
         config->kernel_y_file[sizeof(config->kernel_y_file) - 1U] = '\0';
       } else if (strcmp(key, "cl_buffer_type") == 0) {
-        int count = parse_buffer_types(value, config->cl_buffer_type,
-                                       MAX_CUSTOM_BUFFERS);
+        int count = parse_buffer_types(value, config->cl_buffer_type, MAX_CUSTOM_BUFFERS);
         if (count < 0) {
           (void)fprintf(stderr, "Error: Invalid cl_buffer_type: %s\n", value);
           (void)fclose(fp);
@@ -619,8 +596,7 @@ int parse_config(const char* filename, Config* config) {
           }
         }
       } else if (strcmp(key, "cl_buffer_size") == 0) {
-        int count = parse_buffer_sizes(value, config->cl_buffer_size,
-                                       MAX_CUSTOM_BUFFERS);
+        int count = parse_buffer_sizes(value, config->cl_buffer_size, MAX_CUSTOM_BUFFERS);
         if (count < 0) {
           (void)fprintf(stderr, "Error: Invalid cl_buffer_size: %s\n", value);
           (void)fclose(fp);
@@ -631,8 +607,7 @@ int parse_config(const char* filename, Config* config) {
         {
           int i;
           for (i = 0; i < count; i++) {
-            (void)printf("%zu%s", config->cl_buffer_size[i],
-                         (i < count - 1) ? ", " : "\n");
+            (void)printf("%zu%s", config->cl_buffer_size[i], (i < count - 1) ? ", " : "\n");
           }
         }
       } else {
@@ -645,8 +620,7 @@ int parse_config(const char* filename, Config* config) {
         (void)strncpy(kc->kernel_file, value, sizeof(kc->kernel_file) - 1U);
         kc->kernel_file[sizeof(kc->kernel_file) - 1U] = '\0';
       } else if (strcmp(key, "kernel_function") == 0) {
-        (void)strncpy(kc->kernel_function, value,
-                      sizeof(kc->kernel_function) - 1U);
+        (void)strncpy(kc->kernel_function, value, sizeof(kc->kernel_function) - 1U);
         kc->kernel_function[sizeof(kc->kernel_function) - 1U] = '\0';
       } else if (strcmp(key, "work_dim") == 0) {
         if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
@@ -696,8 +670,7 @@ int parse_config(const char* filename, Config* config) {
         if (safe_strtol(value, &temp_long) && (temp_long > 0)) {
           buf->num_elements = (int)temp_long;
         } else {
-          (void)fprintf(stderr, "Error: Invalid num_elements value: %s\n",
-                        value);
+          (void)fprintf(stderr, "Error: Invalid num_elements value: %s\n", value);
           (void)fclose(fp);
           return -1;
         }
@@ -708,8 +681,7 @@ int parse_config(const char* filename, Config* config) {
         if (eval_expression(value, &temp_size) == 0) {
           buf->size_bytes = temp_size;
         } else {
-          (void)fprintf(stderr, "Error: Invalid size_bytes expression: %s\n",
-                        value);
+          (void)fprintf(stderr, "Error: Invalid size_bytes expression: %s\n", value);
           (void)fclose(fp);
           return -1;
         }
@@ -745,8 +717,7 @@ int parse_config(const char* filename, Config* config) {
 
       /* Check if buffer type is set */
       if (buf->type == BUFFER_TYPE_NONE) {
-        (void)fprintf(stderr, "Error: Buffer '%s' missing 'type' field\n",
-                      buf->name);
+        (void)fprintf(stderr, "Error: Buffer '%s' missing 'type' field\n", buf->name);
         return -1;
       }
 
@@ -754,29 +725,22 @@ int parse_config(const char* filename, Config* config) {
        */
       if (buf->source_file[0] != '\0') {
         if (buf->data_type == DATA_TYPE_NONE) {
-          (void)fprintf(
-              stderr,
-              "Error: File-backed buffer '%s' missing 'data_type' field\n",
-              buf->name);
+          (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'data_type' field\n",
+                        buf->name);
           return -1;
         }
         if (buf->num_elements == 0) {
-          (void)fprintf(
-              stderr,
-              "Error: File-backed buffer '%s' missing 'num_elements' field\n",
-              buf->name);
+          (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'num_elements' field\n",
+                        buf->name);
           return -1;
         }
         /* Calculate size_bytes from data_type and num_elements */
-        buf->size_bytes =
-            get_data_type_size(buf->data_type) * (size_t)buf->num_elements;
+        buf->size_bytes = get_data_type_size(buf->data_type) * (size_t)buf->num_elements;
       }
       /* Empty buffer: must have size_bytes */
       else {
         if (buf->size_bytes == 0) {
-          (void)fprintf(stderr,
-                        "Error: Empty buffer '%s' missing 'size_bytes' field\n",
-                        buf->name);
+          (void)fprintf(stderr, "Error: Empty buffer '%s' missing 'size_bytes' field\n", buf->name);
           return -1;
         }
       }
@@ -789,24 +753,20 @@ int parse_config(const char* filename, Config* config) {
     (void)printf(
         "Parsed config file: %s (op_id: %s, %d kernels, %d custom buffers, %d "
         "scalars)\n",
-        filename, config->op_id, config->num_kernels,
-        config->custom_buffer_count, config->scalar_arg_count);
-  } else {
-    (void)printf(
-        "Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n",
-        filename, config->num_kernels, config->custom_buffer_count,
+        filename, config->op_id, config->num_kernels, config->custom_buffer_count,
         config->scalar_arg_count);
+  } else {
+    (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n", filename,
+                 config->num_kernels, config->custom_buffer_count, config->scalar_arg_count);
   }
   return 0;
 }
 
 /* MISRA-C:2023 Rule 8.14: Removed static variable for reentrancy */
-int get_op_variants(const Config* config, const char* op_id,
-                    KernelConfig* variants[], int* count) {
+int get_op_variants(const Config* config, const char* op_id, KernelConfig* variants[], int* count) {
   int i;
 
-  if ((config == NULL) || (op_id == NULL) || (variants == NULL) ||
-      (count == NULL)) {
+  if ((config == NULL) || (op_id == NULL) || (variants == NULL) || (count == NULL)) {
     return -1;
   }
 
@@ -854,8 +814,7 @@ int resolve_config_path(const char* input, char* output, size_t output_size) {
   return 0;
 }
 
-int extract_op_id_from_path(const char* config_path, char* op_id,
-                            size_t op_id_size) {
+int extract_op_id_from_path(const char* config_path, char* op_id, size_t op_id_size) {
   const char* last_slash;
   const char* last_dot;
   const char* filename;

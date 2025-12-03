@@ -12,7 +12,7 @@ UseTab: Never
 ContinuationIndentWidth: 4
 
 # Line length
-ColumnLimit: 80
+ColumnLimit: 100
 
 # Braces
 BreakBeforeBraces: Attach

@@ -5,8 +5,8 @@
 
 #include "safe_ops.h"
 
-int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output,
-                       int width, int height, int tolerance) {
+int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output, int width, int height,
+                       int tolerance) {
   int errors = 0;
   int total_pixels;
   int diff;
@@ -35,9 +35,9 @@ int verify_exact_match(unsigned char* gpu_output, unsigned char* ref_output,
   return (errors == 0) ? 1 : 0; /* Return 1 if passed, 0 if failed */
 }
 
-int verify_with_tolerance(unsigned char* gpu_output, unsigned char* ref_output,
-                          int width, int height, float tolerance,
-                          float error_rate_threshold, float* max_error) {
+int verify_with_tolerance(unsigned char* gpu_output, unsigned char* ref_output, int width,
+                          int height, float tolerance, float error_rate_threshold,
+                          float* max_error) {
   int errors = 0;
   int total_pixels;
   float diff;
