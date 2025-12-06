@@ -9,7 +9,8 @@ A modular, plugin-like C framework for developing and benchmarking OpenCL image 
 - ⚡ **Performance benchmarking**: Built-in timing and speedup calculations
 - 🔧 **Flexible configuration**: Per-algorithm `.ini` files with support for multiple kernel variants
 - 💾 **Smart caching**: Automatic caching of compiled kernels and golden samples
-- 🎯 **Clean architecture**: Modular design following best practices for safety-critical systems
+- 🎯 **Clean architecture**: Modular design following Clean Architecture principles
+- 📦 **SDK-ready**: Library packaging for distribution to customers
 
 ## Quick Start
 
@@ -118,8 +119,8 @@ Use the `create_new_algo` script to generate all required files automatically:
 
 This creates:
 - Configuration file: `config/myalgo.ini`
-- C reference: `src/myalgo/c_ref/myalgo_ref.c` (with 3 required functions)
-- OpenCL kernel: `src/myalgo/cl/myalgo0.cl`
+- C reference: `examples/myalgo/c_ref/myalgo_ref.c` (with 3 required functions)
+- OpenCL kernel: `examples/myalgo/cl/myalgo0.cl`
 - Test data directory: `test_data/myalgo/`
 
 Then build and run:
@@ -131,12 +132,11 @@ Then build and run:
 **Manual approach (three simple steps):**
 
 1. **Create a configuration file:** `config/myalgo.ini`
-2. **Implement C reference:** `src/myalgo/c_ref/myalgo_ref.c` (3 required functions)
-3. **Write OpenCL kernel:** `src/myalgo/cl/myalgo0.cl`
+2. **Implement C reference:** `examples/myalgo/c_ref/myalgo_ref.c` (3 required functions)
+3. **Write OpenCL kernel:** `examples/myalgo/cl/myalgo0.cl`
 
-Then regenerate the registry and build:
+Then build (registry auto-generated):
 ```bash
-./scripts/generate_registry.sh
 ./scripts/build.sh
 ./build/opencl_host myalgo 0
 ```
@@ -156,7 +156,7 @@ src_width = 1920
 src_height = 1080
 
 [kernel.v0]
-kernel_file = src/myalgo/cl/myalgo0.cl
+kernel_file = examples/myalgo/cl/myalgo0.cl
 kernel_function = myalgo
 work_dim = 2
 global_work_size = 1920,1088
@@ -173,6 +173,8 @@ local_work_size = 16,16
 ## Features
 
 - **Modular Architecture**: Easy to add new algorithms following the plugin pattern
+- **Clean Architecture**: Compliant with Clean Architecture principles (Dependency Inversion, Stable Abstractions)
+- **SDK Distribution**: Package core functionality as library, distribute to customers
 - **Auto-Registration System**: Algorithms register themselves automatically - no manual registration needed
 - **Per-Algorithm Configs**: Each algorithm has its own configuration file for better maintainability
 - **Multiple Kernel Variants**: Support for different implementations of the same algorithm
@@ -182,66 +184,97 @@ local_work_size = 16,16
 - **Performance Benchmarking**: Automatic timing and speedup calculations
 - **Flexible Parameters**: OpParams structure supports algorithms with varying requirements
 - **Intuitive CLI**: Algorithm selection by name (`./opencl_host dilate3x3 0`)
-- **Clean Architecture**: Separated init/build/run phases for OpenCL operations
+- **Two-Stage Build**: Build library once, rebuild executable when algorithms change
 - **Organized Cache Structure**: Per-algorithm cache organization under `test_data/`
 
 ## Project Structure
 
 ```
 .
-├── ARCHITECTURE.md                 # Detailed architecture documentation
+├── ARCHITECTURE_v1.md              # Current SDK-ready architecture (Clean Architecture)
+├── ARCHITECTURE_v0.md              # Original architecture (reference)
 ├── README.md                       # This file
+├── CMakeLists.txt                  # CMake build configuration
 ├── config/
 │   ├── dilate3x3.ini               # Dilate algorithm config
 │   └── gaussian5x5.ini             # Gaussian algorithm config
 ├── docs/
 │   ├── ADD_NEW_ALGO.md             # Algorithm development guide
 │   ├── CONFIG_SYSTEM.md            # Configuration system guide
+│   ├── CLEAN_ARCHITECTURE_ANALYSIS.md  # Architecture compliance analysis
+│   ├── SDK_PACKAGING.md            # SDK distribution guide
 │   └── Doxyfile                    # Doxygen documentation config
 ├── scripts/
-│   ├── build.sh                    # Build script (with --clean option)
+│   ├── build.sh                    # Build script (--lib, --clean options)
+│   ├── create_sdk.sh               # SDK packaging script
 │   ├── create_new_algo.sh          # Generate new algorithm template
 │   ├── generate_registry.sh        # Auto-generate algorithm registry
 │   ├── generate_test_image.py      # Test image generator
-│   ├── generate_gaussian_kernels.py # Generate Gaussian kernel weights
 │   └── run.sh                      # Interactive run script
-├── include/
-│   ├── op_interface.h
-│   └── algorithm_runner.h
-├── examples/
+├── lib/                            # 📦 Release library directory
+│   ├── README.md                   # Library release documentation
+│   └── libopencl_imgproc.a/.so     # Compiled library (for SDK distribution)
+├── include/                        # ✅ Public API (Stable Interface)
+│   ├── op_interface.h              # Algorithm interface
+│   ├── op_registry.h               # Registration macros
+│   ├── algorithm_runner.h          # Forward declarations
+│   └── utils/                      # Public utilities
+│       ├── safe_ops.h              # Safe arithmetic operations
+│       └── verify.h                # Verification functions
+├── examples/                       # 👤 User Algorithm Implementations
 │   ├── gaussian/
+│   │   ├── c_ref/gaussian5x5_ref.c # CPU reference + registration
+│   │   └── cl/*.cl                 # GPU kernel variants
 │   └── dilate/
-├── src/
-│   ├── main.c                      # Entry point with CLI parsing
-│   ├── Makefile                    # Build configuration
-│   ├── core/
-│   │   ├── op_registry.c
-|   │   ├── algorithm_runner.c       # Algorithm execution pipeline
-│   │   └── auto_registry.c         # Auto-generated registry (don't edit)
-│   ├── platform/
-│   │   ├── opencl_util
-│   |   ├── cl_extension_api.c/.h   # Custom host API framework
-│   │   └── cache_manager.c      # Kernel binary & golden caching
-│   └── utils/
-│       ├── config.c/.h              # Configuration file parser
-│       ├── image_io.c/.h           # Raw image I/O
-│       ├── safe_ops.h              # MISRA-C safe operations
-│       └── verify.c/.h             # Verification utilities
+│       ├── c_ref/dilate3x3_ref.c   # CPU reference + registration
+│       └── cl/*.cl                 # GPU kernel variants
+├── src/                            # 🔒 Library Implementation (Internal)
+│   ├── main.c                      # Application entry point
+│   ├── core/                       # Business Logic
+│   │   ├── algorithm_runner.c      # Execution pipeline
+│   │   ├── op_registry.c           # Algorithm registry
+│   │   └── auto_registry.c         # Auto-generated (don't edit)
+│   ├── platform/                   # OpenCL Abstraction
+│   │   ├── opencl_utils.c/.h       # Platform initialization
+│   │   ├── cache_manager.c/.h      # Binary & golden caching
+│   │   └── cl_extension_api.c/.h   # Custom host API
+│   └── utils/                      # Infrastructure
+│       ├── config.c/.h             # Configuration parser
+│       ├── image_io.c/.h           # Image I/O
+│       └── verify.c                # Verification implementation
 └── test_data/
     ├── dilate3x3/
     └── gaussian5x5/
 ```
 
-**Note:** Build artifacts (`build/`) are created during compilation and can be cleaned with `./scripts/build.sh --clean`.
+**Key Directories:**
+- **`lib/`**: Release artifacts - compiled library ready for distribution
+- **`include/`**: Public API - stable interface for users
+- **`examples/`**: User algorithms - extend without modifying library
+- **`src/`**: Library implementation - core, platform, utils (packaged as library)
+
+**Build artifacts** (`build/`) are created during compilation and can be cleaned with `./scripts/build.sh --clean`.
 
 ## Advanced Usage
 
 ### Build Options
 
 ```bash
-./scripts/build.sh                # Incremental build
+./scripts/build.sh                # Incremental build (executable + examples)
+./scripts/build.sh --lib          # Build library only (SDK workflow)
 ./scripts/build.sh --clean        # Clean build (removes build/ and cache/)
 ./scripts/build.sh --help         # Show help
+```
+
+**SDK Workflow** (Two-stage build):
+```bash
+# Step 1: Build library once (when core/platform/utils change)
+./scripts/build.sh --lib
+# Output: lib/libopencl_imgproc.so (ready for distribution)
+
+# Step 2: Build executable (when examples change)
+./scripts/build.sh
+# Output: build/opencl_host (library unchanged, fast rebuild)
 ```
 
 Or build manually with CMake:
@@ -250,15 +283,16 @@ Or build manually with CMake:
 mkdir -p build && cd build
 cmake -DCMAKE_BUILD_TYPE=Release ..
 
-# Build
+# Build library only
+cmake --build . --target opencl_imgproc
+
+# Build everything (library + executable)
 cmake --build .
 
-# Clean and rebuild
-cd .. && rm -rf build && mkdir build && cd build
-cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
+# Build shared library for SDK
+cmake -DBUILD_SHARED_LIBS=ON ..
+cmake --build . --target opencl_imgproc
 ```
-
-Legacy Makefile is still available in `src/` for reference, but CMake is the recommended build system.
 
 ### Running Algorithms
 
@@ -327,4 +361,20 @@ Start here if you're new to the framework:
 
 Deep dive into the framework architecture:
 
-- **[ARCHITECTURE.md](ARCHITECTURE.md)** - Detailed architecture and design decisions
+- **[ARCHITECTURE_v1.md](ARCHITECTURE_v1.md)** - Current SDK-ready architecture (Clean Architecture)
+  - High-level system architecture
+  - Module organization and dependencies
+  - SDK distribution model
+  - Clean Architecture compliance analysis
+
+- **[ARCHITECTURE_v0.md](ARCHITECTURE_v0.md)** - Original architecture (reference)
+
+- **[docs/CLEAN_ARCHITECTURE_ANALYSIS.md](docs/CLEAN_ARCHITECTURE_ANALYSIS.md)** - Architecture compliance analysis
+  - Layer hierarchy and dependencies
+  - Stability metrics
+  - Testability analysis
+
+- **[docs/SDK_PACKAGING.md](docs/SDK_PACKAGING.md)** - SDK distribution guide
+  - How to package as library
+  - Customer workflow
+  - Distribution models
