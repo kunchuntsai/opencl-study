@@ -52,7 +52,7 @@ ALGO_NAME_UPPER=$(echo "$ALGO_NAME_C" | tr '[:lower:]' '[:upper:]')
 C_REF_DIR="examples/${ALGO_NAME}/c_ref"
 CL_DIR="examples/${ALGO_NAME}/cl"
 C_REF_FILE="${C_REF_DIR}/${ALGO_NAME_C}_ref.c"
-CL_FILE="${CL_DIR}/${ALGO_NAME_C}0.cl"
+CL_FILE="${CL_DIR}/${ALGO_NAME_C}_0.cl"
 CONFIG_FILE="config/${ALGO_NAME}.ini"
 
 # Check if files already exist
@@ -255,7 +255,7 @@ echo -e "${GREEN}✓${NC} Created file: $C_REF_FILE"
 ################################################################################
 cat > "$CL_FILE" << EOF
 /**
- * @file ${ALGO_NAME_C}0.cl
+ * @file ${ALGO_NAME_C}_v0.cl
  * @brief ${ALGO_NAME_UPPER} OpenCL kernel implementation
  *
  * TODO: Add algorithm description here
@@ -267,7 +267,7 @@ cat > "$CL_FILE" << EOF
  * @param height Image height in pixels
  */
 
-__kernel void ${ALGO_NAME_C}(__global const uchar* input,
+__kernel void ${ALGO_NAME_C}_v0(__global const uchar* input,
                          __global uchar* output,
                          int width,
                          int height) {
@@ -306,8 +306,8 @@ dst_height = 1080
 # Variant 0: Basic implementation using standard OpenCL API
 [kernel.v0]
 host_type = standard   # Options: "standard" (default) or "cl_extension"
-kernel_file = examples/${ALGO_NAME}/cl/${ALGO_NAME_C}0.cl
-kernel_function = ${ALGO_NAME_C}
+kernel_file = examples/${ALGO_NAME}/cl/${ALGO_NAME_C}_0.cl
+kernel_function = ${ALGO_NAME_C}_v0
 work_dim = 2
 global_work_size = 1920,1088
 local_work_size = 16,16
