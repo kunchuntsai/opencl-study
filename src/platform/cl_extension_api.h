@@ -19,7 +19,7 @@
 #include <CL/cl.h>
 #endif
 
-#include "config.h"
+#include "../utils/config.h"
 
 /**
  * @brief Custom CL Extension API context
@@ -28,8 +28,8 @@
  * This is a placeholder for custom implementation-specific data.
  */
 typedef struct {
-  void* extension_data; /**< Custom extension-specific data */
-  int initialized;      /**< Initialization flag */
+    void* extension_data; /**< Custom extension-specific data */
+    int initialized;      /**< Initialization flag */
 } CLExtensionContext;
 
 /**
@@ -90,7 +90,7 @@ cl_int ClExtensionEnqueueNdrangeKernel(
  * @return Created buffer object, or NULL on error
  */
 cl_mem ClExtensionCreateBuffer(CLExtensionContext* ctx, cl_context context, cl_mem_flags flags,
-                                  size_t size, void* host_ptr, cl_int* errcode_ret);
+                               size_t size, void* host_ptr, cl_int* errcode_ret);
 
 /**
  * @brief Custom implementation of clFinish

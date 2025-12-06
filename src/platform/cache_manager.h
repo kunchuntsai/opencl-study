@@ -83,7 +83,7 @@ int CacheKernelExists(const char* algorithm_id, const char* kernel_name);
  * @return 0 on success, -1 on error
  */
 int CacheSaveKernelBinary(cl_program program, cl_device_id device, const char* algorithm_id,
-                             const char* kernel_name);
+                          const char* kernel_name);
 
 /**
  * @brief Load cached kernel binary and create program
@@ -97,8 +97,8 @@ int CacheSaveKernelBinary(cl_program program, cl_device_id device, const char* a
  * @param kernel_name Name of the kernel (for cache filename)
  * @return OpenCL program object, or NULL on error
  */
-cl_program CacheLoadKernelBinary(cl_context context, cl_device_id device,
-                                    const char* algorithm_id, const char* kernel_name);
+cl_program CacheLoadKernelBinary(cl_context context, cl_device_id device, const char* algorithm_id,
+                                 const char* kernel_name);
 
 /* ============================================================================
  * GOLDEN SAMPLE CACHING
@@ -127,7 +127,7 @@ int CacheGoldenExists(const char* algorithm_id, const char* variant_id);
  * @return 0 on success, -1 on error
  */
 int CacheSaveGolden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
-                      size_t size);
+                    size_t size);
 
 /**
  * @brief Load golden sample from cache
@@ -142,7 +142,7 @@ int CacheSaveGolden(const char* algorithm_id, const char* variant_id, const unsi
  * @return 0 on success, -1 on error
  */
 int CacheLoadGolden(const char* algorithm_id, const char* variant_id, unsigned char* buffer,
-                      size_t buffer_size, size_t* actual_size);
+                    size_t buffer_size, size_t* actual_size);
 
 /**
  * @brief Verify output data against golden sample
@@ -157,4 +157,4 @@ int CacheLoadGolden(const char* algorithm_id, const char* variant_id, unsigned c
  * @return 1 if verification passes (exact match), 0 otherwise, -1 on error
  */
 int CacheVerifyGolden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
-                        size_t size, size_t* differences);
+                      size_t size, size_t* differences);

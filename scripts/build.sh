@@ -10,11 +10,12 @@ set -e  # Exit on error
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-BUILD_DIR="$PROJECT_ROOT/out"
+BUILD_DIR="$PROJECT_ROOT/build"
+OUT_DIR="$PROJECT_ROOT/out"
 SRC_DIR="$PROJECT_ROOT/src"
 
 show_help() {
-    echo "OpenCL Image Processing Framework - Build Script"
+    echo "OpenCL Image Processing Framework - Build Script (CMake)"
     echo ""
     echo "Usage:"
     echo "  ./scripts/build.sh          - Build the project (incremental)"
@@ -23,8 +24,8 @@ show_help() {
     echo ""
     echo "Build artifacts:"
     echo "  Executable: $BUILD_DIR/opencl_host"
-    echo "  Objects:    $BUILD_DIR/obj/"
-    echo "  Output:     out/{algorithm}_{variant}_{timestamp}/"
+    echo "  CMake:      $BUILD_DIR/"
+    echo "  Output:     $OUT_DIR/{algorithm}_{variant}_{timestamp}/"
 }
 
 clean_all() {
@@ -35,8 +36,12 @@ clean_all() {
         rm -rf "$BUILD_DIR"
     fi
 
-    # Note: Output directories with timestamps are now in out/
-    # test_data/ only contains input test data
+    if [ -d "$OUT_DIR" ]; then
+        echo "Removing output directory: $OUT_DIR"
+        rm -rf "$OUT_DIR"
+    fi
+
+    # Note: test_data/ only contains input test data
 
     echo "Clean complete"
     echo ""
@@ -51,10 +56,25 @@ build_project() {
     fi
     echo ""
 
-    echo "=== Building OpenCL Image Processing Framework ==="
+    echo "=== Building OpenCL Image Processing Framework (CMake) ==="
 
-    cd "$SRC_DIR"
-    make
+    # Create build directory if it doesn't exist
+    mkdir -p "$BUILD_DIR"
+
+    # Configure with CMake (only if not already configured or if clean build)
+    if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
+        echo "Configuring CMake..."
+        cd "$BUILD_DIR"
+        cmake -DCMAKE_BUILD_TYPE=Release "$PROJECT_ROOT"
+        if [ $? -ne 0 ]; then
+            echo "CMake configuration failed!"
+            exit 1
+        fi
+    fi
+
+    # Build with CMake
+    echo "Building..."
+    cmake --build "$BUILD_DIR" --config Release
 
     if [ $? -eq 0 ]; then
         echo ""

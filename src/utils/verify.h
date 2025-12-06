@@ -23,7 +23,7 @@
  * @return 1 if verification passed, 0 if failed
  */
 int VerifyExactMatch(unsigned char* gpu_output, unsigned char* ref_output, int width, int height,
-                       int tolerance);
+                     int tolerance);
 
 /**
  * @brief Verify pixel match with tolerance and error rate threshold
@@ -42,6 +42,5 @@ int VerifyExactMatch(unsigned char* gpu_output, unsigned char* ref_output, int w
  * @param[out] max_error Maximum absolute difference found
  * @return 1 if verification passed (error rate below threshold), 0 if failed
  */
-int VerifyWithTolerance(unsigned char* gpu_output, unsigned char* ref_output, int width,
-                          int height, float tolerance, float error_rate_threshold,
-                          float* max_error);
+int VerifyWithTolerance(unsigned char* gpu_output, unsigned char* ref_output, int width, int height,
+                        float tolerance, float error_rate_threshold, float* max_error);

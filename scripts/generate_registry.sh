@@ -5,13 +5,13 @@
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-SRC_DIR="$PROJECT_ROOT/src"
-OUTPUT_FILE="$SRC_DIR/utils/auto_registry.c"
+EXAMPLES_DIR="$PROJECT_ROOT/examples"
+OUTPUT_FILE="$PROJECT_ROOT/src/core/auto_registry.c"
 
 echo "=== Auto-generating algorithm registry ==="
 
 # Find all algorithm reference files
-ALGO_FILES=$(find "$SRC_DIR" -name "*_ref.c" -type f | sort)
+ALGO_FILES=$(find "$EXAMPLES_DIR" -name "*_ref.c" -type f | sort)
 
 if [ -z "$ALGO_FILES" ]; then
     echo "Error: No algorithm files found (*_ref.c)"

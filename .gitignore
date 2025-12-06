@@ -1,5 +1,5 @@
 # Auto-generated source files
-src/utils/auto_registry.c
+src/core/auto_registry.c
 
 # Build directories
 build/

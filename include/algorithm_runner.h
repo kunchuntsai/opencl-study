@@ -15,9 +15,9 @@
 
 #pragma once
 
+#include "op_registry.h"
+#include "platform/opencl_utils.h"
 #include "utils/config.h"
-#include "utils/op_registry.h"
-#include "utils/opencl_utils.h"
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -54,5 +54,5 @@
  * size)
  */
 void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
-                   OpenCLEnv* env, unsigned char* gpu_output_buffer,
-                   unsigned char* ref_output_buffer);
+                  OpenCLEnv* env, unsigned char* gpu_output_buffer,
+                  unsigned char* ref_output_buffer);

@@ -2,10 +2,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "../../utils/op_interface.h"
-#include "../../utils/op_registry.h"
-#include "../../utils/safe_ops.h"
-#include "../../utils/verify.h"
+#include "op_interface.h"
+#include "op_registry.h"
+#include "utils/safe_ops.h"
+#include "utils/verify.h"
 
 /* Helper function to clamp coordinates to image bounds */
 static int ClampCoord(int coord, int max_coord) {
