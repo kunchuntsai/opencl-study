@@ -34,6 +34,9 @@
 #define MAX_CACHE_FILENAME 256
 #define MAX_CACHE_PATH 512
 
+/* Hash size for source change detection (using FNV-1a 256-bit equivalent via multiple 32-bit) */
+#define CACHE_HASH_SIZE 32
+
 /**
  * @brief Initialize cache directory structure for an algorithm
  *
@@ -99,6 +102,64 @@ int CacheSaveKernelBinary(cl_program program, cl_device_id device, const char* a
  */
 cl_program CacheLoadKernelBinary(cl_context context, cl_device_id device, const char* algorithm_id,
                                  const char* kernel_name);
+
+/* ============================================================================
+ * SOURCE HASH FOR CACHE INVALIDATION
+ * ============================================================================
+ */
+
+/**
+ * @brief Compute hash of kernel source file for change detection
+ *
+ * Uses FNV-1a hash algorithm to compute a hash of the source file contents.
+ * This hash is used to detect if the source has changed since the binary was cached.
+ *
+ * @param source_file Path to the .cl source file
+ * @param hash_out Buffer to receive hash (must be CACHE_HASH_SIZE bytes)
+ * @return 0 on success, -1 on error
+ */
+int CacheComputeSourceHash(const char* source_file, unsigned char* hash_out);
+
+/**
+ * @brief Save source hash alongside kernel binary
+ *
+ * Saves the source file hash to a .hash file next to the .bin file.
+ * This allows detection of source changes on subsequent runs.
+ *
+ * @param algorithm_id Algorithm identifier
+ * @param kernel_name Kernel name (for filename)
+ * @param hash Hash data to save (CACHE_HASH_SIZE bytes)
+ * @return 0 on success, -1 on error
+ */
+int CacheSaveSourceHash(const char* algorithm_id, const char* kernel_name,
+                        const unsigned char* hash);
+
+/**
+ * @brief Load stored source hash from cache
+ *
+ * @param algorithm_id Algorithm identifier
+ * @param kernel_name Kernel name (for filename)
+ * @param hash_out Buffer to receive hash (must be CACHE_HASH_SIZE bytes)
+ * @return 0 on success, -1 on error (file not found or read error)
+ */
+int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name,
+                        unsigned char* hash_out);
+
+/**
+ * @brief Check if cached kernel is valid (exists AND source unchanged)
+ *
+ * This function performs a complete validation:
+ * 1. Checks if the cached binary file exists
+ * 2. Checks if the hash file exists
+ * 3. Computes current source hash and compares with stored hash
+ *
+ * @param algorithm_id Algorithm identifier
+ * @param kernel_name Kernel name for cache lookup
+ * @param source_file Path to current .cl source file
+ * @return 1 if cache is valid and can be used, 0 if invalid/missing/changed
+ */
+int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name,
+                       const char* source_file);
 
 /* ============================================================================
  * GOLDEN SAMPLE CACHING
