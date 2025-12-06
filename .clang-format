@@ -15,7 +15,7 @@ Language: Cpp
 BasedOnStyle: Google
 
 # Indentation
-IndentWidth: 2
+IndentWidth: 4
 TabWidth: 2
 UseTab: Never
 ContinuationIndentWidth: 4

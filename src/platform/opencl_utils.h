@@ -34,11 +34,11 @@
  * platform, device, context, and command queue.
  */
 typedef struct {
-  cl_platform_id platform;    /**< OpenCL platform (e.g., Apple, NVIDIA) */
-  cl_device_id device;        /**< OpenCL device (GPU/CPU) */
-  cl_context context;         /**< OpenCL context for device */
-  cl_command_queue queue;     /**< Command queue for kernel execution */
-  CLExtensionContext ext_ctx; /**< Custom CL extension context */
+    cl_platform_id platform;    /**< OpenCL platform (e.g., Apple, NVIDIA) */
+    cl_device_id device;        /**< OpenCL device (GPU/CPU) */
+    cl_context context;         /**< OpenCL context for device */
+    cl_command_queue queue;     /**< Command queue for kernel execution */
+    CLExtensionContext ext_ctx; /**< Custom CL extension context */
 } OpenCLEnv;
 
 /**
@@ -68,7 +68,7 @@ int OpenclInit(OpenCLEnv* env);
  * @return OpenCL kernel object, or NULL on error
  */
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
-                              const char* kernel_name);
+                            const char* kernel_name);
 
 /**
  * @brief Execute OpenCL kernel with timing
@@ -94,9 +94,9 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
  * @return 0 on success, -1 on error
  */
 int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
-                      cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
-                      const size_t* local_work_size, int work_dim, HostType host_type,
-                      double* gpu_time_ms);
+                    cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
+                    const size_t* local_work_size, int work_dim, HostType host_type,
+                    double* gpu_time_ms);
 
 /**
  * @brief Create OpenCL buffer with error checking
@@ -112,7 +112,7 @@ int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_
  * @return OpenCL buffer object, or NULL on error
  */
 cl_mem OpenclCreateBuffer(cl_context context, cl_mem_flags flags, size_t size, void* host_ptr,
-                            const char* buffer_name);
+                          const char* buffer_name);
 
 /**
  * @brief Release OpenCL memory object with error checking

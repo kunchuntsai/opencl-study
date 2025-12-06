@@ -47,6 +47,10 @@ python3 scripts/generate_test_image.py
 Before you begin, ensure you have:
 
 - **C Compiler**: GCC or compatible C compiler
+- **CMake**: Version 3.10 or higher
+  - macOS: `brew install cmake`
+  - Linux: `sudo apt-get install cmake` (Ubuntu/Debian)
+  - Windows: Download from [cmake.org](https://cmake.org/download/)
 - **OpenCL Runtime**:
   - macOS: Apple OpenCL framework (pre-installed)
   - Linux/Windows: OpenCL SDK for your GPU vendor
@@ -201,47 +205,31 @@ local_work_size = 16,16
 │   ├── generate_test_image.py      # Test image generator
 │   ├── generate_gaussian_kernels.py # Generate Gaussian kernel weights
 │   └── run.sh                      # Interactive run script
+├── include/
+│   ├── op_interface.h
+│   └── algorithm_runner.h
+├── examples/
+│   ├── gaussian/
+│   └── dilate/
 ├── src/
 │   ├── main.c                      # Entry point with CLI parsing
 │   ├── Makefile                    # Build configuration
-│   ├── algorithm_runner.c/.h       # Algorithm execution pipeline
-│   ├── dilate/
-│   │   ├── c_ref/
-│   │   │   └── dilate3x3_ref.c     # CPU reference + verification
-│   │   └── cl/
-│   │       ├── dilate0.cl          # Basic variant
-│   │       └── dilate1.cl          # Optimized with local memory
-│   ├── gaussian/
-│   │   ├── c_ref/
-│   │   │   └── gaussian5x5_ref.c   # CPU reference + verification
-│   │   └── cl/
-│   │       ├── gaussian0.cl        # Basic variant
-│   │       └── gaussian1.cl        # Optimized variant
+│   ├── core/
+│   │   ├── op_registry.c
+|   │   ├── algorithm_runner.c       # Algorithm execution pipeline
+│   │   └── auto_registry.c         # Auto-generated registry (don't edit)
+│   ├── platform/
+│   │   ├── opencl_util
+│   |   ├── cl_extension_api.c/.h   # Custom host API framework
+│   │   └── cache_manager.c      # Kernel binary & golden caching
 │   └── utils/
-│       ├── auto_registry.c         # Auto-generated registry (don't edit)
-│       ├── cache_manager.c/.h      # Kernel binary & golden caching
-│       ├── cl_extension_api.c/.h   # Custom host API framework
 │       ├── config.c/.h              # Configuration file parser
 │       ├── image_io.c/.h           # Raw image I/O
-│       ├── op_interface.h          # OpParams structure & API
-│       ├── op_registry.c/.h        # Algorithm registration system
-│       ├── opencl_utils.c/.h       # OpenCL utilities (init/build/run)
 │       ├── safe_ops.h              # MISRA-C safe operations
 │       └── verify.c/.h             # Verification utilities
 └── test_data/
     ├── dilate3x3/
-    │   ├── input.bin               # Algorithm-specific input
-    │   ├── output.bin              # Latest output
-    │   ├── golden/                 # Cached CPU reference output
-    │   └── kernels/                # Cached compiled kernels (.bin)
-    ├── gaussian5x5/
-    │   ├── input.bin               # Algorithm-specific input
-    │   ├── output.bin              # Latest output
-    │   ├── kernel_x.bin            # Horizontal kernel weights
-    │   ├── kernel_y.bin            # Vertical kernel weights
-    │   ├── golden/                 # Cached CPU reference output
-    │   └── kernels/                # Cached compiled kernels (.bin)
-    └── output.bin                  # Global output (from root input)
+    └── gaussian5x5/
 ```
 
 **Note:** Build artifacts (`build/`) are created during compilation and can be cleaned with `./scripts/build.sh --clean`.
@@ -256,11 +244,21 @@ local_work_size = 16,16
 ./scripts/build.sh --help         # Show help
 ```
 
-Or build manually:
+Or build manually with CMake:
 ```bash
-cd src && make                    # Incremental build
-cd src && make clean && make      # Clean build (removes build/ only)
+# Configure (first time only)
+mkdir -p build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release ..
+
+# Build
+cmake --build .
+
+# Clean and rebuild
+cd .. && rm -rf build && mkdir build && cd build
+cmake -DCMAKE_BUILD_TYPE=Release .. && cmake --build .
 ```
+
+Legacy Makefile is still available in `src/` for reference, but CMake is the recommended build system.
 
 ### Running Algorithms
 

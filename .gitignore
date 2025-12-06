@@ -1,17 +1,20 @@
 # Auto-generated source files
-src/utils/auto_registry.c
+src/core/auto_registry.c
 
 # Build directories
 build/
 cmake-build-*/
 out/
 
+# Library release directory (tracked for distribution)
+# lib/ directory is intentionally tracked
+
 # Cache directories (kernel binaries and golden samples) per algorithm
 test_data/*/kernels/
 test_data/*/golden/
 test_data/*/
 
-# Compiled files
+# Compiled files (except in lib/ release directory)
 *.o
 *.so
 *.dylib
@@ -19,6 +22,11 @@ test_data/*/
 *.exe
 *.a
 *.lib
+
+# But allow library files in lib/ directory for releases
+!lib/*.a
+!lib/*.so
+!lib/*.dylib
 
 # IDE files
 .vscode/

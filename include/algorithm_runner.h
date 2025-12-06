@@ -11,25 +11,26 @@
  *
  * This module separates the execution logic from the CLI interface,
  * making the algorithm pipeline reusable and testable.
+ *
+ * NOTE: This header is for internal framework use (main.c).
+ * Algorithm implementations in examples/ should only include:
+ * - op_interface.h
+ * - op_registry.h
+ * - utils/safe_ops.h (optional)
+ * - utils/verify.h (optional)
  */
 
 #pragma once
 
-#include "utils/config.h"
-#include "utils/op_registry.h"
-#include "utils/opencl_utils.h"
-
-#ifdef __APPLE__
-#include <OpenCL/opencl.h>
-#else
-#include <CL/cl.h>
-#endif
+#include "op_registry.h"
 
 /** Maximum image size (used for static buffer allocation) */
 #define MAX_IMAGE_SIZE (4096 * 4096)
 
-/* Note: RuntimeBuffer and CustomBuffers types are defined in
- * utils/op_interface.h */
+/* Forward declarations for internal types (avoid exposing internal headers) */
+typedef struct OpenCLEnv OpenCLEnv;
+typedef struct KernelConfig KernelConfig;
+typedef struct Config Config;
 
 /**
  * @brief Run complete algorithm execution pipeline
@@ -54,5 +55,5 @@
  * size)
  */
 void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
-                   OpenCLEnv* env, unsigned char* gpu_output_buffer,
-                   unsigned char* ref_output_buffer);
+                  OpenCLEnv* env, unsigned char* gpu_output_buffer,
+                  unsigned char* ref_output_buffer);

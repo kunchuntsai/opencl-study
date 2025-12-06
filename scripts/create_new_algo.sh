@@ -10,8 +10,8 @@
 #   ./scripts/create_new_algo.sh resize
 #
 # This will create:
-# - src/<algo>/c_ref/<algo>_ref.c (C reference implementation)
-# - src/<algo>/cl/<algo>0.cl (OpenCL kernel)
+# - examples/<algo>/c_ref/<algo>_ref.c (C reference implementation)
+# - examples/<algo>/cl/<algo>0.cl (OpenCL kernel)
 # - config/<algo>.ini (Configuration file)
 ################################################################################
 
@@ -49,8 +49,8 @@ ALGO_NAME_C=$(echo "$ALGO_NAME" | tr '-' '_')
 ALGO_NAME_UPPER=$(echo "$ALGO_NAME_C" | tr '[:lower:]' '[:upper:]')
 
 # Define paths
-C_REF_DIR="src/${ALGO_NAME}/c_ref"
-CL_DIR="src/${ALGO_NAME}/cl"
+C_REF_DIR="examples/${ALGO_NAME}/c_ref"
+CL_DIR="examples/${ALGO_NAME}/cl"
 C_REF_FILE="${C_REF_DIR}/${ALGO_NAME_C}_ref.c"
 CL_FILE="${CL_DIR}/${ALGO_NAME_C}0.cl"
 CONFIG_FILE="config/${ALGO_NAME}.ini"
@@ -93,10 +93,10 @@ mkdir -p "config"
 # Generate C reference implementation
 ################################################################################
 cat > "$C_REF_FILE" << EOF
-#include "../../utils/safe_ops.h"
-#include "../../utils/op_interface.h"
-#include "../../utils/op_registry.h"
-#include "../../utils/verify.h"
+#include "utils/safe_ops.h"
+#include "op_interface.h"
+#include "op_registry.h"
+#include "utils/verify.h"
 #include <stddef.h>
 #include <stdio.h>
 
@@ -244,7 +244,7 @@ int ${ALGO_NAME_C}_set_kernel_args(cl_kernel kernel,
 
 /*
  * NOTE: Registration of this algorithm happens in auto_registry.c
- * See src/utils/auto_registry.c for the registration code.
+ * See src/core/auto_registry.c (auto-generated from examples/).
  */
 EOF
 
@@ -306,7 +306,7 @@ dst_height = 1080
 # Variant 0: Basic implementation using standard OpenCL API
 [kernel.v0]
 host_type = standard   # Options: "standard" (default) or "cl_extension"
-kernel_file = src/${ALGO_NAME}/cl/${ALGO_NAME_C}0.cl
+kernel_file = examples/${ALGO_NAME}/cl/${ALGO_NAME_C}0.cl
 kernel_function = ${ALGO_NAME_C}
 work_dim = 2
 global_work_size = 1920,1088
@@ -323,7 +323,7 @@ local_work_size = 16,16
 # Optional: Add more kernel variants
 # [kernel.v1]
 # host_type = cl_extension
-# kernel_file = src/${ALGO_NAME}/cl/${ALGO_NAME_C}1.cl
+# kernel_file = examples/${ALGO_NAME}/cl/${ALGO_NAME_C}1.cl
 # kernel_function = ${ALGO_NAME_C}_optimized
 # work_dim = 2
 # global_work_size = 1920,1088
@@ -347,6 +347,6 @@ echo "3. Configure parameters in: $CONFIG_FILE"
 echo "4. Create test data directory: test_data/${ALGO_NAME}/"
 echo "5. Generate test input: python3 scripts/generate_test_image.py"
 echo "6. Rebuild the project: ./scripts/build.sh"
-echo "7. Run your algorithm: ./out/opencl_host ${ALGO_NAME} 0"
+echo "7. Run your algorithm: ./build/opencl_host ${ALGO_NAME} 0"
 echo ""
 echo "See docs/ADD_NEW_ALGO.md for detailed implementation guide."

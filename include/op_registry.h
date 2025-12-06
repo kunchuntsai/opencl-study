@@ -117,14 +117,14 @@ void ListAlgorithms(void);
  * cl_mem, const OpParams*, void*)
  */
 #define REGISTER_ALGORITHM(op_id, display_name, ref_func, verify_func, set_args_func) \
-  static Algorithm op_id##_algorithm = {.name = display_name,                         \
-                                        .id = #op_id,                                 \
-                                        .reference_impl = ref_func,                   \
-                                        .verify_result = verify_func,                 \
-                                        .create_buffers = NULL,                       \
-                                        .destroy_buffers = NULL,                      \
-                                        .set_kernel_args = set_args_func};            \
+    static Algorithm op_id##_algorithm = {.name = display_name,                       \
+                                          .id = #op_id,                               \
+                                          .reference_impl = ref_func,                 \
+                                          .verify_result = verify_func,               \
+                                          .create_buffers = NULL,                     \
+                                          .destroy_buffers = NULL,                    \
+                                          .set_kernel_args = set_args_func};          \
                                                                                       \
-  __attribute__((constructor)) static void op_id##_init(void) {                       \
-    RegisterAlgorithm(&op_id##_algorithm);                                           \
-  }
+    __attribute__((constructor)) static void op_id##_init(void) {                     \
+        RegisterAlgorithm(&op_id##_algorithm);                                        \
+    }
