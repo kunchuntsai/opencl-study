@@ -3,17 +3,22 @@
  * @brief Algorithm execution pipeline implementation
  */
 
-#include "algorithm_runner.h"
+/* Internal implementation - includes full type definitions */
+#include "op_registry.h"
+#include "platform/cache_manager.h"
+#include "platform/opencl_utils.h"
+#include "utils/config.h"
+#include "utils/image_io.h"
+#include "utils/safe_ops.h"
+#include "utils/verify.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <time.h>
 
-#include "platform/cache_manager.h"
-#include "utils/image_io.h"
-#include "utils/safe_ops.h"
-#include "utils/verify.h"
+/** Maximum image size (used for static buffer allocation) */
+#define MAX_IMAGE_SIZE (4096 * 4096)
 
 void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
                   OpenCLEnv* env, unsigned char* gpu_output_buffer,

@@ -29,17 +29,47 @@ else()
     find_package(OpenCL REQUIRED)
 endif()
 
-# Include directories
-include_directories(
-    ${CMAKE_SOURCE_DIR}/include
-    ${CMAKE_SOURCE_DIR}/src
-    ${OpenCL_INCLUDE_DIRS}
-)
+# ============================================================================
+# Library: Core + Platform + Utils
+# ============================================================================
 
-# Collect source files
+# Collect library source files
 file(GLOB_RECURSE CORE_SOURCES "${CMAKE_SOURCE_DIR}/src/core/*.c")
 file(GLOB_RECURSE PLATFORM_SOURCES "${CMAKE_SOURCE_DIR}/src/platform/*.c")
 file(GLOB_RECURSE UTILS_SOURCES "${CMAKE_SOURCE_DIR}/src/utils/*.c")
+
+# Create static library
+add_library(opencl_imgproc STATIC
+    ${CORE_SOURCES}
+    ${PLATFORM_SOURCES}
+    ${UTILS_SOURCES}
+)
+
+# Library public include directories (for consumers like examples/)
+target_include_directories(opencl_imgproc
+    PUBLIC
+        ${CMAKE_SOURCE_DIR}/include      # Public API: op_interface.h, op_registry.h, etc.
+        ${OpenCL_INCLUDE_DIRS}           # OpenCL headers (needed by op_interface.h)
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src          # Internal: platform/, utils/, core/ (private)
+)
+
+# Link OpenCL to library
+target_link_libraries(opencl_imgproc
+    PUBLIC
+        ${OpenCL_LIBRARIES}
+    PRIVATE
+        m  # Math library (internal use)
+)
+
+# Platform-specific settings for library
+if(APPLE)
+    target_compile_definitions(opencl_imgproc PUBLIC __APPLE__)
+endif()
+
+# ============================================================================
+# User Algorithm Examples
+# ============================================================================
 
 # Find all algorithm directories in examples/ (those containing c_ref subdirectories)
 file(GLOB ALGO_DIRS LIST_DIRECTORIES true "${CMAKE_SOURCE_DIR}/examples/*")
@@ -54,7 +84,11 @@ foreach(DIR ${ALGO_DIRS})
     endif()
 endforeach()
 
-# Main sources
+# ============================================================================
+# Main Executable
+# ============================================================================
+
+# Main application source
 set(MAIN_SOURCES
     ${CMAKE_SOURCE_DIR}/src/main.c
 )
@@ -62,27 +96,41 @@ set(MAIN_SOURCES
 # Create executable
 add_executable(opencl_host
     ${MAIN_SOURCES}
-    ${CORE_SOURCES}
-    ${PLATFORM_SOURCES}
-    ${UTILS_SOURCES}
-    ${ALGO_SOURCES}
+    ${ALGO_SOURCES}          # User algorithms
 )
 
-# Link libraries
+# Link against library
 target_link_libraries(opencl_host
-    ${OpenCL_LIBRARIES}
-    m  # Math library
+    PRIVATE
+        opencl_imgproc       # Framework library
 )
 
-# Platform-specific settings
-if(APPLE)
-    target_compile_definitions(opencl_host PRIVATE __APPLE__)
-endif()
+# Main needs internal headers (platform/opencl_utils.h, utils/config.h)
+target_include_directories(opencl_host
+    PRIVATE
+        ${CMAKE_SOURCE_DIR}/src          # For main.c to access internal headers
+)
 
-# Print configuration summary
+# ============================================================================
+# Configuration Summary
+# ============================================================================
+
 message(STATUS "=== OpenCL Image Processing Framework ===")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C Compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "OpenCL Libraries: ${OpenCL_LIBRARIES}")
-message(STATUS "Output directory: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-message(STATUS "Algorithm sources found: ${ALGO_SOURCES}")
+message(STATUS "")
+message(STATUS "Library Components:")
+message(STATUS "  Core sources: ${CORE_SOURCES}")
+message(STATUS "  Platform sources: ${PLATFORM_SOURCES}")
+message(STATUS "  Utils sources: ${UTILS_SOURCES}")
+message(STATUS "")
+message(STATUS "Public API (include/):")
+message(STATUS "  ${CMAKE_SOURCE_DIR}/include")
+message(STATUS "")
+message(STATUS "User Algorithms (examples/):")
+message(STATUS "  ${ALGO_SOURCES}")
+message(STATUS "")
+message(STATUS "Output:")
+message(STATUS "  Library: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libopencl_imgproc.a")
+message(STATUS "  Executable: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/opencl_host")

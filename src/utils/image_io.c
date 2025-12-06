@@ -4,7 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "safe_ops.h"
+#include "utils/safe_ops.h"
 
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 /* Using static buffers with maximum size constraints */

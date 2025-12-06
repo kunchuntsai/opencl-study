@@ -2,7 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "algorithm_runner.h"
+/* Include internal headers with full type definitions */
+#include "op_registry.h"
 #include "platform/cache_manager.h"
 #include "platform/opencl_utils.h"
 #include "utils/config.h"
@@ -10,17 +11,27 @@
 
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 #define MAX_PATH_LENGTH 512
+#define MAX_IMAGE_SIZE (4096 * 4096)
 
 static unsigned char gpu_output_buffer[MAX_IMAGE_SIZE];
 static unsigned char ref_output_buffer[MAX_IMAGE_SIZE];
 
 /* Forward declarations */
+void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
+                  OpenCLEnv* env, unsigned char* gpu_output_buffer,
+                  unsigned char* ref_output_buffer);
+
+void AutoRegisterAlgorithms(void);
+
 static int SelectAlgorithmAndVariant(const Config* config, int provided_variant_index,
                                      Algorithm** selected_algo, KernelConfig** variants,
                                      int* variant_count, int* selected_variant_index);
 
 int main(int argc, char** argv) {
     Config config;
+
+    /* Register all algorithms */
+    AutoRegisterAlgorithms();
     OpenCLEnv env;
     int variant_index;
     Algorithm* algo;

@@ -1,9 +1,8 @@
-#include "verify.h"
-
 #include <math.h>
 #include <stdio.h>
 
-#include "safe_ops.h"
+#include "utils/safe_ops.h"
+#include "utils/verify.h"
 
 int VerifyExactMatch(unsigned char* gpu_output, unsigned char* ref_output, int width, int height,
                      int tolerance) {

@@ -102,11 +102,11 @@ cat >> "$OUTPUT_FILE" <<'EOF'
 /**
  * @brief Auto-register all algorithms
  *
- * Called automatically before main() using constructor attribute.
- * Registers all discovered algorithms with the registry.
+ * Called from main() to register all algorithms.
+ * NOTE: Constructor attribute doesn't work reliably with static libraries,
+ * so this must be called explicitly from main().
  */
-__attribute__((constructor))
-static void auto_register_algorithms(void) {
+void AutoRegisterAlgorithms(void) {
 EOF
 
 for file in $ALGO_FILES; do

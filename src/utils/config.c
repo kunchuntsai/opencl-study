@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "safe_ops.h"
+#include "utils/safe_ops.h"
 
 /* Maximum line length for config file */
 #define MAX_LINE_LENGTH 512
