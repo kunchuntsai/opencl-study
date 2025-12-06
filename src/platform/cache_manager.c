@@ -6,6 +6,7 @@
 
 #include "cache_manager.h"
 
+#include <stdint.h>
 #include <stdio.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -317,6 +318,249 @@ cl_program CacheLoadKernelBinary(cl_context context, cl_device_id device, const 
 
     (void)printf("Kernel binary loaded from cache successfully\n");
     return program;
+}
+
+/* ============================================================================
+ * SOURCE HASH FOR CACHE INVALIDATION
+ * ============================================================================
+ */
+
+/* Helper function to construct hash cache file path */
+static int BuildHashCachePath(const char* algorithm_id, const char* kernel_name, char* path,
+                              size_t path_size) {
+    int result;
+
+    if ((algorithm_id == NULL) || (kernel_name == NULL) || (path == NULL) || (path_size == 0U)) {
+        return -1;
+    }
+
+    /* Use current run directory if available, otherwise fall back to algorithm_id */
+    if (current_run_dir[0] != '\0') {
+        result = snprintf(path, path_size, "%s/%s.hash", current_run_dir, kernel_name);
+    } else {
+        result =
+            snprintf(path, path_size, "%s/%s/%s.hash", CACHE_BASE_DIR, algorithm_id, kernel_name);
+    }
+
+    if ((result < 0) || ((size_t)result >= path_size)) {
+        return -1;
+    }
+
+    return 0;
+}
+
+/*
+ * FNV-1a hash implementation (MISRA-C compliant, no external dependencies)
+ * We use multiple rounds of 32-bit FNV-1a to fill CACHE_HASH_SIZE bytes
+ */
+#define FNV_OFFSET_BASIS 2166136261U
+#define FNV_PRIME 16777619U
+
+static void ComputeFnv1aHash(const unsigned char* data, size_t length, unsigned char* hash_out) {
+    size_t i;
+    size_t round;
+    uint32_t hash;
+    size_t hash_index;
+
+    /* Initialize hash output to zero */
+    for (i = 0U; i < CACHE_HASH_SIZE; i++) {
+        hash_out[i] = 0U;
+    }
+
+    /* Compute multiple rounds of FNV-1a to fill the hash buffer */
+    /* Each round uses a different offset to produce different hash values */
+    for (round = 0U; round < (CACHE_HASH_SIZE / 4U); round++) {
+        hash = FNV_OFFSET_BASIS + (uint32_t)(round * 0x9E3779B9U); /* Golden ratio offset */
+
+        for (i = 0U; i < length; i++) {
+            hash ^= (uint32_t)data[i];
+            hash *= FNV_PRIME;
+        }
+
+        /* Store this round's hash (4 bytes, little-endian) */
+        hash_index = round * 4U;
+        hash_out[hash_index] = (unsigned char)(hash & 0xFFU);
+        hash_out[hash_index + 1U] = (unsigned char)((hash >> 8U) & 0xFFU);
+        hash_out[hash_index + 2U] = (unsigned char)((hash >> 16U) & 0xFFU);
+        hash_out[hash_index + 3U] = (unsigned char)((hash >> 24U) & 0xFFU);
+    }
+}
+
+int CacheComputeSourceHash(const char* source_file, unsigned char* hash_out) {
+    FILE* fp;
+    long file_size;
+    size_t read_size;
+
+    if ((source_file == NULL) || (hash_out == NULL)) {
+        return -1;
+    }
+
+    /* Open source file */
+    fp = fopen(source_file, "rb");
+    if (fp == NULL) {
+        (void)fprintf(stderr, "Error: Failed to open source file for hashing: %s\n", source_file);
+        return -1;
+    }
+
+    /* Get file size */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        (void)fprintf(stderr, "Error: Failed to seek in source file\n");
+        (void)fclose(fp);
+        return -1;
+    }
+
+    file_size = ftell(fp);
+    if (file_size < 0) {
+        (void)fprintf(stderr, "Error: Failed to get source file size\n");
+        (void)fclose(fp);
+        return -1;
+    }
+
+    if ((size_t)file_size > MAX_KERNEL_BINARY_SIZE) {
+        (void)fprintf(stderr, "Error: Source file too large for hashing (%ld bytes)\n", file_size);
+        (void)fclose(fp);
+        return -1;
+    }
+
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        (void)fprintf(stderr, "Error: Failed to rewind source file\n");
+        (void)fclose(fp);
+        return -1;
+    }
+
+    /* Read file into buffer (reuse kernel_binary_buffer) */
+    read_size = fread(kernel_binary_buffer, 1U, (size_t)file_size, fp);
+    if (read_size != (size_t)file_size) {
+        (void)fprintf(stderr, "Error: Failed to read source file (%zu of %ld bytes)\n", read_size,
+                      file_size);
+        (void)fclose(fp);
+        return -1;
+    }
+
+    if (fclose(fp) != 0) {
+        (void)fprintf(stderr, "Warning: Failed to close source file\n");
+    }
+
+    /* Compute hash */
+    ComputeFnv1aHash(kernel_binary_buffer, read_size, hash_out);
+
+    return 0;
+}
+
+int CacheSaveSourceHash(const char* algorithm_id, const char* kernel_name,
+                        const unsigned char* hash) {
+    char hash_path[MAX_CACHE_PATH];
+    FILE* fp;
+    size_t written;
+
+    if ((algorithm_id == NULL) || (kernel_name == NULL) || (hash == NULL)) {
+        return -1;
+    }
+
+    /* Build hash file path */
+    if (BuildHashCachePath(algorithm_id, kernel_name, hash_path, sizeof(hash_path)) != 0) {
+        (void)fprintf(stderr, "Error: Failed to build hash cache path\n");
+        return -1;
+    }
+
+    /* Save to file */
+    fp = fopen(hash_path, "wb");
+    if (fp == NULL) {
+        (void)fprintf(stderr, "Error: Failed to create hash cache file: %s\n", hash_path);
+        return -1;
+    }
+
+    written = fwrite(hash, 1U, CACHE_HASH_SIZE, fp);
+    if (written != CACHE_HASH_SIZE) {
+        (void)fprintf(stderr, "Error: Failed to write hash (%zu of %d bytes)\n", written,
+                      CACHE_HASH_SIZE);
+        (void)fclose(fp);
+        return -1;
+    }
+
+    if (fclose(fp) != 0) {
+        (void)fprintf(stderr, "Warning: Failed to close hash cache file\n");
+    }
+
+    (void)printf("Source hash saved: %s\n", hash_path);
+    return 0;
+}
+
+int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name,
+                        unsigned char* hash_out) {
+    char hash_path[MAX_CACHE_PATH];
+    FILE* fp;
+    size_t read_size;
+
+    if ((algorithm_id == NULL) || (kernel_name == NULL) || (hash_out == NULL)) {
+        return -1;
+    }
+
+    /* Build hash file path */
+    if (BuildHashCachePath(algorithm_id, kernel_name, hash_path, sizeof(hash_path)) != 0) {
+        return -1;
+    }
+
+    /* Open file */
+    fp = fopen(hash_path, "rb");
+    if (fp == NULL) {
+        /* Hash file doesn't exist - this is expected for first run */
+        return -1;
+    }
+
+    /* Read hash data */
+    read_size = fread(hash_out, 1U, CACHE_HASH_SIZE, fp);
+    if (read_size != CACHE_HASH_SIZE) {
+        (void)fprintf(stderr, "Error: Failed to read hash file (%zu of %d bytes)\n", read_size,
+                      CACHE_HASH_SIZE);
+        (void)fclose(fp);
+        return -1;
+    }
+
+    if (fclose(fp) != 0) {
+        (void)fprintf(stderr, "Warning: Failed to close hash file\n");
+    }
+
+    return 0;
+}
+
+int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name,
+                       const char* source_file) {
+    unsigned char stored_hash[CACHE_HASH_SIZE];
+    unsigned char current_hash[CACHE_HASH_SIZE];
+    size_t i;
+
+    if ((algorithm_id == NULL) || (kernel_name == NULL) || (source_file == NULL)) {
+        return 0;
+    }
+
+    /* Step 1: Check if cached binary exists */
+    if (CacheKernelExists(algorithm_id, kernel_name) == 0) {
+        return 0; /* No cached binary */
+    }
+
+    /* Step 2: Load stored source hash */
+    if (CacheLoadSourceHash(algorithm_id, kernel_name, stored_hash) != 0) {
+        (void)printf("No stored hash found for %s, cache invalid\n", kernel_name);
+        return 0; /* No hash file - treat as invalid */
+    }
+
+    /* Step 3: Compute current source hash */
+    if (CacheComputeSourceHash(source_file, current_hash) != 0) {
+        (void)fprintf(stderr, "Error: Failed to compute source hash for %s\n", source_file);
+        return 0; /* Can't verify - treat as invalid */
+    }
+
+    /* Step 4: Compare hashes */
+    for (i = 0U; i < CACHE_HASH_SIZE; i++) {
+        if (stored_hash[i] != current_hash[i]) {
+            (void)printf("Source file changed for %s, cache invalid\n", kernel_name);
+            return 0; /* Hash mismatch - source changed */
+        }
+    }
+
+    /* Cache is valid - binary exists and source hasn't changed */
+    return 1;
 }
 
 /* ============================================================================

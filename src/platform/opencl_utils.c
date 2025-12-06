@@ -203,9 +203,9 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
         return NULL;
     }
 
-    /* Check if cached kernel binary exists */
-    if (CacheKernelExists(algorithm_id, cache_name) != 0) {
-        (void)printf("Found cached kernel binary for %s, loading...\n", cache_name);
+    /* Check if cached kernel binary exists AND source hasn't changed */
+    if (CacheKernelIsValid(algorithm_id, cache_name, kernel_file) != 0) {
+        (void)printf("Found valid cached kernel binary for %s, loading...\n", cache_name);
         program = CacheLoadKernelBinary(env->context, env->device, algorithm_id, cache_name);
         if (program != NULL) {
             used_cache = 1;
@@ -262,7 +262,17 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
         (void)printf("Kernel compiled successfully\n");
 
         /* Save compiled binary to cache for future runs */
-        if (CacheSaveKernelBinary(program, env->device, algorithm_id, cache_name) != 0) {
+        if (CacheSaveKernelBinary(program, env->device, algorithm_id, cache_name) == 0) {
+            /* Also save source hash for change detection */
+            unsigned char source_hash[CACHE_HASH_SIZE];
+            if (CacheComputeSourceHash(kernel_file, source_hash) == 0) {
+                if (CacheSaveSourceHash(algorithm_id, cache_name, source_hash) != 0) {
+                    (void)fprintf(stderr, "Warning: Failed to save source hash\n");
+                }
+            } else {
+                (void)fprintf(stderr, "Warning: Failed to compute source hash\n");
+            }
+        } else {
             (void)fprintf(stderr, "Warning: Failed to cache kernel binary\n");
         }
     }
