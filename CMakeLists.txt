@@ -33,17 +33,33 @@ endif()
 # Library: Core + Platform + Utils
 # ============================================================================
 
+# Option to build shared or static library
+option(BUILD_SHARED_LIBS "Build shared library (.so/.dylib) instead of static (.a)" OFF)
+
 # Collect library source files
 file(GLOB_RECURSE CORE_SOURCES "${CMAKE_SOURCE_DIR}/src/core/*.c")
 file(GLOB_RECURSE PLATFORM_SOURCES "${CMAKE_SOURCE_DIR}/src/platform/*.c")
 file(GLOB_RECURSE UTILS_SOURCES "${CMAKE_SOURCE_DIR}/src/utils/*.c")
 
-# Create static library
-add_library(opencl_imgproc STATIC
-    ${CORE_SOURCES}
-    ${PLATFORM_SOURCES}
-    ${UTILS_SOURCES}
-)
+# Create library (type determined by BUILD_SHARED_LIBS)
+if(BUILD_SHARED_LIBS)
+    add_library(opencl_imgproc SHARED
+        ${CORE_SOURCES}
+        ${PLATFORM_SOURCES}
+        ${UTILS_SOURCES}
+    )
+    # Version information for shared library
+    set_target_properties(opencl_imgproc PROPERTIES
+        VERSION 1.0.0
+        SOVERSION 1
+    )
+else()
+    add_library(opencl_imgproc STATIC
+        ${CORE_SOURCES}
+        ${PLATFORM_SOURCES}
+        ${UTILS_SOURCES}
+    )
+endif()
 
 # Library public include directories (for consumers like examples/)
 target_include_directories(opencl_imgproc
