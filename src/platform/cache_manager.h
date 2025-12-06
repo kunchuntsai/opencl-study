@@ -142,8 +142,7 @@ int CacheSaveSourceHash(const char* algorithm_id, const char* kernel_name,
  * @param hash_out Buffer to receive hash (must be CACHE_HASH_SIZE bytes)
  * @return 0 on success, -1 on error (file not found or read error)
  */
-int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name,
-                        unsigned char* hash_out);
+int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name, unsigned char* hash_out);
 
 /**
  * @brief Check if cached kernel is valid (exists AND source unchanged)
@@ -158,8 +157,7 @@ int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name,
  * @param source_file Path to current .cl source file
  * @return 1 if cache is valid and can be used, 0 if invalid/missing/changed
  */
-int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name,
-                       const char* source_file);
+int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name, const char* source_file);
 
 /* ============================================================================
  * GOLDEN SAMPLE CACHING

@@ -4,6 +4,11 @@
  */
 
 /* Internal implementation - includes full type definitions */
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <time.h>
+
 #include "op_registry.h"
 #include "platform/cache_manager.h"
 #include "platform/opencl_utils.h"
@@ -11,11 +16,6 @@
 #include "utils/image_io.h"
 #include "utils/safe_ops.h"
 #include "utils/verify.h"
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <time.h>
 
 /** Maximum image size (used for static buffer allocation) */
 #define MAX_IMAGE_SIZE (4096 * 4096)
@@ -52,17 +52,39 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         return;
     }
 
-    /* Load input image */
-    input = ReadImage(config->input_image, config->src_width, config->src_height);
-    if (input == NULL) {
-        (void)fprintf(stderr, "Failed to load input image\n");
+    /* Load input image from config/inputs.ini */
+    if (config->input_image_count == 0) {
+        (void)fprintf(stderr, "Error: No input images configured in config/inputs.ini\n");
         return;
     }
 
-    /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-    if (!SafeMulInt(config->src_width, config->src_height, &img_size)) {
-        (void)fprintf(stderr, "Image size overflow\n");
-        return;
+    /* TODO: Waiting for multi-input kernel support. Load first input image */
+    {
+        const InputImageConfig* img_cfg = &config->input_images[0];
+
+        (void)printf("\n=== Loading Input Images ===\n");
+        (void)printf("Using input image 1 of %d: %s (%dx%d)\n", config->input_image_count,
+                     img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
+
+        input = ReadImage(img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
+        if (input == NULL) {
+            (void)fprintf(stderr, "Failed to load input image: %s\n", img_cfg->input_path);
+            return;
+        }
+
+        /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
+        if (!SafeMulInt(img_cfg->src_width, img_cfg->src_height, &img_size)) {
+            (void)fprintf(stderr, "Image size overflow\n");
+            return;
+        }
+
+        /* Initialize common OpParams fields */
+        op_params.src_width = img_cfg->src_width;
+        op_params.src_height = img_cfg->src_height;
+        op_params.src_stride = img_cfg->src_stride;
+        op_params.dst_width = config->dst_width; /* Most algorithms keep same size */
+        op_params.dst_height = config->dst_height;
+        op_params.dst_stride = config->dst_stride;
     }
 
     /* Check if image fits in static buffers */
@@ -71,11 +93,6 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         return;
     }
 
-    /* Initialize common OpParams fields */
-    op_params.src_width = config->src_width;
-    op_params.src_height = config->src_height;
-    op_params.dst_width = config->src_width; /* Most algorithms keep same size */
-    op_params.dst_height = config->src_height;
     op_params.border_mode = BORDER_CLAMP;
 
     /* Step 0: Load custom buffer data from files (needed by both C ref and GPU)
@@ -277,8 +294,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         const char* run_dir = CacheGetRunDir();
         if (run_dir != NULL) {
             (void)snprintf(output_path, sizeof(output_path), "%s/out.bin", run_dir);
-            write_result =
-                WriteImage(output_path, gpu_output_buffer, config->src_width, config->src_height);
+            write_result = WriteImage(output_path, gpu_output_buffer, op_params.src_width,
+                                      op_params.src_height);
             if (write_result == 0) {
                 (void)printf("Output saved to: %s\n", output_path);
             } else {

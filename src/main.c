@@ -91,7 +91,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* 1. Parse configuration */
+    /* 1a. Parse input images configuration (config/inputs.ini) */
+    parse_result = ParseInputsConfig("config/inputs.ini", &config);
+    if (parse_result != 0) {
+        (void)fprintf(stderr, "Failed to parse config/inputs.ini\n");
+        return 1;
+    }
+
+    /* 1b. Parse algorithm configuration */
     parse_result = ParseConfig(config_path, &config);
     if (parse_result != 0) {
         (void)fprintf(stderr, "Failed to parse %s\n", config_path);
@@ -168,29 +175,25 @@ static int SelectAlgorithmAndVariant(const Config* config, int provided_variant_
         return -1;
     }
 
-    /* Step 1: Display available algorithms */
-    (void)printf("\n=== Available Algorithms ===\n");
-    ListAlgorithms();
-    (void)printf("\n");
-
-    /* Step 2: Find selected algorithm based on config.op_id */
+    /* Step 1: Find selected algorithm based on config.op_id */
     algo = FindAlgorithm(config->op_id);
     if (algo == NULL) {
         (void)fprintf(stderr, "Error: Algorithm '%s' (from config) not found\n", config->op_id);
-        (void)fprintf(stderr, "Please select from the available algorithms listed above.\n");
+        (void)fprintf(stderr, "\n=== Available Algorithms ===\n");
+        ListAlgorithms();
         return -1;
     }
-    (void)printf("Selected algorithm from config: %s (ID: %s)\n", algo->name, algo->id);
 
-    /* Step 3: Get kernel variants for selected algorithm */
+    /* Step 2: Get kernel variants for selected algorithm */
     get_variants_result = GetOpVariants(config, algo->id, variants, variant_count);
     if ((get_variants_result != 0) || (*variant_count == 0)) {
         (void)fprintf(stderr, "No kernel variants configured for %s\n", algo->name);
         return -1;
     }
 
-    /* Step 4: Display available variants */
-    (void)printf("=== Available Variants for %s ===\n", algo->name);
+    /* Step 3: Display selected algorithm and its variants */
+    (void)printf("\n=== Algorithm: %s ===\n", algo->name);
+    (void)printf("Available variants:\n");
     for (i = 0; i < *variant_count; i++) {
         (void)printf("  %d - %s\n", i, variants[i]->variant_id);
     }

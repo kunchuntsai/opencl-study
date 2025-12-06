@@ -42,7 +42,24 @@
 /** Maximum number of kernel configurations per algorithm */
 #define MAX_KERNEL_CONFIGS 32
 
+/** Maximum number of input images */
+#define MAX_INPUT_IMAGES 16
+
 /* Note: HostType and BufferType are defined in utils/op_interface.h */
+
+/**
+ * @brief Input image configuration
+ *
+ * Contains parameters for a single input image, including file path
+ * and image dimensions.
+ */
+typedef struct {
+    char input_path[256]; /**< Path to input image file */
+    int src_width;        /**< Source image width in pixels */
+    int src_height;       /**< Source image height in pixels */
+    int src_channels;     /**< Number of channels (e.g., 3 for RGB) */
+    int src_stride;       /**< Stride in bytes (may differ from width * channels) */
+} InputImageConfig;
 
 /**
  * @brief Kernel configuration for a specific variant
@@ -123,31 +140,26 @@ typedef struct {
  * framework, including image parameters and all kernel variants.
  */
 typedef struct {
-    char op_id[32];                           /**< Algorithm identifier (e.g., "dilate3x3") */
-    char input_image[256];                    /**< Path to input image file */
-    char output_image[256];                   /**< Path to output image file */
-    int src_width;                            /**< Source image width in pixels */
-    int src_height;                           /**< Source image height in pixels */
-    int dst_width;                            /**< Destination image width (for resize ops) */
-    int dst_height;                           /**< Destination image height (for resize ops) */
+    char op_id[32]; /**< Algorithm identifier (e.g., "dilate3x3") */
+
+    /* Input images configuration (from config/inputs.ini) */
+    InputImageConfig input_images[MAX_INPUT_IMAGES]; /**< Array of input image configurations */
+    int input_image_count;                           /**< Number of input images configured */
+
+    /* Output configuration (from algorithm .ini files) */
+    int dst_width;  /**< Destination image width (for resize ops) */
+    int dst_height; /**< Destination image height (for resize ops) */
+    int dst_stride; /**< Destination image stride in bytes */
+
+    /* Kernel configurations */
     int num_kernels;                          /**< Number of kernel variants configured */
     KernelConfig kernels[MAX_KERNEL_CONFIGS]; /**< Array of kernel configurations */
 
-    /* DEPRECATED: Legacy buffer files (kept for backward compatibility) */
-    char kernel_x_file[256]; /**< Path to kernel_x weight file */
-    char kernel_y_file[256]; /**< Path to kernel_y weight file */
-
-    /* DEPRECATED: Legacy buffer configuration (kept for backward compatibility)
-     */
-    BufferType cl_buffer_type[MAX_CUSTOM_BUFFERS]; /**< Buffer types */
-    size_t cl_buffer_size[MAX_CUSTOM_BUFFERS];     /**< Buffer sizes */
-    int num_buffers;                               /**< Number of configured buffers */
-
-    /* NEW: Custom buffer configuration (replaces legacy approach) */
+    /* Custom buffer configuration */
     CustomBufferConfig custom_buffers[MAX_CUSTOM_BUFFERS]; /**< Custom buffer configurations */
     int custom_buffer_count; /**< Number of custom buffers configured */
 
-    /* NEW: Scalar argument configuration */
+    /* Scalar argument configuration */
     ScalarArgConfig scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
     int scalar_arg_count;                         /**< Number of scalar arguments configured */
 } Config;
@@ -163,6 +175,18 @@ typedef struct {
  * @return 0 on success, -1 on error
  */
 int ParseConfig(const char* filename, Config* config);
+
+/**
+ * @brief Parse input images configuration file
+ *
+ * Reads and parses an INI-style inputs configuration file with multiple
+ * [image_N] sections, populating the input_images array in Config.
+ *
+ * @param[in] filename Path to inputs configuration file (e.g., config/inputs.ini)
+ * @param[out] config Configuration structure to populate with input images
+ * @return 0 on success, -1 on error
+ */
+int ParseInputsConfig(const char* filename, Config* config);
 
 /**
  * @brief Get all kernel variants for a specific algorithm

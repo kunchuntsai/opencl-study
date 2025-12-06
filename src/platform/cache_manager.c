@@ -524,8 +524,7 @@ int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name,
     return 0;
 }
 
-int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name,
-                       const char* source_file) {
+int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name, const char* source_file) {
     unsigned char stored_hash[CACHE_HASH_SIZE];
     unsigned char current_hash[CACHE_HASH_SIZE];
     size_t i;
