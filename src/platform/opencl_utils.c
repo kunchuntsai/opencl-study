@@ -316,18 +316,17 @@ int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
         return -1;
     }
 
-    /* Always set input and output as arg0 and arg1 */
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
-        (void)fprintf(stderr, "Error: Failed to set input buffer (arg 0)\n");
-        return -1;
-    }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
-        (void)fprintf(stderr, "Error: Failed to set output buffer (arg 1)\n");
-        return -1;
-    }
-
     /* If no kernel_args configured, use default: input, output, width, height */
     if (kernel_config->kernel_arg_count == 0) {
+        /* Set input and output as arg0 and arg1 */
+        if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
+            (void)fprintf(stderr, "Error: Failed to set input buffer (arg 0)\n");
+            return -1;
+        }
+        if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
+            (void)fprintf(stderr, "Error: Failed to set output buffer (arg 1)\n");
+            return -1;
+        }
         if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
             return -1;
         }
@@ -337,7 +336,7 @@ int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
         return 0;
     }
 
-    /* Use kernel_args configuration (starting from arg 2) */
+    /* Use kernel_args configuration */
     custom_buffers = params->custom_buffers;
 
     (void)printf("\n=== Setting Kernel Arguments (variant: %d) ===\n", params->kernel_variant);
@@ -348,6 +347,22 @@ int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
         (void)printf("kernel_args[%d]: type=%d, source='%s'\n", i, arg_desc->arg_type, arg_desc->source_name);
 
         switch (arg_desc->arg_type) {
+            case KERNEL_ARG_TYPE_BUFFER_INPUT:
+                /* Set input buffer */
+                if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set input buffer at arg %d\n", arg_idx - 1);
+                    return -1;
+                }
+                break;
+
+            case KERNEL_ARG_TYPE_BUFFER_OUTPUT:
+                /* Set output buffer */
+                if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set output buffer at arg %d\n", arg_idx - 1);
+                    return -1;
+                }
+                break;
+
             case KERNEL_ARG_TYPE_BUFFER_CUSTOM:
                 /* Find custom buffer by name or index */
                 if (custom_buffers == NULL) {
