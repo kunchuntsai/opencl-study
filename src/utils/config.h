@@ -174,6 +174,7 @@ typedef struct {
     /* Input images configuration (from config/inputs.ini) */
     InputImageConfig input_images[MAX_INPUT_IMAGES]; /**< Array of input image configurations */
     int input_image_count;                           /**< Number of input images configured */
+    char input_image_id[64]; /**< Which input image to use (e.g., "image_1", "image_2") */
 
     /* Output configuration (from algorithm .ini files) */
     int dst_width;  /**< Destination image width (for resize ops) */
