@@ -52,7 +52,6 @@ for file in $ALGO_FILES; do
     cat >> "$OUTPUT_FILE" <<EOF
 extern void ${pascal_name}Ref(const OpParams* params);
 extern int ${pascal_name}Verify(const OpParams* params, float* max_error);
-extern int ${pascal_name}SetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf, const OpParams* params);
 EOF
 done
 
@@ -90,8 +89,7 @@ static Algorithm ${algo_name}_algorithm = {
     .name = "$display_name",
     .id = "$algo_name",
     .reference_impl = ${pascal_name}Ref,
-    .verify_result = ${pascal_name}Verify,
-    .set_kernel_args = ${pascal_name}SetKernelArgs
+    .verify_result = ${pascal_name}Verify
 };
 
 EOF

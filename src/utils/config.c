@@ -249,28 +249,95 @@ static BufferType ParseBufferType(const char* str) {
     return BUFFER_TYPE_NONE;
 }
 
-/* Parse buffer types array from comma-separated string */
-static int ParseBufferTypes(const char* str, BufferType* arr, int max_count) {
-    char buffer[MAX_BUFFER_LENGTH];
-    char* saveptr = NULL;
-    char* token;
+/* Parse kernel argument type from string */
+static KernelArgType ParseKernelArgType(const char* str) {
+    if (str == NULL) {
+        return KERNEL_ARG_TYPE_NONE;
+    }
+
+    if (strcmp(str, "input") == 0) {
+        return KERNEL_ARG_TYPE_BUFFER_INPUT;
+    } else if (strcmp(str, "output") == 0) {
+        return KERNEL_ARG_TYPE_BUFFER_OUTPUT;
+    } else if (strcmp(str, "buffer") == 0) {
+        return KERNEL_ARG_TYPE_BUFFER_CUSTOM;
+    } else if (strcmp(str, "int") == 0) {
+        return KERNEL_ARG_TYPE_SCALAR_INT;
+    } else if (strcmp(str, "float") == 0) {
+        return KERNEL_ARG_TYPE_SCALAR_FLOAT;
+    } else if (strcmp(str, "size_t") == 0) {
+        return KERNEL_ARG_TYPE_SCALAR_SIZE;
+    }
+
+    return KERNEL_ARG_TYPE_NONE;
+}
+
+/* Parse kernel arguments from string like "{int, src_width} {int, src_height}" */
+static int ParseKernelArgs(const char* str, KernelArgDescriptor* args, int max_count) {
+    char buffer[MAX_LINE_LENGTH * 2]; /* Larger buffer for long kernel_args strings */
+    char* current;
+    char* brace_start;
+    char* brace_end;
+    char* comma;
+    char type_str[64];
+    char source_str[64];
     int count = 0;
 
-    if ((str == NULL) || (arr == NULL)) {
+    if ((str == NULL) || (args == NULL)) {
         return 0;
     }
 
     (void)strncpy(buffer, str, sizeof(buffer) - 1U);
     buffer[sizeof(buffer) - 1U] = '\0';
 
-    token = strtok_r(buffer, ",", &saveptr);
-    while ((token != NULL) && (count < max_count)) {
-        arr[count] = ParseBufferType(Trim(token));
-        if (arr[count] == BUFFER_TYPE_NONE) {
-            (void)fprintf(stderr, "Warning: Invalid buffer type: %s\n", Trim(token));
+    current = buffer;
+
+    /* Find each {...} block */
+    while (count < max_count) {
+        /* Find opening brace */
+        brace_start = strchr(current, '{');
+        if (brace_start == NULL) {
+            break; /* No more arguments */
         }
+
+        /* Find closing brace */
+        brace_end = strchr(brace_start, '}');
+        if (brace_end == NULL) {
+            (void)fprintf(stderr, "Error: Unclosed brace in kernel_args\n");
+            return -1;
+        }
+
+        /* Extract content between braces */
+        *brace_end = '\0';
+        char* content = Trim(brace_start + 1);
+
+        /* Find comma separator */
+        comma = strchr(content, ',');
+        if (comma == NULL) {
+            (void)fprintf(stderr, "Error: Missing comma in kernel_args: {%s}\n", content);
+            return -1;
+        }
+
+        /* Split into type and source */
+        *comma = '\0';
+        (void)strncpy(type_str, Trim(content), sizeof(type_str) - 1U);
+        type_str[sizeof(type_str) - 1U] = '\0';
+        (void)strncpy(source_str, Trim(comma + 1), sizeof(source_str) - 1U);
+        source_str[sizeof(source_str) - 1U] = '\0';
+
+        /* Parse type */
+        args[count].arg_type = ParseKernelArgType(type_str);
+        if (args[count].arg_type == KERNEL_ARG_TYPE_NONE) {
+            (void)fprintf(stderr, "Error: Invalid kernel arg type: %s\n", type_str);
+            return -1;
+        }
+
+        /* Store source name */
+        (void)strncpy(args[count].source_name, source_str, sizeof(args[count].source_name) - 1U);
+        args[count].source_name[sizeof(args[count].source_name) - 1U] = '\0';
+
         count++;
-        token = strtok_r(NULL, ",", &saveptr);
+        current = brace_end + 1;
     }
 
     return count;
@@ -338,36 +405,6 @@ static int EvalExpression(const char* str, size_t* result) {
 
     *result = value;
     return 0;
-}
-
-/* Parse buffer sizes array from comma-separated expressions */
-static int ParseBufferSizes(const char* str, size_t* arr, int max_count) {
-    char buffer[MAX_BUFFER_LENGTH];
-    char* saveptr = NULL;
-    char* token;
-    int count = 0;
-    size_t val;
-
-    if ((str == NULL) || (arr == NULL)) {
-        return 0;
-    }
-
-    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
-    buffer[sizeof(buffer) - 1U] = '\0';
-
-    token = strtok_r(buffer, ",", &saveptr);
-    while ((token != NULL) && (count < max_count)) {
-        if (EvalExpression(Trim(token), &val) == 0) {
-            arr[count] = val;
-            count++;
-        } else {
-            (void)fprintf(stderr, "Error: Invalid buffer size expression: %s\n", Trim(token));
-            return -1;
-        }
-        token = strtok_r(NULL, ",", &saveptr);
-    }
-
-    return count;
 }
 
 int ParseConfig(const char* filename, Config* config) {
@@ -472,6 +509,9 @@ int ParseConfig(const char* filename, Config* config) {
                         (void)fclose(fp);
                         return -1;
                     }
+                    /* Zero-initialize the new buffer entry */
+                    (void)memset(&config->custom_buffers[buffer_index], 0,
+                                 sizeof(CustomBufferConfig));
                     /* Parse buffer name from section name */
                     if (ParseBufferSection(section, config->custom_buffers[buffer_index].name,
                                            sizeof(config->custom_buffers[buffer_index].name)) !=
@@ -597,6 +637,15 @@ int ParseConfig(const char* filename, Config* config) {
                 }
             } else if (strcmp(key, "host_type") == 0) {
                 kc->host_type = ParseHostType(value);
+            } else if (strcmp(key, "kernel_args") == 0) {
+                /* Parse kernel arguments */
+                int arg_count = ParseKernelArgs(value, kc->kernel_args, MAX_KERNEL_ARGS);
+                if (arg_count < 0) {
+                    (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
+                    (void)fclose(fp);
+                    return -1;
+                }
+                kc->kernel_arg_count = arg_count;
             } else {
                 /* Unknown key in kernel section */
                 /* Note: kernel_variant is auto-derived from section name (e.g.,

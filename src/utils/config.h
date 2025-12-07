@@ -61,6 +61,44 @@ typedef struct {
     int src_stride;       /**< Stride in bytes (may differ from width * channels) */
 } InputImageConfig;
 
+/* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
+
+/** Data type enumeration for buffer elements */
+typedef enum {
+    DATA_TYPE_NONE = 0,
+    DATA_TYPE_FLOAT, /**< 32-bit floating point (4 bytes) */
+    DATA_TYPE_UCHAR, /**< 8-bit unsigned char (1 byte) */
+    DATA_TYPE_INT,   /**< 32-bit signed integer (4 bytes) */
+    DATA_TYPE_SHORT  /**< 16-bit signed integer (2 bytes) */
+} DataType;
+
+/** Maximum number of kernel arguments */
+#define MAX_KERNEL_ARGS 32
+
+/** Kernel argument type */
+typedef enum {
+    KERNEL_ARG_TYPE_NONE = 0,
+    KERNEL_ARG_TYPE_BUFFER_INPUT,   /**< Input buffer (cl_mem) */
+    KERNEL_ARG_TYPE_BUFFER_OUTPUT,  /**< Output buffer (cl_mem) */
+    KERNEL_ARG_TYPE_BUFFER_CUSTOM,  /**< Custom buffer (cl_mem) by name */
+    KERNEL_ARG_TYPE_SCALAR_INT,     /**< Integer scalar (int) */
+    KERNEL_ARG_TYPE_SCALAR_FLOAT,   /**< Float scalar (float) */
+    KERNEL_ARG_TYPE_SCALAR_SIZE,    /**< Size_t scalar (size_t) */
+} KernelArgType;
+
+/**
+ * @brief Kernel argument descriptor
+ *
+ * Describes a single kernel argument with its type and data source.
+ * Arguments can be buffers (input, output, or custom) or scalars.
+ */
+typedef struct {
+    KernelArgType arg_type;      /**< Type of argument (buffer or scalar) */
+    char source_name[64];        /**< Source name for the argument value:
+                                      - For buffers: "input", "output", or custom buffer name
+                                      - For scalars: OpParams field name (e.g., "src_width", "dst_height") */
+} KernelArgDescriptor;
+
 /**
  * @brief Kernel configuration for a specific variant
  *
@@ -77,18 +115,9 @@ typedef struct {
     HostType host_type;         /**< Host API type (standard or cl_extension) */
     int kernel_variant;         /**< Kernel signature variant auto-derived from variant_id
                                    (v0->0, v1->1, etc.) */
+    KernelArgDescriptor kernel_args[MAX_KERNEL_ARGS]; /**< Array of kernel argument descriptors */
+    int kernel_arg_count;       /**< Number of kernel arguments configured */
 } KernelConfig;
-
-/* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
-
-/** Data type enumeration for buffer elements */
-typedef enum {
-    DATA_TYPE_NONE = 0,
-    DATA_TYPE_FLOAT, /**< 32-bit floating point (4 bytes) */
-    DATA_TYPE_UCHAR, /**< 8-bit unsigned char (1 byte) */
-    DATA_TYPE_INT,   /**< 32-bit signed integer (4 bytes) */
-    DATA_TYPE_SHORT  /**< 16-bit signed integer (2 bytes) */
-} DataType;
 
 /**
  * @brief Custom buffer configuration

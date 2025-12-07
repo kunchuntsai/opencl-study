@@ -121,29 +121,3 @@ int Dilate3x3Verify(const OpParams* params, float* max_error) {
 
   return result;
 }
-
-/* Kernel argument setter - sets 4 standard arguments */
-int Dilate3x3SetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
-                              const OpParams* params) {
-  cl_uint arg_idx = 0U;
-
-  if ((kernel == NULL) || (params == NULL)) {
-    return -1;
-  }
-
-  /* Set all 4 kernel arguments */
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
-    return -1;
-  }
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
-    return -1;
-  }
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
-    return -1;
-  }
-  if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
-    return -1;
-  }
-
-  return 0;
-}

@@ -71,32 +71,49 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
                             const char* kernel_name);
 
 /**
+ * @brief Set kernel arguments for OpenCL kernel
+ *
+ * Sets kernel arguments for an OpenCL kernel using configuration from kernel_config.
+ * If kernel_config has kernel_args configured, uses that; otherwise falls back to
+ * default behavior (input, output, width, height).
+ *
+ * @param[in] kernel OpenCL kernel to set arguments for
+ * @param[in] input_buf Input buffer containing image data
+ * @param[in] output_buf Output buffer for processed image
+ * @param[in] params Operation parameters (dimensions, algo-specific data)
+ * @param[in] kernel_config Kernel configuration with argument descriptors
+ * @return 0 on success, -1 on error
+ */
+int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
+                        const OpParams* params, const KernelConfig* kernel_config);
+
+/**
  * @brief Execute OpenCL kernel with timing
  *
- * Sets kernel arguments (using algorithm callback), enqueues kernel
- * execution, and measures GPU time. All buffers are configured via
- * .ini files rather than algorithm-specific creation callbacks.
+ * Sets kernel arguments using kernel_config, enqueues kernel execution, and
+ * measures GPU time. All buffers and arguments are configured via .ini files.
  *
  * Uses either standard OpenCL API or custom CL extension API based on
  * the host_type configuration in the kernel config.
  *
  * @param[in] env Initialized OpenCL environment
  * @param[in] kernel Compiled kernel object
- * @param[in] algo Algorithm interface (for argument setter callback)
+ * @param[in] algo Algorithm interface (unused, kept for API compatibility)
  * @param[in] input_buf Input buffer containing image data
  * @param[out] output_buf Output buffer for processed image
  * @param[in] params Operation parameters (dimensions, algo-specific data)
  * @param[in] global_work_size Global work dimensions (array of size work_dim)
  * @param[in] local_work_size Local work group size (NULL for automatic)
  * @param[in] work_dim Number of work dimensions (1, 2, or 3)
+ * @param[in] kernel_config Kernel configuration with argument descriptors (required)
  * @param[in] host_type Host API type (standard or cl_extension)
  * @param[out] gpu_time_ms Execution time in milliseconds
  * @return 0 on success, -1 on error
  */
 int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
                     cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
-                    const size_t* local_work_size, int work_dim, HostType host_type,
-                    double* gpu_time_ms);
+                    const size_t* local_work_size, int work_dim, const KernelConfig* kernel_config,
+                    HostType host_type, double* gpu_time_ms);
 
 /**
  * @brief Create OpenCL buffer with error checking

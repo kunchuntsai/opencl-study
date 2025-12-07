@@ -84,12 +84,11 @@ void Gaussian5x5Ref(const OpParams* params) {
   }
   custom_buffers = params->custom_buffers;
 
-  /* Determine kernel buffer indices based on kernel_variant */
-  /* Variant 0: tmp_buffer(0), kernel_x(1), kernel_y(2) */
-  /* Variant 1: tmp_buffer(0), kernel_x(1), kernel_y(2) */
-  /* Variant 2: tmp_buffer(0), tmp_buffer2(1), kernel_x(2), kernel_y(3) */
-  int kernel_x_idx = (params->kernel_variant == 2) ? 2 : 1;
-  int kernel_y_idx = (params->kernel_variant == 2) ? 3 : 2;
+  /* Determine kernel buffer indices based on buffer configuration */
+  /* Buffers defined in config: tmp_global(0), tmp_global2(1), kernel_x(2), kernel_y(3) */
+  /* All variants use the same buffer layout */
+  int kernel_x_idx = 2;
+  int kernel_y_idx = 3;
   int min_buffers = kernel_y_idx + 1; /* Need at least up to kernel_y index */
 
   if (custom_buffers->count < min_buffers) {
