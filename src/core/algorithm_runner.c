@@ -58,13 +58,41 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         return;
     }
 
-    /* TODO: Waiting for multi-input kernel support. Load first input image */
+    /* Find the specified input image by input_image_id */
     {
-        const InputImageConfig* img_cfg = &config->input_images[0];
+        const InputImageConfig* img_cfg = NULL;
+        int selected_index = 0;
+        int i;
+
+        /* If input_image_id is specified, find matching image */
+        if (config->input_image_id[0] != '\0') {
+            for (i = 0; i < config->input_image_count; i++) {
+                /* Extract image_N from section name for comparison */
+                char image_name[64];
+                (void)snprintf(image_name, sizeof(image_name), "image_%d", i + 1);
+                if (strcmp(config->input_image_id, image_name) == 0) {
+                    img_cfg = &config->input_images[i];
+                    selected_index = i + 1;
+                    break;
+                }
+            }
+            if (img_cfg == NULL) {
+                (void)fprintf(stderr, "Error: Specified input_image_id '%s' not found\n",
+                              config->input_image_id);
+                (void)fprintf(stderr, "Available images: image_1 to image_%d\n",
+                              config->input_image_count);
+                return;
+            }
+        } else {
+            /* Default to first image if not specified */
+            img_cfg = &config->input_images[0];
+            selected_index = 1;
+        }
 
         (void)printf("\n=== Loading Input Images ===\n");
-        (void)printf("Using input image 1 of %d: %s (%dx%d)\n", config->input_image_count,
-                     img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
+        (void)printf("Using input image %d of %d: %s (%dx%d)\n", selected_index,
+                     config->input_image_count, img_cfg->input_path, img_cfg->src_width,
+                     img_cfg->src_height);
 
         input = ReadImage(img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
         if (input == NULL) {

@@ -250,32 +250,6 @@ static BufferType ParseBufferType(const char* str) {
 }
 
 /* Parse buffer types array from comma-separated string */
-static int ParseBufferTypes(const char* str, BufferType* arr, int max_count) {
-    char buffer[MAX_BUFFER_LENGTH];
-    char* saveptr = NULL;
-    char* token;
-    int count = 0;
-
-    if ((str == NULL) || (arr == NULL)) {
-        return 0;
-    }
-
-    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
-    buffer[sizeof(buffer) - 1U] = '\0';
-
-    token = strtok_r(buffer, ",", &saveptr);
-    while ((token != NULL) && (count < max_count)) {
-        arr[count] = ParseBufferType(Trim(token));
-        if (arr[count] == BUFFER_TYPE_NONE) {
-            (void)fprintf(stderr, "Warning: Invalid buffer type: %s\n", Trim(token));
-        }
-        count++;
-        token = strtok_r(NULL, ",", &saveptr);
-    }
-
-    return count;
-}
-
 /* Evaluate simple arithmetic expression (e.g., "1920 * 1080 * 4") */
 static int EvalExpression(const char* str, size_t* result) {
     char buffer[MAX_BUFFER_LENGTH];
@@ -340,36 +314,6 @@ static int EvalExpression(const char* str, size_t* result) {
     return 0;
 }
 
-/* Parse buffer sizes array from comma-separated expressions */
-static int ParseBufferSizes(const char* str, size_t* arr, int max_count) {
-    char buffer[MAX_BUFFER_LENGTH];
-    char* saveptr = NULL;
-    char* token;
-    int count = 0;
-    size_t val;
-
-    if ((str == NULL) || (arr == NULL)) {
-        return 0;
-    }
-
-    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
-    buffer[sizeof(buffer) - 1U] = '\0';
-
-    token = strtok_r(buffer, ",", &saveptr);
-    while ((token != NULL) && (count < max_count)) {
-        if (EvalExpression(Trim(token), &val) == 0) {
-            arr[count] = val;
-            count++;
-        } else {
-            (void)fprintf(stderr, "Error: Invalid buffer size expression: %s\n", Trim(token));
-            return -1;
-        }
-        token = strtok_r(NULL, ",", &saveptr);
-    }
-
-    return count;
-}
-
 int ParseConfig(const char* filename, Config* config) {
     FILE* fp;
     char line[MAX_LINE_LENGTH];
@@ -397,6 +341,7 @@ int ParseConfig(const char* filename, Config* config) {
 
     /* Initialize algorithm-specific fields (preserve input_images from ParseInputsConfig) */
     config->op_id[0] = '\0';
+    config->input_image_id[0] = '\0';
     config->dst_width = 0;
     config->dst_height = 0;
     config->dst_stride = 0;
@@ -472,6 +417,9 @@ int ParseConfig(const char* filename, Config* config) {
                         (void)fclose(fp);
                         return -1;
                     }
+                    /* Initialize buffer config to zeros */
+                    (void)memset(&config->custom_buffers[buffer_index], 0,
+                                 sizeof(CustomBufferConfig));
                     /* Parse buffer name from section name */
                     if (ParseBufferSection(section, config->custom_buffers[buffer_index].name,
                                            sizeof(config->custom_buffers[buffer_index].name)) !=
@@ -535,7 +483,12 @@ int ParseConfig(const char* filename, Config* config) {
         }
 
         /* Parse based on section */
-        if ((strcmp(section, "image") == 0) || (strcmp(section, "output") == 0)) {
+        if (strcmp(section, "input") == 0) {
+            if (strcmp(key, "input_image_id") == 0) {
+                (void)strncpy(config->input_image_id, value, sizeof(config->input_image_id) - 1U);
+                config->input_image_id[sizeof(config->input_image_id) - 1U] = '\0';
+            }
+        } else if ((strcmp(section, "image") == 0) || (strcmp(section, "output") == 0)) {
             if (strcmp(key, "op_id") == 0) {
                 (void)strncpy(config->op_id, value, sizeof(config->op_id) - 1U);
                 config->op_id[sizeof(config->op_id) - 1U] = '\0';
