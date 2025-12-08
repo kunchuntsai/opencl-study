@@ -249,7 +249,100 @@ static BufferType ParseBufferType(const char* str) {
     return BUFFER_TYPE_NONE;
 }
 
-/* Parse buffer types array from comma-separated string */
+/* Parse kernel argument type from string */
+static KernelArgType ParseKernelArgType(const char* str) {
+    if (str == NULL) {
+        return KERNEL_ARG_TYPE_NONE;
+    }
+
+    if (strcmp(str, "input") == 0) {
+        return KERNEL_ARG_TYPE_BUFFER_INPUT;
+    } else if (strcmp(str, "output") == 0) {
+        return KERNEL_ARG_TYPE_BUFFER_OUTPUT;
+    } else if (strcmp(str, "buffer") == 0) {
+        return KERNEL_ARG_TYPE_BUFFER_CUSTOM;
+    } else if (strcmp(str, "int") == 0) {
+        return KERNEL_ARG_TYPE_SCALAR_INT;
+    } else if (strcmp(str, "float") == 0) {
+        return KERNEL_ARG_TYPE_SCALAR_FLOAT;
+    } else if (strcmp(str, "size_t") == 0) {
+        return KERNEL_ARG_TYPE_SCALAR_SIZE;
+    }
+
+    return KERNEL_ARG_TYPE_NONE;
+}
+
+/* Parse kernel arguments from string like "{int, src_width} {int, src_height}" */
+static int ParseKernelArgs(const char* str, KernelArgDescriptor* args, int max_count) {
+    char buffer[MAX_LINE_LENGTH * 2]; /* Larger buffer for long kernel_args strings */
+    char* current;
+    char* brace_start;
+    char* brace_end;
+    char* comma;
+    char type_str[64];
+    char source_str[64];
+    int count = 0;
+
+    if ((str == NULL) || (args == NULL)) {
+        return 0;
+    }
+
+    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
+    buffer[sizeof(buffer) - 1U] = '\0';
+
+    current = buffer;
+
+    /* Find each {...} block */
+    while (count < max_count) {
+        /* Find opening brace */
+        brace_start = strchr(current, '{');
+        if (brace_start == NULL) {
+            break; /* No more arguments */
+        }
+
+        /* Find closing brace */
+        brace_end = strchr(brace_start, '}');
+        if (brace_end == NULL) {
+            (void)fprintf(stderr, "Error: Unclosed brace in kernel_args\n");
+            return -1;
+        }
+
+        /* Extract content between braces */
+        *brace_end = '\0';
+        char* content = Trim(brace_start + 1);
+
+        /* Find comma separator */
+        comma = strchr(content, ',');
+        if (comma == NULL) {
+            (void)fprintf(stderr, "Error: Missing comma in kernel_args: {%s}\n", content);
+            return -1;
+        }
+
+        /* Split into type and source */
+        *comma = '\0';
+        (void)strncpy(type_str, Trim(content), sizeof(type_str) - 1U);
+        type_str[sizeof(type_str) - 1U] = '\0';
+        (void)strncpy(source_str, Trim(comma + 1), sizeof(source_str) - 1U);
+        source_str[sizeof(source_str) - 1U] = '\0';
+
+        /* Parse type */
+        args[count].arg_type = ParseKernelArgType(type_str);
+        if (args[count].arg_type == KERNEL_ARG_TYPE_NONE) {
+            (void)fprintf(stderr, "Error: Invalid kernel arg type: %s\n", type_str);
+            return -1;
+        }
+
+        /* Store source name */
+        (void)strncpy(args[count].source_name, source_str, sizeof(args[count].source_name) - 1U);
+        args[count].source_name[sizeof(args[count].source_name) - 1U] = '\0';
+
+        count++;
+        current = brace_end + 1;
+    }
+
+    return count;
+}
+
 /* Evaluate simple arithmetic expression (e.g., "1920 * 1080 * 4") */
 static int EvalExpression(const char* str, size_t* result) {
     char buffer[MAX_BUFFER_LENGTH];
@@ -550,6 +643,72 @@ int ParseConfig(const char* filename, Config* config) {
                 }
             } else if (strcmp(key, "host_type") == 0) {
                 kc->host_type = ParseHostType(value);
+            } else if (strcmp(key, "kernel_args") == 0) {
+                /* Check if value starts with opening brace (multi-line format) */
+                char* trimmed_value = Trim(value);
+                if (trimmed_value[0] == '{' && trimmed_value[1] == '\0') {
+                    /* Multi-line format: read until closing brace */
+                    char multiline_buffer[MAX_LINE_LENGTH * 4]; /* Larger buffer for multi-line */
+                    size_t buffer_pos = 0;
+                    int found_closing_brace = 0;
+
+                    multiline_buffer[0] = '\0';
+
+                    /* Read lines until we find closing brace */
+                    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+                        trimmed = Trim(line);
+
+                        /* Check if this line is just the closing brace */
+                        if (strcmp(trimmed, "}") == 0) {
+                            found_closing_brace = 1;
+                            break;
+                        }
+
+                        /* Skip empty lines and comments */
+                        if ((trimmed[0] == '\0') || (trimmed[0] == '#') || (trimmed[0] == ';')) {
+                            continue;
+                        }
+
+                        /* Append this line to buffer with space separator */
+                        size_t line_len = strlen(trimmed);
+                        if (buffer_pos + line_len + 2 < sizeof(multiline_buffer)) {
+                            if (buffer_pos > 0) {
+                                multiline_buffer[buffer_pos] = ' ';
+                                buffer_pos++;
+                            }
+                            (void)strcpy(multiline_buffer + buffer_pos, trimmed);
+                            buffer_pos += line_len;
+                        } else {
+                            (void)fprintf(stderr, "Error: kernel_args too long\n");
+                            (void)fclose(fp);
+                            return -1;
+                        }
+                    }
+
+                    if (!found_closing_brace) {
+                        (void)fprintf(stderr, "Error: Missing closing brace for kernel_args\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+
+                    /* Parse accumulated multi-line value */
+                    int arg_count = ParseKernelArgs(multiline_buffer, kc->kernel_args, MAX_KERNEL_ARGS);
+                    if (arg_count < 0) {
+                        (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                    kc->kernel_arg_count = arg_count;
+                } else {
+                    /* Single-line format: parse directly */
+                    int arg_count = ParseKernelArgs(value, kc->kernel_args, MAX_KERNEL_ARGS);
+                    if (arg_count < 0) {
+                        (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                    kc->kernel_arg_count = arg_count;
+                }
             } else {
                 /* Unknown key in kernel section */
                 /* Note: kernel_variant is auto-derived from section name (e.g.,

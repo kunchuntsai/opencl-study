@@ -58,6 +58,7 @@ typedef enum {
  * variant-specific argument handling (e.g., allocating local memory).
  */
 typedef struct {
+    char name[64];            /**< Buffer name (from config) */
     cl_mem buffer;            /**< OpenCL buffer handle */
     unsigned char* host_data; /**< Host data (for file-backed buffers, NULL otherwise) */
     BufferType type;          /**< Buffer access type (READ_ONLY, WRITE_ONLY, READ_WRITE) */
@@ -122,22 +123,6 @@ typedef struct {
 } OpParams;
 
 /**
- * @brief Kernel argument setter callback
- *
- * Sets all kernel arguments including standard buffers (input/output).
- * Called before kernel execution. All buffers are now configured via
- * .ini files rather than algorithm-specific creation callbacks.
- *
- * @param[in] kernel OpenCL kernel to set arguments for
- * @param[in] input_buf Input buffer
- * @param[in] output_buf Output buffer
- * @param[in] params Operation parameters containing dimensions
- * @return 0 on success, -1 on error
- */
-typedef int (*SetKernelArgsFunc)(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
-                                 const OpParams* params);
-
-/**
  * @brief Algorithm interface for image processing operations
  *
  * Each algorithm (dilate, gaussian, etc.) implements this interface
@@ -146,6 +131,8 @@ typedef int (*SetKernelArgsFunc)(cl_kernel kernel, cl_mem input_buf, cl_mem outp
  *
  * The interface uses OpParams to support algorithms with varying
  * parameter requirements while maintaining a consistent API.
+ *
+ * Kernel arguments are configured via .ini files using the kernel_args field.
  */
 typedef struct {
     char name[64]; /**< Human-readable name (e.g., "Dilate 3x3") */
@@ -182,19 +169,4 @@ typedef struct {
      * @return 1 if verification passed, 0 if failed
      */
     int (*verify_result)(const OpParams* params, float* max_error);
-
-    /**
-     * @brief Set kernel arguments (REQUIRED)
-     *
-     * Every algorithm MUST provide this callback to set its kernel arguments.
-     * This ensures each algorithm explicitly declares what arguments it needs.
-     *
-     * The function should set all kernel arguments in order, including:
-     * - Standard buffers (input, output)
-     * - Additional buffers (configured via .ini files)
-     * - Scalar parameters (width, height, stride, etc.)
-     *
-     * @see SetKernelArgsFunc
-     */
-    SetKernelArgsFunc set_kernel_args;
 } Algorithm;

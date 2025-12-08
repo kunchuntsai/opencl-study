@@ -304,10 +304,222 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
     return kernel;
 }
 
+int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
+                        const OpParams* params, const KernelConfig* kernel_config) {
+    cl_uint arg_idx = 0U;
+    int i;
+    int buffer_idx;
+    const KernelArgDescriptor* arg_desc;
+    CustomBuffers* custom_buffers;
+
+    if ((kernel == NULL) || (params == NULL) || (kernel_config == NULL)) {
+        return -1;
+    }
+
+    /* If no kernel_args configured, use default: input, output, width, height */
+    if (kernel_config->kernel_arg_count == 0) {
+        /* Set input and output as arg0 and arg1 */
+        if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
+            (void)fprintf(stderr, "Error: Failed to set input buffer (arg 0)\n");
+            return -1;
+        }
+        if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
+            (void)fprintf(stderr, "Error: Failed to set output buffer (arg 1)\n");
+            return -1;
+        }
+        if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
+            return -1;
+        }
+        if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
+            return -1;
+        }
+        return 0;
+    }
+
+    /* Use kernel_args configuration */
+    custom_buffers = params->custom_buffers;
+
+    (void)printf("\n=== Setting Kernel Arguments (variant: %d) ===\n", params->kernel_variant);
+    (void)printf("Total kernel_args to set: %d\n", kernel_config->kernel_arg_count);
+
+    for (i = 0; i < kernel_config->kernel_arg_count; i++) {
+        arg_desc = &kernel_config->kernel_args[i];
+        (void)printf("kernel_args[%d]: type=%d, source='%s'\n", i, arg_desc->arg_type, arg_desc->source_name);
+
+        switch (arg_desc->arg_type) {
+            case KERNEL_ARG_TYPE_BUFFER_INPUT:
+                /* Set input buffer */
+                if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set input buffer at arg %d\n", arg_idx - 1);
+                    return -1;
+                }
+                break;
+
+            case KERNEL_ARG_TYPE_BUFFER_OUTPUT:
+                /* Set output buffer */
+                if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set output buffer at arg %d\n", arg_idx - 1);
+                    return -1;
+                }
+                break;
+
+            case KERNEL_ARG_TYPE_BUFFER_CUSTOM:
+                /* Find custom buffer by name or index */
+                if (custom_buffers == NULL) {
+                    (void)fprintf(stderr, "Error: Custom buffer '%s' requested but no custom buffers available\n",
+                                  arg_desc->source_name);
+                    return -1;
+                }
+
+                buffer_idx = -1;
+
+                /* Check if source_name is a numeric index */
+                if (arg_desc->source_name[0] >= '0' && arg_desc->source_name[0] <= '9') {
+                    /* Parse as integer index */
+                    buffer_idx = atoi(arg_desc->source_name);
+                    if (buffer_idx < 0 || buffer_idx >= custom_buffers->count) {
+                        (void)fprintf(stderr, "Error: Buffer index %d out of range (0-%d)\n",
+                                      buffer_idx, custom_buffers->count - 1);
+                        return -1;
+                    }
+                } else {
+                    /* Look up by name */
+                    for (int j = 0; j < custom_buffers->count; j++) {
+                        if (strcmp(custom_buffers->buffers[j].name, arg_desc->source_name) == 0) {
+                            buffer_idx = j;
+                            break;
+                        }
+                    }
+
+                    if (buffer_idx < 0) {
+                        (void)fprintf(stderr, "Error: Custom buffer '%s' not found\n", arg_desc->source_name);
+                        return -1;
+                    }
+                }
+
+                if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem),
+                                   &custom_buffers->buffers[buffer_idx].buffer) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set custom buffer '%s' at arg %d\n",
+                                  arg_desc->source_name, arg_idx - 1);
+                    return -1;
+                }
+                break;
+
+            case KERNEL_ARG_TYPE_SCALAR_INT:
+                /* Map source_name to OpParams field */
+                if (strcmp(arg_desc->source_name, "src_width") == 0) {
+                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
+                        return -1;
+                    }
+                } else if (strcmp(arg_desc->source_name, "src_height") == 0) {
+                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
+                        return -1;
+                    }
+                } else if (strcmp(arg_desc->source_name, "src_stride") == 0) {
+                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_stride) != CL_SUCCESS) {
+                        return -1;
+                    }
+                } else if (strcmp(arg_desc->source_name, "dst_width") == 0) {
+                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->dst_width) != CL_SUCCESS) {
+                        return -1;
+                    }
+                } else if (strcmp(arg_desc->source_name, "dst_height") == 0) {
+                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->dst_height) != CL_SUCCESS) {
+                        return -1;
+                    }
+                } else if (strcmp(arg_desc->source_name, "dst_stride") == 0) {
+                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->dst_stride) != CL_SUCCESS) {
+                        return -1;
+                    }
+                } else {
+                    (void)fprintf(stderr, "Error: Unknown scalar source '%s'\n", arg_desc->source_name);
+                    return -1;
+                }
+                break;
+
+            case KERNEL_ARG_TYPE_SCALAR_SIZE:
+                /* Handle size_t scalars - used for buffer sizes */
+                /* Source name should be in format "buffer_name.size" or "index.size" */
+                {
+                    char buffer_name[64];
+                    const char* dot = strchr(arg_desc->source_name, '.');
+
+                    if (dot == NULL || strcmp(dot, ".size") != 0) {
+                        (void)fprintf(stderr, "Error: size_t source must be 'buffer_name.size' or 'index.size', got '%s'\n",
+                                      arg_desc->source_name);
+                        return -1;
+                    }
+
+                    /* Extract buffer name or index */
+                    size_t name_len = (size_t)(dot - arg_desc->source_name);
+                    if (name_len >= sizeof(buffer_name)) {
+                        (void)fprintf(stderr, "Error: Buffer name/index too long in '%s'\n", arg_desc->source_name);
+                        return -1;
+                    }
+                    (void)strncpy(buffer_name, arg_desc->source_name, name_len);
+                    buffer_name[name_len] = '\0';
+
+                    /* Find buffer by name or index */
+                    if (custom_buffers == NULL) {
+                        (void)fprintf(stderr, "Error: size_t arg '%s' requested but no custom buffers available\n",
+                                      arg_desc->source_name);
+                        return -1;
+                    }
+
+                    buffer_idx = -1;
+
+                    /* Check if buffer_name is a numeric index */
+                    if (buffer_name[0] >= '0' && buffer_name[0] <= '9') {
+                        /* Parse as integer index */
+                        buffer_idx = atoi(buffer_name);
+                        if (buffer_idx < 0 || buffer_idx >= custom_buffers->count) {
+                            (void)fprintf(stderr, "Error: Buffer index %d out of range (0-%d) in '%s'\n",
+                                          buffer_idx, custom_buffers->count - 1, arg_desc->source_name);
+                            return -1;
+                        }
+                    } else {
+                        /* Look up by name */
+                        for (int j = 0; j < custom_buffers->count; j++) {
+                            if (strcmp(custom_buffers->buffers[j].name, buffer_name) == 0) {
+                                buffer_idx = j;
+                                break;
+                            }
+                        }
+
+                        if (buffer_idx < 0) {
+                            (void)fprintf(stderr, "Error: Buffer '%s' not found for size_t arg\n", buffer_name);
+                            return -1;
+                        }
+                    }
+
+                    /* Set the buffer size as unsigned long (OpenCL kernel convention) */
+                    unsigned long buffer_size = (unsigned long)custom_buffers->buffers[buffer_idx].size_bytes;
+                    if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long), &buffer_size) != CL_SUCCESS) {
+                        (void)fprintf(stderr, "Error: Failed to set size_t arg for '%s' at arg %d\n",
+                                      buffer_name, arg_idx - 1);
+                        return -1;
+                    }
+                }
+                break;
+
+            case KERNEL_ARG_TYPE_SCALAR_FLOAT:
+                /* Handle float scalars if needed */
+                (void)fprintf(stderr, "Error: float scalars not yet implemented\n");
+                return -1;
+
+            default:
+                (void)fprintf(stderr, "Error: Unknown kernel arg type %d\n", arg_desc->arg_type);
+                return -1;
+        }
+    }
+
+    return 0;
+}
+
 int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
                     cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
-                    const size_t* local_work_size, int work_dim, HostType host_type,
-                    double* gpu_time_ms) {
+                    const size_t* local_work_size, int work_dim, const KernelConfig* kernel_config,
+                    HostType host_type, double* gpu_time_ms) {
     cl_int err;
     cl_event event;
     cl_ulong time_start;
@@ -317,15 +529,14 @@ int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_
         return -1;
     }
 
-    /* Validate algorithm provides argument setter */
-    if ((algo == NULL) || (algo->set_kernel_args == NULL)) {
-        (void)fprintf(stderr, "Error: Algorithm must provide set_kernel_args callback\n");
+    /* Set kernel arguments using kernel_config */
+    if (kernel_config == NULL) {
+        (void)fprintf(stderr, "Error: kernel_config is required for setting kernel arguments\n");
         return -1;
     }
 
-    /* Set kernel arguments using algorithm-specific setter */
-    if (algo->set_kernel_args(kernel, input_buf, output_buf, params) != 0) {
-        (void)fprintf(stderr, "Failed to set kernel arguments\n");
+    if (OpenclSetKernelArgs(kernel, input_buf, output_buf, params, kernel_config) != 0) {
+        (void)fprintf(stderr, "Failed to set kernel arguments from config\n");
         return -1;
     }
 

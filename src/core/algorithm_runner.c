@@ -133,6 +133,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             RuntimeBuffer* runtime_buf = &custom_buffers.buffers[i];
 
             /* Set buffer configuration metadata */
+            (void)strncpy(runtime_buf->name, buf_cfg->name, sizeof(runtime_buf->name) - 1);
+            runtime_buf->name[sizeof(runtime_buf->name) - 1] = '\0';
             runtime_buf->type = buf_cfg->type;
             runtime_buf->size_bytes = buf_cfg->size_bytes;
 
@@ -287,7 +289,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
 
     run_result = OpenclRunKernel(env, kernel, algo, input_buf, output_buf, &op_params,
                                  kernel_cfg->global_work_size, kernel_cfg->local_work_size,
-                                 kernel_cfg->work_dim, kernel_cfg->host_type, &gpu_time);
+                                 kernel_cfg->work_dim, kernel_cfg, kernel_cfg->host_type, &gpu_time);
     if (run_result != 0) {
         (void)fprintf(stderr, "Failed to run kernel\n");
         goto cleanup;
