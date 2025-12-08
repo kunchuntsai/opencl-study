@@ -644,14 +644,71 @@ int ParseConfig(const char* filename, Config* config) {
             } else if (strcmp(key, "host_type") == 0) {
                 kc->host_type = ParseHostType(value);
             } else if (strcmp(key, "kernel_args") == 0) {
-                /* Parse kernel arguments */
-                int arg_count = ParseKernelArgs(value, kc->kernel_args, MAX_KERNEL_ARGS);
-                if (arg_count < 0) {
-                    (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
-                    (void)fclose(fp);
-                    return -1;
+                /* Check if value starts with opening brace (multi-line format) */
+                char* trimmed_value = Trim(value);
+                if (trimmed_value[0] == '{' && trimmed_value[1] == '\0') {
+                    /* Multi-line format: read until closing brace */
+                    char multiline_buffer[MAX_LINE_LENGTH * 4]; /* Larger buffer for multi-line */
+                    size_t buffer_pos = 0;
+                    int found_closing_brace = 0;
+
+                    multiline_buffer[0] = '\0';
+
+                    /* Read lines until we find closing brace */
+                    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+                        trimmed = Trim(line);
+
+                        /* Check if this line is just the closing brace */
+                        if (strcmp(trimmed, "}") == 0) {
+                            found_closing_brace = 1;
+                            break;
+                        }
+
+                        /* Skip empty lines and comments */
+                        if ((trimmed[0] == '\0') || (trimmed[0] == '#') || (trimmed[0] == ';')) {
+                            continue;
+                        }
+
+                        /* Append this line to buffer with space separator */
+                        size_t line_len = strlen(trimmed);
+                        if (buffer_pos + line_len + 2 < sizeof(multiline_buffer)) {
+                            if (buffer_pos > 0) {
+                                multiline_buffer[buffer_pos] = ' ';
+                                buffer_pos++;
+                            }
+                            (void)strcpy(multiline_buffer + buffer_pos, trimmed);
+                            buffer_pos += line_len;
+                        } else {
+                            (void)fprintf(stderr, "Error: kernel_args too long\n");
+                            (void)fclose(fp);
+                            return -1;
+                        }
+                    }
+
+                    if (!found_closing_brace) {
+                        (void)fprintf(stderr, "Error: Missing closing brace for kernel_args\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+
+                    /* Parse accumulated multi-line value */
+                    int arg_count = ParseKernelArgs(multiline_buffer, kc->kernel_args, MAX_KERNEL_ARGS);
+                    if (arg_count < 0) {
+                        (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                    kc->kernel_arg_count = arg_count;
+                } else {
+                    /* Single-line format: parse directly */
+                    int arg_count = ParseKernelArgs(value, kc->kernel_args, MAX_KERNEL_ARGS);
+                    if (arg_count < 0) {
+                        (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+                    kc->kernel_arg_count = arg_count;
                 }
-                kc->kernel_arg_count = arg_count;
             } else {
                 /* Unknown key in kernel section */
                 /* Note: kernel_variant is auto-derived from section name (e.g.,
