@@ -168,16 +168,29 @@ typedef struct {
  * @brief Scalar argument configuration
  *
  * Describes a scalar argument to be passed to the kernel (e.g., filter_width,
- * filter_height). Scalars are set as kernel arguments sequentially after all
- * custom buffers.
+ * filter_height). Supports int, float, and size_t types.
+ *
+ * Config file format:
+ * [scalar.filter_width]
+ * type = int
+ * value = 5
+ *
+ * [scalar.sigma]
+ * type = float
+ * value = 1.5
  */
 typedef struct {
-    char name[64]; /**< Argument name */
-    int value;     /**< Scalar integer value */
+    char name[64];    /**< Argument name (from [scalar.NAME] section) */
+    ScalarType type;  /**< Value type (int, float, or size_t) */
+    union {
+        int int_value;     /**< Integer value */
+        float float_value; /**< Float value */
+        size_t size_value; /**< Size value */
+    } value;
 } ScalarArgConfig;
 
 /** Maximum number of scalar arguments */
-#define MAX_SCALAR_ARGS 16
+#define MAX_SCALAR_ARGS 32
 
 /**
  * @brief Verification configuration

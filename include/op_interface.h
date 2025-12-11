@@ -26,6 +26,9 @@
 /** Maximum number of custom buffers per algorithm */
 #define MAX_CUSTOM_BUFFERS 8
 
+/** Maximum number of custom scalars per algorithm */
+#define MAX_CUSTOM_SCALARS 32
+
 /** Buffer type enumeration */
 typedef enum {
     BUFFER_TYPE_NONE = 0,
@@ -78,6 +81,42 @@ typedef struct {
     int count;                                 /**< Number of buffers */
 } CustomBuffers;
 
+/** Scalar value type enumeration */
+typedef enum {
+    SCALAR_TYPE_NONE = 0,
+    SCALAR_TYPE_INT,   /**< 32-bit signed integer */
+    SCALAR_TYPE_FLOAT, /**< 32-bit floating point */
+    SCALAR_TYPE_SIZE   /**< size_t (platform-dependent) */
+} ScalarType;
+
+/**
+ * @brief Runtime scalar value structure
+ *
+ * Holds a named scalar value that can be passed to kernels.
+ * Supports int, float, and size_t types.
+ */
+typedef struct {
+    char name[64];    /**< Scalar name (from config) */
+    ScalarType type;  /**< Value type */
+    union {
+        int int_value;     /**< Integer value */
+        float float_value; /**< Float value */
+        size_t size_value; /**< Size value */
+    } value;
+} ScalarValue;
+
+/**
+ * @brief Collection of custom scalars for an algorithm
+ *
+ * Provides algorithm-specific scalar parameters without modifying OpParams.
+ * Lookup functions check built-in OpParams fields first, then fall back
+ * to custom scalars for extensibility.
+ */
+typedef struct {
+    ScalarValue scalars[MAX_CUSTOM_SCALARS]; /**< Array of scalar values */
+    int count;                               /**< Number of scalars */
+} CustomScalars;
+
 /**
  * @brief Generic parameters for image processing operations
  *
@@ -115,6 +154,9 @@ typedef struct {
 
     /* Custom buffers (for algorithms needing additional data) */
     CustomBuffers* custom_buffers; /**< Pointer to custom buffer collection (NULL if none) */
+
+    /* Custom scalars (for algorithm-specific parameters) */
+    CustomScalars* custom_scalars; /**< Pointer to custom scalar collection (NULL if none) */
 
     /* Kernel variant information */
     HostType host_type; /**< Host API type for current kernel variant */

@@ -249,6 +249,23 @@ static BufferType ParseBufferType(const char* str) {
     return BUFFER_TYPE_NONE;
 }
 
+/* Parse scalar type from string */
+static ScalarType ParseScalarTypeStr(const char* str) {
+    if (str == NULL) {
+        return SCALAR_TYPE_NONE;
+    }
+
+    if (strcmp(str, "int") == 0) {
+        return SCALAR_TYPE_INT;
+    } else if (strcmp(str, "float") == 0) {
+        return SCALAR_TYPE_FLOAT;
+    } else if ((strcmp(str, "size_t") == 0) || (strcmp(str, "size") == 0)) {
+        return SCALAR_TYPE_SIZE;
+    }
+
+    return SCALAR_TYPE_NONE;
+}
+
 /* Parse kernel argument type from string */
 static KernelArgType ParseKernelArgType(const char* str) {
     if (str == NULL) {
@@ -538,6 +555,9 @@ int ParseConfig(const char* filename, Config* config) {
                         (void)fclose(fp);
                         return -1;
                     }
+                    /* Initialize scalar config to zeros */
+                    (void)memset(&config->scalar_args[scalar_index], 0,
+                                 sizeof(ScalarArgConfig));
                     /* Parse scalar name from section name */
                     if (ParseScalarSection(section, config->scalar_args[scalar_index].name,
                                            sizeof(config->scalar_args[scalar_index].name)) != 0) {
@@ -547,6 +567,8 @@ int ParseConfig(const char* filename, Config* config) {
                         (void)fclose(fp);
                         return -1;
                     }
+                    /* Default to int type */
+                    config->scalar_args[scalar_index].type = SCALAR_TYPE_INT;
                 } else {
                     /* Other sections like [image] - reset indices */
                     kernel_index = -1;
@@ -748,13 +770,44 @@ int ParseConfig(const char* filename, Config* config) {
         } else if ((strncmp(section, "scalar.", 7U) == 0) && (scalar_index >= 0)) {
             ScalarArgConfig* scalar = &config->scalar_args[scalar_index];
 
-            if (strcmp(key, "value") == 0) {
-                if (SafeStrtol(value, &temp_long)) {
-                    scalar->value = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid scalar value: %s\n", value);
+            if (strcmp(key, "type") == 0) {
+                scalar->type = ParseScalarTypeStr(value);
+                if (scalar->type == SCALAR_TYPE_NONE) {
+                    (void)fprintf(stderr, "Error: Invalid scalar type: %s (expected int, float, or size_t)\n", value);
                     (void)fclose(fp);
                     return -1;
+                }
+            } else if (strcmp(key, "value") == 0) {
+                /* Parse value based on type (default to int if type not yet set) */
+                ScalarType effective_type = (scalar->type != SCALAR_TYPE_NONE) ? scalar->type : SCALAR_TYPE_INT;
+
+                switch (effective_type) {
+                    case SCALAR_TYPE_INT:
+                        if (SafeStrtol(value, &temp_long)) {
+                            scalar->value.int_value = (int)temp_long;
+                        } else {
+                            (void)fprintf(stderr, "Error: Invalid int scalar value: %s\n", value);
+                            (void)fclose(fp);
+                            return -1;
+                        }
+                        break;
+                    case SCALAR_TYPE_FLOAT:
+                        scalar->value.float_value = (float)atof(value);
+                        break;
+                    case SCALAR_TYPE_SIZE:
+                        if (EvalExpression(value, &temp_size) == 0) {
+                            scalar->value.size_value = temp_size;
+                        } else {
+                            (void)fprintf(stderr, "Error: Invalid size_t scalar value: %s\n", value);
+                            (void)fclose(fp);
+                            return -1;
+                        }
+                        break;
+                    default:
+                        /* Should not happen */
+                        (void)fprintf(stderr, "Error: Unknown scalar type\n");
+                        (void)fclose(fp);
+                        return -1;
                 }
             } else {
                 /* Unknown key in scalar section */

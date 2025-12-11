@@ -30,6 +30,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     cl_mem input_buf = NULL;
     cl_mem output_buf = NULL;
     CustomBuffers custom_buffers = {0};
+    CustomScalars custom_scalars = {0};
     clock_t ref_start;
     clock_t ref_end;
     double ref_time;
@@ -216,6 +217,49 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
 
         /* Make custom buffer data available to reference implementation */
         op_params.custom_buffers = &custom_buffers;
+    }
+
+    /* Step 0b: Populate custom scalars from config */
+    if (config->scalar_arg_count > 0) {
+        (void)printf("\n=== Loading Custom Scalars ===\n");
+
+        for (i = 0; i < config->scalar_arg_count; i++) {
+            const ScalarArgConfig* scalar_cfg = &config->scalar_args[i];
+            ScalarValue* scalar_val = &custom_scalars.scalars[i];
+
+            /* Copy scalar configuration to runtime structure */
+            (void)strncpy(scalar_val->name, scalar_cfg->name, sizeof(scalar_val->name) - 1);
+            scalar_val->name[sizeof(scalar_val->name) - 1] = '\0';
+            scalar_val->type = scalar_cfg->type;
+
+            /* Copy value based on type */
+            switch (scalar_cfg->type) {
+                case SCALAR_TYPE_INT:
+                    scalar_val->value.int_value = scalar_cfg->value.int_value;
+                    (void)printf("Scalar '%s': int = %d\n", scalar_cfg->name,
+                                 scalar_cfg->value.int_value);
+                    break;
+                case SCALAR_TYPE_FLOAT:
+                    scalar_val->value.float_value = scalar_cfg->value.float_value;
+                    (void)printf("Scalar '%s': float = %f\n", scalar_cfg->name,
+                                 (double)scalar_cfg->value.float_value);
+                    break;
+                case SCALAR_TYPE_SIZE:
+                    scalar_val->value.size_value = scalar_cfg->value.size_value;
+                    (void)printf("Scalar '%s': size_t = %zu\n", scalar_cfg->name,
+                                 scalar_cfg->value.size_value);
+                    break;
+                default:
+                    (void)fprintf(stderr, "Warning: Unknown scalar type for '%s'\n",
+                                  scalar_cfg->name);
+                    break;
+            }
+
+            custom_scalars.count++;
+        }
+
+        /* Make custom scalars available via OpParams */
+        op_params.custom_scalars = &custom_scalars;
     }
 
     /* Step 1: Run C reference implementation */

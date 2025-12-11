@@ -30,21 +30,95 @@ static const OpParamsIntField kOpParamsIntFields[] = {
 
 /**
  * @brief Lookup an int field in OpParams by name
+ *
+ * First checks built-in OpParams fields (src_width, dst_height, etc.),
+ * then falls back to custom_scalars for algorithm-specific parameters.
+ *
  * @param params The OpParams struct to lookup from
  * @param field_name The name of the field to find
  * @return Pointer to the int field, or NULL if not found
  */
 static const int* OpParamsLookupInt(const OpParams* params, const char* field_name) {
     const OpParamsIntField* field;
+    int i;
 
     if ((params == NULL) || (field_name == NULL)) {
         return NULL;
     }
 
+    /* Check built-in fields first (fast path for common parameters) */
     for (field = kOpParamsIntFields; field->name != NULL; field++) {
         if (strcmp(field->name, field_name) == 0) {
             /* Calculate pointer to field using offset */
             return (const int*)((const char*)params + field->offset);
+        }
+    }
+
+    /* Fallback to custom_scalars for algorithm-specific parameters */
+    if (params->custom_scalars != NULL) {
+        for (i = 0; i < params->custom_scalars->count; i++) {
+            if ((params->custom_scalars->scalars[i].type == SCALAR_TYPE_INT) &&
+                (strcmp(params->custom_scalars->scalars[i].name, field_name) == 0)) {
+                return &params->custom_scalars->scalars[i].value.int_value;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * @brief Lookup a float field in custom_scalars by name
+ *
+ * Float fields are only supported via custom_scalars (no built-in float fields).
+ *
+ * @param params The OpParams struct to lookup from
+ * @param field_name The name of the field to find
+ * @return Pointer to the float field, or NULL if not found
+ */
+static const float* OpParamsLookupFloat(const OpParams* params, const char* field_name) {
+    int i;
+
+    if ((params == NULL) || (field_name == NULL)) {
+        return NULL;
+    }
+
+    /* Float fields are only in custom_scalars */
+    if (params->custom_scalars != NULL) {
+        for (i = 0; i < params->custom_scalars->count; i++) {
+            if ((params->custom_scalars->scalars[i].type == SCALAR_TYPE_FLOAT) &&
+                (strcmp(params->custom_scalars->scalars[i].name, field_name) == 0)) {
+                return &params->custom_scalars->scalars[i].value.float_value;
+            }
+        }
+    }
+
+    return NULL;
+}
+
+/**
+ * @brief Lookup a size_t field in custom_scalars by name
+ *
+ * Size_t fields are only supported via custom_scalars (no built-in size_t fields).
+ *
+ * @param params The OpParams struct to lookup from
+ * @param field_name The name of the field to find
+ * @return Pointer to the size_t field, or NULL if not found
+ */
+static const size_t* OpParamsLookupSize(const OpParams* params, const char* field_name) {
+    int i;
+
+    if ((params == NULL) || (field_name == NULL)) {
+        return NULL;
+    }
+
+    /* Size_t fields are only in custom_scalars */
+    if (params->custom_scalars != NULL) {
+        for (i = 0; i < params->custom_scalars->count; i++) {
+            if ((params->custom_scalars->scalars[i].type == SCALAR_TYPE_SIZE) &&
+                (strcmp(params->custom_scalars->scalars[i].name, field_name) == 0)) {
+                return &params->custom_scalars->scalars[i].value.size_value;
+            }
         }
     }
 
@@ -462,74 +536,93 @@ int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
             }
 
             case KERNEL_ARG_TYPE_SCALAR_SIZE:
-                /* Handle size_t scalars - used for buffer sizes */
-                /* Source name should be in format "buffer_name.size" or "index.size" */
+                /* Handle size_t scalars - either buffer size or custom scalar */
                 {
-                    char buffer_name[64];
                     const char* dot = strchr(arg_desc->source_name, '.');
 
-                    if (dot == NULL || strcmp(dot, ".size") != 0) {
-                        (void)fprintf(stderr, "Error: size_t source must be 'buffer_name.size' or 'index.size', got '%s'\n",
-                                      arg_desc->source_name);
-                        return -1;
-                    }
+                    if (dot != NULL && strcmp(dot, ".size") == 0) {
+                        /* Buffer size format: "buffer_name.size" or "index.size" */
+                        char buffer_name[64];
 
-                    /* Extract buffer name or index */
-                    size_t name_len = (size_t)(dot - arg_desc->source_name);
-                    if (name_len >= sizeof(buffer_name)) {
-                        (void)fprintf(stderr, "Error: Buffer name/index too long in '%s'\n", arg_desc->source_name);
-                        return -1;
-                    }
-                    (void)strncpy(buffer_name, arg_desc->source_name, name_len);
-                    buffer_name[name_len] = '\0';
-
-                    /* Find buffer by name or index */
-                    if (custom_buffers == NULL) {
-                        (void)fprintf(stderr, "Error: size_t arg '%s' requested but no custom buffers available\n",
-                                      arg_desc->source_name);
-                        return -1;
-                    }
-
-                    buffer_idx = -1;
-
-                    /* Check if buffer_name is a numeric index */
-                    if (buffer_name[0] >= '0' && buffer_name[0] <= '9') {
-                        /* Parse as integer index */
-                        buffer_idx = atoi(buffer_name);
-                        if (buffer_idx < 0 || buffer_idx >= custom_buffers->count) {
-                            (void)fprintf(stderr, "Error: Buffer index %d out of range (0-%d) in '%s'\n",
-                                          buffer_idx, custom_buffers->count - 1, arg_desc->source_name);
+                        /* Extract buffer name or index */
+                        size_t name_len = (size_t)(dot - arg_desc->source_name);
+                        if (name_len >= sizeof(buffer_name)) {
+                            (void)fprintf(stderr, "Error: Buffer name/index too long in '%s'\n", arg_desc->source_name);
                             return -1;
                         }
-                    } else {
-                        /* Look up by name */
-                        for (int j = 0; j < custom_buffers->count; j++) {
-                            if (strcmp(custom_buffers->buffers[j].name, buffer_name) == 0) {
-                                buffer_idx = j;
-                                break;
+                        (void)strncpy(buffer_name, arg_desc->source_name, name_len);
+                        buffer_name[name_len] = '\0';
+
+                        /* Find buffer by name or index */
+                        if (custom_buffers == NULL) {
+                            (void)fprintf(stderr, "Error: size_t arg '%s' requested but no custom buffers available\n",
+                                          arg_desc->source_name);
+                            return -1;
+                        }
+
+                        buffer_idx = -1;
+
+                        /* Check if buffer_name is a numeric index */
+                        if (buffer_name[0] >= '0' && buffer_name[0] <= '9') {
+                            /* Parse as integer index */
+                            buffer_idx = atoi(buffer_name);
+                            if (buffer_idx < 0 || buffer_idx >= custom_buffers->count) {
+                                (void)fprintf(stderr, "Error: Buffer index %d out of range (0-%d) in '%s'\n",
+                                              buffer_idx, custom_buffers->count - 1, arg_desc->source_name);
+                                return -1;
+                            }
+                        } else {
+                            /* Look up by name */
+                            for (int j = 0; j < custom_buffers->count; j++) {
+                                if (strcmp(custom_buffers->buffers[j].name, buffer_name) == 0) {
+                                    buffer_idx = j;
+                                    break;
+                                }
+                            }
+
+                            if (buffer_idx < 0) {
+                                (void)fprintf(stderr, "Error: Buffer '%s' not found for size_t arg\n", buffer_name);
+                                return -1;
                             }
                         }
 
-                        if (buffer_idx < 0) {
-                            (void)fprintf(stderr, "Error: Buffer '%s' not found for size_t arg\n", buffer_name);
+                        /* Set the buffer size as unsigned long (OpenCL kernel convention) */
+                        unsigned long buffer_size = (unsigned long)custom_buffers->buffers[buffer_idx].size_bytes;
+                        if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long), &buffer_size) != CL_SUCCESS) {
+                            (void)fprintf(stderr, "Error: Failed to set size_t arg for '%s' at arg %d\n",
+                                          buffer_name, arg_idx - 1);
                             return -1;
                         }
-                    }
-
-                    /* Set the buffer size as unsigned long (OpenCL kernel convention) */
-                    unsigned long buffer_size = (unsigned long)custom_buffers->buffers[buffer_idx].size_bytes;
-                    if (clSetKernelArg(kernel, arg_idx++, sizeof(unsigned long), &buffer_size) != CL_SUCCESS) {
-                        (void)fprintf(stderr, "Error: Failed to set size_t arg for '%s' at arg %d\n",
-                                      buffer_name, arg_idx - 1);
-                        return -1;
+                    } else {
+                        /* Custom scalar size_t: lookup in custom_scalars */
+                        const size_t* value_ptr = OpParamsLookupSize(params, arg_desc->source_name);
+                        if (value_ptr == NULL) {
+                            (void)fprintf(stderr, "Error: Unknown size_t scalar source '%s'\n", arg_desc->source_name);
+                            return -1;
+                        }
+                        if (clSetKernelArg(kernel, arg_idx++, sizeof(size_t), value_ptr) != CL_SUCCESS) {
+                            (void)fprintf(stderr, "Error: Failed to set scalar size_t '%s' at arg %d\n",
+                                          arg_desc->source_name, arg_idx - 1);
+                            return -1;
+                        }
                     }
                 }
                 break;
 
-            case KERNEL_ARG_TYPE_SCALAR_FLOAT:
-                /* Handle float scalars if needed */
-                (void)fprintf(stderr, "Error: float scalars not yet implemented\n");
-                return -1;
+            case KERNEL_ARG_TYPE_SCALAR_FLOAT: {
+                /* Lookup float field in custom_scalars */
+                const float* value_ptr = OpParamsLookupFloat(params, arg_desc->source_name);
+                if (value_ptr == NULL) {
+                    (void)fprintf(stderr, "Error: Unknown float scalar source '%s'\n", arg_desc->source_name);
+                    return -1;
+                }
+                if (clSetKernelArg(kernel, arg_idx++, sizeof(float), value_ptr) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set scalar float '%s' at arg %d\n",
+                                  arg_desc->source_name, arg_idx - 1);
+                    return -1;
+                }
+                break;
+            }
 
             default:
                 (void)fprintf(stderr, "Error: Unknown kernel arg type %d\n", arg_desc->arg_type);
