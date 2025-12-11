@@ -439,6 +439,9 @@ int ParseConfig(const char* filename, Config* config) {
     config->num_kernels = 0;
     config->custom_buffer_count = 0;
     config->scalar_arg_count = 0;
+    /* Initialize verification config with defaults (exact match) */
+    config->verification.tolerance = 0.0f;
+    config->verification.error_rate_threshold = 0.0f;
     /* Note: input_image_count, input_images[], output_image_count, and output_images[] preserved */
 
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -585,6 +588,14 @@ int ParseConfig(const char* filename, Config* config) {
                 config->output_image_id[sizeof(config->output_image_id) - 1U] = '\0';
             } else {
                 /* Unknown key in output section - ignore */
+            }
+        } else if (strcmp(section, "verification") == 0) {
+            if (strcmp(key, "tolerance") == 0) {
+                config->verification.tolerance = (float)atof(value);
+            } else if (strcmp(key, "error_rate_threshold") == 0) {
+                config->verification.error_rate_threshold = (float)atof(value);
+            } else {
+                /* Unknown key in verification section - ignore */
             }
         } else if (strcmp(section, "image") == 0) {
             if (strcmp(key, "op_id") == 0) {

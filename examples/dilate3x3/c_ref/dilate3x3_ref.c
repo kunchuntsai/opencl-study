@@ -3,7 +3,6 @@
 #include "op_interface.h"
 #include "op_registry.h"
 #include "utils/safe_ops.h"
-#include "utils/verify.h"
 
 /* Helper function to clamp coordinates to image bounds */
 static int ClampCoord(int coord, int max_coord) {
@@ -102,22 +101,3 @@ void Dilate3x3Ref(const OpParams* params) {
   }
 }
 
-/* Verification: check if GPU and reference outputs match exactly */
-int Dilate3x3Verify(const OpParams* params, float* max_error) {
-  int result;
-
-  if (params == NULL) {
-    return 0;
-  }
-
-  /* Use tolerance of 0 for exact match */
-  result = VerifyExactMatch(params->gpu_output, params->ref_output, params->dst_width,
-                              params->dst_height, 0);
-
-  /* Set max_error to 0 if verification passed */
-  if (max_error != NULL) {
-    *max_error = (result == 1) ? 0.0f : 1.0f;
-  }
-
-  return result;
-}

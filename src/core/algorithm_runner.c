@@ -350,10 +350,14 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         goto cleanup;
     }
 
-    /* Step 7: Verify GPU results against C reference */
+    /* Step 7: Verify GPU results against C reference using config-driven tolerance */
     op_params.gpu_output = gpu_output_buffer;
     op_params.ref_output = ref_output_buffer;
-    passed = algo->verify_result(&op_params, &max_error);
+    passed = VerifyWithTolerance(gpu_output_buffer, ref_output_buffer,
+                                 op_params.dst_width, op_params.dst_height,
+                                 config->verification.tolerance,
+                                 config->verification.error_rate_threshold,
+                                 &max_error);
 
     /* Display results */
     (void)printf("\n=== Results ===\n");

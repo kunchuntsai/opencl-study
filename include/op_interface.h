@@ -126,13 +126,14 @@ typedef struct {
  * @brief Algorithm interface for image processing operations
  *
  * Each algorithm (dilate, gaussian, etc.) implements this interface
- * by providing function pointers for reference implementation and
- * result verification.
+ * by providing a function pointer for the reference implementation.
  *
  * The interface uses OpParams to support algorithms with varying
  * parameter requirements while maintaining a consistent API.
  *
  * Kernel arguments are configured via .ini files using the kernel_args field.
+ * Verification is configured via [verification] section in .ini files
+ * with tolerance and error_rate_threshold parameters.
  */
 typedef struct {
     char name[64]; /**< Human-readable name (e.g., "Dilate 3x3") */
@@ -156,17 +157,4 @@ typedef struct {
      * @param[in] params Operation parameters (input, output, dimensions, etc.)
      */
     void (*reference_impl)(const OpParams* params);
-
-    /**
-     * @brief Verify GPU result against reference
-     *
-     * Compares GPU output with reference implementation output
-     * and calculates error metrics. Dimensions are provided
-     * via OpParams to support operations with different input/output sizes.
-     *
-     * @param[in] params Operation parameters (contains dimensions and buffers)
-     * @param[out] max_error Maximum absolute difference found
-     * @return 1 if verification passed, 0 if failed
-     */
-    int (*verify_result)(const OpParams* params, float* max_error);
 } Algorithm;

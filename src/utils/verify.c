@@ -65,5 +65,5 @@ int VerifyWithTolerance(unsigned char* gpu_output, unsigned char* ref_output, in
     }
 
     error_rate = ((float)errors / (float)total_pixels);
-    return (error_rate < error_rate_threshold) ? 1 : 0;
+    return (error_rate <= error_rate_threshold) ? 1 : 0;
 }

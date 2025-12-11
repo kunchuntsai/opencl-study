@@ -180,6 +180,18 @@ typedef struct {
 #define MAX_SCALAR_ARGS 16
 
 /**
+ * @brief Verification configuration
+ *
+ * Specifies how GPU output should be verified against reference output.
+ * This replaces algorithm-specific verify_result callbacks with config-driven
+ * verification using generic library functions.
+ */
+typedef struct {
+    float tolerance;             /**< Max per-pixel difference allowed (e.g., 0 for exact, 1 for ±1) */
+    float error_rate_threshold;  /**< Max fraction of pixels that can exceed tolerance (e.g., 0.001 = 0.1%) */
+} VerificationConfig;
+
+/**
  * @brief Complete configuration parsed from config file
  *
  * Contains all settings needed to run the OpenCL image processing
@@ -209,6 +221,9 @@ typedef struct {
     /* Scalar argument configuration */
     ScalarArgConfig scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
     int scalar_arg_count;                         /**< Number of scalar arguments configured */
+
+    /* Verification configuration */
+    VerificationConfig verification; /**< Verification settings (tolerance, error rate) */
 } Config;
 
 /**

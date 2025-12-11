@@ -1,6 +1,6 @@
 # OpenCL Codebase Architecture
 
-Visual diagrams to understand the system architecture and execution flow.
+Visual diagrams to understand the SDK-ready system architecture and execution flow.
 
 ---
 
@@ -15,21 +15,32 @@ Visual diagrams to understand the system architecture and execution flow.
                                 │
                                 ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                     EXECUTION PIPELINE                               │
-│                   (src/algorithm_runner.c)                           │
-│     • Algorithm orchestration  • Buffer mgmt  • Verification         │
+│                   LIBRARY: libopencl_imgproc                         │
+│                 (Core + Platform + Utils)                            │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │              EXECUTION PIPELINE (core/)                         │ │
+│ │            (src/core/algorithm_runner.c)                        │ │
+│ │   • Algorithm orchestration  • Buffer mgmt  • Verification      │ │
+│ │                                                                 │ │
+│ │  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐         │ │
+│ │  │  Algorithm   │  │   OpenCL     │  │    Cache     │         │ │
+│ │  │   Registry   │  │    Utils     │  │   Manager    │         │ │
+│ │  │   (core/)    │  │  (platform/) │  │  (platform/) │         │ │
+│ │  └──────────────┘  └──────────────┘  └──────────────┘         │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
 │                                                                       │
-│  ┌──────────────┐  ┌──────────────┐  ┌──────────────┐              │
-│  │  Algorithm   │  │   OpenCL     │  │    Cache     │              │
-│  │   Registry   │  │    Utils     │  │   Manager    │              │
-│  └──────────────┘  └──────────────┘  └──────────────┘              │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │                  UTILITIES (utils/)                             │ │
+│ │  • Config parser  • Image I/O  • Verification  • Safe ops      │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
          │                      │                     │
          │                      │                     │
          ▼                      ▼                     ▼
 ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
 │   ALGORITHMS     │  │  OPENCL KERNELS  │  │   TEST DATA      │
-│  (Plugin System) │  │  (GPU Execution) │  │  (Images/Cache)  │
+│ (examples/ dir)  │  │  (GPU Execution) │  │  (Images/Cache)  │
+│  User Plugins    │  │                  │  │                  │
 └──────────────────┘  └──────────────────┘  └──────────────────┘
          │                      │                     │
          │                      │                     │
@@ -41,9 +52,14 @@ Visual diagrams to understand the system architecture and execution flow.
 └────────┘ └─────────┘ └────────┘ └────────┘ └────────┘ └────────┘
 ```
 
+**Key Design Principles**:
+- Library separation: Core + Platform + Utils packaged as `libopencl_imgproc`
+- Algorithms in `examples/` (user code, not part of library)
+- Clean separation for SDK distribution
+
 ---
 
-## 2. Module Organization & Dependencies
+## 2. Module Organization & Dependencies (Clean Architecture)
 
 ```
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -55,53 +71,105 @@ Visual diagrams to understand the system architecture and execution flow.
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                      EXECUTION PIPELINE LAYER                        │
-│                    (src/algorithm_runner.c/.h)                       │
-│    • Algorithm orchestration • Buffer management • Verification      │
+│                      USER ALGORITHM LAYER                            │
+│                        (examples/ directory)                         │
+│  ┌─────────────────┐  ┌─────────────────┐                          │
+│  │ examples/dilate/│  │examples/gaussian│                          │
+│  │  c_ref/         │  │  c_ref/         │                          │
+│  │  dilate3x3_ref.c│  │  gaussian5x5_   │                          │
+│  │                 │  │    ref.c        │                          │
+│  │ • C reference   │  │ • C reference   │                          │
+│  │   impl ONLY     │  │   impl ONLY     │                          │
+│  │                 │  │                 │                          │
+│  │  Depends ONLY   │  │  Depends ONLY   │                          │
+│  │  on include/    │  │  on include/    │                          │
+│  └─────────────────┘  └─────────────────┘                          │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
                     ┌───────────────┼───────────────┐
                     ▼               ▼               ▼
 ┌─────────────────────────────────────────────────────────────────────┐
-│                         ALGORITHM LAYER                              │
+│                    PUBLIC API LAYER (Stable Interface)               │
+│                         (include/ directory)                         │
 │                                                                       │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐    │
-│  │  src/dilate/    │  │ src/gaussian/   │  │  src/resize/    │    │
-│  │  dilate3x3.c    │  │ gaussian5x5.c   │  │  resize.c       │    │
-│  │  • C reference  │  │  • C reference  │  │  • C reference  │    │
-│  │  • Verification │  │  • Verification │  │  • Verification │    │
-│  │  • Set args     │  │  • Set args     │  │  • Set args     │    │
-│  │                 │  │                 │  │                 │    │
-│  │  c_ref/  cl/    │  │  c_ref/  cl/    │  │  c_ref/  cl/    │    │
-│  │  *.c     *.cl   │  │  *.c     *.cl   │  │  *.c     *.cl   │    │
-│  └─────────────────┘  └─────────────────┘  └─────────────────┘    │
+│  ┌──────────────────────────────────────────────────────────────┐  │
+│  │ include/op_interface.h    ← Algorithm Interface               │  │
+│  │ typedef struct {                                               │  │
+│  │   char name[64], id[32];                                       │  │
+│  │   void (*reference_impl)(OpParams*);   // C reference only!   │  │
+│  │ } Algorithm;                                                   │  │
+│  │                                                                │  │
+│  │ NOTE: kernel_args and verification are config-driven via INI  │  │
+│  └──────────────────────────────────────────────────────────────┘  │
+│                                                                       │
+│  ┌──────────────────┐  ┌──────────────────┐                        │
+│  │ op_registry.h    │  │algorithm_runner.h│                        │
+│  │ • Registration   │  │ • Forward decls  │                        │
+│  │   macros         │  │   only           │                        │
+│  └──────────────────┘  └──────────────────┘                        │
+│                                                                       │
+│  ┌──────────────────────────────────────────┐                      │
+│  │ include/utils/ (Public Utilities)         │                      │
+│  │  • safe_ops.h    - Safe arithmetic        │                      │
+│  │  • verify.h      - Verification functions │                      │
+│  └──────────────────────────────────────────┘                      │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
 ┌─────────────────────────────────────────────────────────────────────┐
-│                       INFRASTRUCTURE LAYER (src/utils/)              │
+│        LIBRARY: libopencl_imgproc.so/.a (Internal Implementation)   │
 │                                                                       │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐  │
-│  │ op_registry.c/.h │  │opencl_utils.c/.h │  │  config.c/.h    │  │
-│  │ • Algorithm reg  │  │ • Platform init  │  │ • INI parsing   │  │
-│  │ • Registry mgmt  │  │ • Kernel exec    │  │ • Buffer config │  │
-│  │                  │  │                  │  │ • Path utils    │  │
-│  └──────────────────┘  └──────────────────┘  └─────────────────┘  │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │                  CORE LAYER (Business Logic)                    │ │
+│ │                      (src/core/)                                │ │
+│ │                                                                 │ │
+│ │  ┌──────────────────┐  ┌──────────────────┐                   │ │
+│ │  │ algorithm_       │  │ op_registry.c    │                   │ │
+│ │  │   runner.c       │  │ • Register algos │                   │ │
+│ │  │ • Orchestration  │  │ • Lookup by ID   │                   │ │
+│ │  │ • Buffer mgmt    │  │                  │                   │ │
+│ │  │ • Verification   │  │                  │                   │ │
+│ │  └──────────────────┘  └──────────────────┘                   │ │
+│ │                                                                 │ │
+│ │  Depends on: include/, platform/, utils/                       │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
 │                                                                       │
-│  ┌──────────────────┐  ┌──────────────────┐  ┌─────────────────┐  │
-│  │  image_io.c/.h   │  │cache_manager.c/.h│  │  safe_ops.h     │  │
-│  │ • Image I/O      │  │ • Cache mgmt     │  │ • Safe ops      │  │
-│  └──────────────────┘  └──────────────────┘  └─────────────────┘  │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │               PLATFORM LAYER (OpenCL Abstraction)               │ │
+│ │                     (src/platform/)                             │ │
+│ │                                                                 │ │
+│ │  ┌──────────────────┐  ┌──────────────────┐                   │ │
+│ │  │opencl_utils.c/.h │  │cache_manager.c/.h│                   │ │
+│ │  │ • Platform init  │  │ • Binary cache   │                   │ │
+│ │  │ • Kernel build   │  │ • Golden cache   │                   │ │
+│ │  │ • Execution      │  │                  │                   │ │
+│ │  └──────────────────┘  └──────────────────┘                   │ │
+│ │                                                                 │ │
+│ │  ┌──────────────────────────────┐                              │ │
+│ │  │ cl_extension_api.c/.h        │                              │ │
+│ │  │ • Custom host API framework  │                              │ │
+│ │  └──────────────────────────────┘                              │ │
+│ │                                                                 │ │
+│ │  Depends on: include/, utils/                                  │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
 │                                                                       │
-│  ┌──────────────────────────────────────────────────────────────┐  │
-│  │ op_interface.h    ← Algorithm Interface                       │  │
-│  │                                                                │  │
-│  │ typedef struct {                                               │  │
-│  │   char name[64], id[32];                                       │  │
-│  │   void (*reference_impl)(OpParams*);                           │  │
-│  │   int (*verify_result)(OpParams*, float*);                     │  │
-│  │   int (*set_kernel_args)(cl_kernel, cl_mem, cl_mem, OpParams);│  │
-│  │ } Algorithm;                                                   │  │
-│  └──────────────────────────────────────────────────────────────┘  │
+│ ┌─────────────────────────────────────────────────────────────────┐ │
+│ │              UTILITIES LAYER (Infrastructure)                   │ │
+│ │                     (src/utils/)                                │ │
+│ │                                                                 │ │
+│ │  ┌──────────────────┐  ┌──────────────────┐                   │ │
+│ │  │  config.c/.h     │  │  image_io.c/.h   │                   │ │
+│ │  │ • INI parsing    │  │ • Image I/O      │                   │ │
+│ │  │ • Buffer config  │  │ • Raw format     │                   │ │
+│ │  └──────────────────┘  └──────────────────┘                   │ │
+│ │                                                                 │ │
+│ │  ┌──────────────────┐                                          │ │
+│ │  │  verify.c        │                                          │ │
+│ │  │ • Verification   │                                          │ │
+│ │  │   impls          │                                          │ │
+│ │  └──────────────────┘                                          │ │
+│ │                                                                 │ │
+│ │  Depends on: include/utils/                                    │ │
+│ └─────────────────────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────────────────────┘
                                     │
 ┌─────────────────────────────────────────────────────────────────────┐
@@ -109,6 +177,13 @@ Visual diagrams to understand the system architecture and execution flow.
 │  • OpenCL Runtime  • libc (MISRA-C)  • File System                  │
 └─────────────────────────────────────────────────────────────────────┘
 ```
+
+**Key Design Principles**:
+- **Layer separation**: Core, Platform, Utils separated into `src/` subdirectories
+- **Public API**: `include/` contains stable public API (interfaces only)
+- **User code**: `examples/` depends ONLY on `include/` (no internal headers)
+- **Library boundary**: Everything in `src/` packaged as library
+- **SDK-ready**: Can distribute library + headers, users implement algorithms
 
 ---
 
@@ -184,15 +259,17 @@ END: Return to menu or exit
 ```
 ┌───────────────────────────────────────────────────────────────────┐
 │                      ALGORITHM INTERFACE                          │
-│                    (src/utils/op_interface.h)                     │
+│                    (include/op_interface.h)                       │
+│                        [PUBLIC API]                               │
 │                                                                   │
 │  typedef struct {                                                 │
 │      char name[64], id[32];       /* Display & ID */              │
-│      void (*reference_impl)(OpParams*);  /* C reference */        │
-│      int (*verify_result)(OpParams*, float*);  /* Verification */ │
-│      int (*set_kernel_args)(cl_kernel, cl_mem, cl_mem,            │
-│                             const OpParams*);  /* Set args */     │
+│      void (*reference_impl)(OpParams*);  /* C reference ONLY */   │
 │  } Algorithm;                                                     │
+│                                                                   │
+│  NOTE: kernel_args and verification are CONFIG-DRIVEN via INI:   │
+│  - [kernel.v*] kernel_args = {...}  → sets OpenCL kernel args    │
+│  - [verification] tolerance, error_rate_threshold → verification │
 │                                                                   │
 │  OpParams includes:                                               │
 │  - host_type: HOST_TYPE_STANDARD or HOST_TYPE_CL_EXTENSION       │
@@ -205,35 +282,49 @@ END: Return to menu or exit
               │               │               │
               ▼               ▼               ▼
 ┌──────────────────┐  ┌──────────────────┐  ┌──────────────────┐
-│   DILATE 3x3     │  │  GAUSSIAN 5x5    │  │    RESIZE        │
+│   DILATE 3x3     │  │  GAUSSIAN 5x5    │  │  [USER ALGO]     │
+│ (examples/dilate)│  │(examples/gaussian│  │ (examples/...)   │
 │                  │  │                  │  │                  │
 │  reference_impl: │  │  reference_impl: │  │  reference_impl: │
-│  • CPU dilate    │  │  • CPU gaussian  │  │  • CPU resize    │
+│  • CPU dilate    │  │  • CPU gaussian  │  │  • CPU impl      │
 │                  │  │                  │  │                  │
-│  verify_result:  │  │  verify_result:  │  │  verify_result:  │
-│  • Exact match   │  │  • ±1 tolerance  │  │  • Custom tol    │
+│  CONFIG-DRIVEN:  │  │  CONFIG-DRIVEN:  │  │  CONFIG-DRIVEN:  │
+│  • kernel_args   │  │  • kernel_args   │  │  • kernel_args   │
+│  • verification  │  │  • verification  │  │  • verification  │
 │                  │  │                  │  │                  │
-│  set_kernel_args:│  │  set_kernel_args:│  │  set_kernel_args:│
-│  • input, output │  │  • input, output │  │  • input, output │
-│  • w, h, stride  │  │  • buffers, w, h │  │  • src/dst dims  │
+│  Uses ONLY:      │  │  Uses ONLY:      │  │  Uses ONLY:      │
+│  include/*.h     │  │  include/*.h     │  │  include/*.h     │
+│  include/utils/  │  │  include/utils/  │  │  include/utils/  │
 └──────────────────┘  └──────────────────┘  └──────────────────┘
         │                     │                     │
         └─────────────────────┼─────────────────────┘
                               ▼
               ┌───────────────────────────────┐
               │   ALGORITHM REGISTRY          │
-              │  (src/utils/op_registry.c)    │
+              │  (src/core/op_registry.c)     │
+              │      [LIBRARY CODE]           │
               │                               │
-              │  algorithms[] = {             │
-              │    &dilate3x3_algorithm,      │
-              │    &gaussian5x5_algorithm,    │
-              │    &resize_algorithm,         │
-              │    NULL                       │
+              │  RegisterAlgorithm() API      │
+              │  GetAlgorithm() lookup        │
+              └───────────────────────────────┘
+                              │
+                              ▼
+              ┌───────────────────────────────┐
+              │   AUTO REGISTRATION           │
+              │  (src/core/auto_registry.c)   │
+              │    [GENERATED BY SCRIPT]      │
+              │                               │
+              │  extern Algorithm dilate...;  │
+              │  extern Algorithm gaussian...;│
+              │                               │
+              │  AutoRegisterAlgorithms() {   │
+              │    RegisterAlgorithm(&dilate);│
+              │    RegisterAlgorithm(&gauss); │
               │  }                            │
               └───────────────────────────────┘
                               │
                               ▼
-                Used by main.c for menu
+              Used by main.c for execution
 ```
 
 ---
@@ -241,20 +332,17 @@ END: Return to menu or exit
 ## 5. Per-Algorithm Directory Structure
 
 ```
-src/gaussian/                        ← Self-contained algorithm module
-│
-├── gaussian5x5.h                    ← Public interface
-├── gaussian5x5.c                    ← Algorithm implementation
-│   ├── gaussian5x5_reference()      → C reference impl
-│   ├── gaussian5x5_verify()         → ±1 tolerance verification
-│   └── gaussian5x5_set_args()       → Set kernel arguments
+examples/gaussian/                   ← User algorithm module (NOT in library)
 │
 ├── c_ref/                           ← CPU reference implementation
-│   ├── gaussian5x5_ref.h
 │   └── gaussian5x5_ref.c
+│       └── Gaussian5x5Ref()         → C reference impl ONLY!
+│                                      (verification & kernel args are config-driven)
 │
 └── cl/                              ← GPU kernel variants
-    └── gaussian0.cl                 → Kernel implementation
+    ├── gaussian0.cl                 → Kernel variant 0
+    ├── gaussian1.cl                 → Kernel variant 1 (optimized)
+    └── gaussian2.cl                 → Kernel variant 2 (separable)
 
 Configuration (config/gaussian5x5.ini):
 ───────────────────────────────────────
@@ -282,28 +370,32 @@ data_type = float
 num_elements = 5
 source_file = test_data/gaussian5x5/kernel_y.bin
 
+# Verification settings (config-driven, no C code needed!)
+[verification]
+tolerance = 1                        ← Max per-pixel difference allowed
+error_rate_threshold = 0.001         ← Max % of pixels that can differ
+
 # Kernel variants (supports multiple variants with different signatures)
-# Note: kernel_variant is auto-derived from section name (v0->0, v1->1, v2->2)
 [kernel.v0]
 host_type = standard
-kernel_file = src/gaussian/cl/gaussian0.cl
+kernel_file = examples/gaussian/cl/gaussian0.cl
 kernel_function = gaussian5x5
 work_dim = 2
 global_work_size = 1920,1088
 local_work_size = 16,16
+kernel_args = {                      ← Config-driven kernel args!
+    {input, input_image_id}
+    {output, output}
+    {int, src_width}
+    {int, src_height}
+    {buffer, kernel_x}
+    {buffer, kernel_y}
+}
 
 [kernel.v1]
 host_type = cl_extension
-kernel_file = src/gaussian/cl/gaussian1.cl
+kernel_file = examples/gaussian/cl/gaussian1.cl
 kernel_function = gaussian5x5_optimized
-work_dim = 2
-global_work_size = 1920,1088
-local_work_size = 16,16
-
-[kernel.v2]
-host_type = cl_extension
-kernel_file = src/gaussian/cl/gaussian2.cl
-kernel_function = gaussian5x5_horizontal
 work_dim = 2
 global_work_size = 1920,1088
 local_work_size = 16,16
@@ -446,23 +538,28 @@ test_data/gaussian5x5/
 │                                                               │
 │  [kernel.v0]                  ← Kernel variant 0 (auto)      │
 │  host_type = standard                                        │
-│  kernel_file = src/gaussian/cl/gaussian0.cl                  │
+│  kernel_file = examples/gaussian/cl/gaussian0.cl             │
 │  kernel_function = gaussian5x5                               │
 │  global_work_size = 1920,1088                                │
 │  local_work_size = 16,16                                     │
 │                                                               │
 │  [kernel.v1]                  ← Kernel variant 1 (auto)      │
 │  host_type = cl_extension                                    │
-│  kernel_file = src/gaussian/cl/gaussian1.cl                  │
+│  kernel_file = examples/gaussian/cl/gaussian1.cl             │
 │  kernel_function = gaussian5x5_optimized                     │
 │  global_work_size = 1920,1088                                │
 │  local_work_size = 16,16                                     │
+│                                                               │
+│  [verification]               ← Verification config (NEW!)   │
+│  tolerance = 1                  # Max per-pixel difference   │
+│  error_rate_threshold = 0.001   # Max % pixels can differ    │
 └───────────────────────────────────────────────────────────────┘
                             │
                             │ parse_config()
                             ▼
 ┌───────────────────────────────────────────────────────────────┐
-│              CONFIG PARSER (config_parser.c)                  │
+│              CONFIG PARSER (src/utils/config.c)               │
+│                      [IN LIBRARY]                             │
 │                                                               │
 │  1. Parse [image] section                                    │
 │     → ImageConfig (dims, I/O paths)                          │
@@ -472,14 +569,18 @@ test_data/gaussian5x5/
 │                                                               │
 │  3. Parse [kernel.*] sections                                │
 │     → KernelConfig[] (file, function, work sizes,            │
-│                       host_type, kernel_variant)             │
+│                       host_type, kernel_variant, kernel_args)│
 │                                                               │
-│  4. Validate & store in AlgorithmConfig                      │
+│  4. Parse [verification] section                             │
+│     → VerificationConfig (tolerance, error_rate_threshold)   │
+│                                                               │
+│  5. Validate & store in AlgorithmConfig                      │
 └───────────────────────────────────────────────────────────────┘
                             │
                             ▼
 ┌───────────────────────────────────────────────────────────────┐
-│             OPENCL EXECUTION (opencl_utils.c)                 │
+│             OPENCL EXECUTION (src/platform/opencl_utils.c)    │
+│                      [IN LIBRARY]                             │
 │                                                               │
 │  1. Create input/output buffers (from ImageConfig)           │
 │  2. Create custom buffers (from BufferConfig[])              │
@@ -643,120 +744,88 @@ Maximum supported image: 4096 x 4096 pixels (16 MB)
 
 ---
 
-## 10. Build System & Automation Tooling
+## 10. Build System & SDK Workflow
 
 ```
+┌─────────────────────────────────────────────────────────────────┐
+│                      BUILD WORKFLOW (CMAKE)                     │
+└─────────────────────────────────────────────────────────────────┘
+
                   ┌────────────────────────────────┐
                   │    scripts/build.sh            │
-                  │  • Auto-generate registry      │
-                  │  • Incremental compilation     │
-                  │  • Clean option                │
+                  │  Two-stage SDK workflow:       │
+                  │  1. --lib: Build library only  │
+                  │  2. (default): Build executable│
                   └──────────────┬─────────────────┘
                                  │
                   ┌──────────────┴─────────────────┐
                   │  scripts/generate_registry.sh  │
-                  │  • Scans for *_ref.c files     │
+                  │  • Scans examples/**/c_ref/*.c │
                   │  • Auto-generates registry     │
-                  │  • Extracts display names      │
+                  │  • Creates auto_registry.c     │
                   └──────────────┬─────────────────┘
                                  │
                                  ▼
                       ┌────────────────┐
-                      │  src/Makefile  │
+                      │ CMakeLists.txt │
                       └────────┬───────┘
                                │
            ┌───────────────────┼───────────────────┐
            ▼                   ▼                   ▼
     ┌─────────────┐    ┌──────────────┐    ┌──────────┐
-    │   main.c    │    │ algorithm_   │    │ utils/   │
-    │  (CLI only) │    │  runner.c    │    │  *.c     │
-    └─────────────┘    │ (pipeline)   │    └──────────┘
-                       └──────────────┘         │
-                              │           ┌─────┴──────┐
-                              │           ▼            ▼
-                              │    ┌──────────┐  ┌─────────────┐
-                              │    │ dilate/  │  │ gaussian/   │
-                              │    │  *.c     │  │   *.c       │
-                              │    └──────────┘  └─────────────┘
-                              │
-                              ▼
-                   ┌────────────────────────┐
-                   │     Compiler (gcc)     │
-                   │  -Wall -O2 -std=c99    │
-                   │  -I. (include paths)   │
-                   └────────────┬───────────┘
-                                ▼
-                   ┌────────────────────────┐
-                   │   Object Files (.o)    │
-                   │   build/obj/           │
-                   │    ├── main.o          │
-                   │    ├── algorithm_      │
-                   │    │     runner.o      │
-                   │    ├── utils/          │
-                   │    ├── dilate/         │
-                   │    └── gaussian/       │
-                   └────────────┬───────────┘
-                                ▼
-                   ┌────────────────────────┐
-                   │    Linker (gcc)        │
-                   │  -framework OpenCL     │
-                   │  -lm (math library)    │
-                   └────────────┬───────────┘
-                                ▼
-                   ┌────────────────────────┐
-                   │  build/opencl_host     │
-                   │     (70 KB exec)       │
-                   └────────────────────────┘
+    │  LIBRARY    │    │  EXAMPLES    │    │  MAIN    │
+    │  TARGET     │    │  (User Code) │    │  (App)   │
+    └─────────────┘    └──────────────┘    └──────────┘
+           │                   │                   │
+           │                   │                   │
+     ┌─────┴──────┐      ┌─────┴──────┐      ┌─────┴──────┐
+     ▼            ▼      ▼            ▼      ▼            ▼
+┌─────────┐  ┌────────┐ ┌─────────┐ ┌─────┐ ┌──────┐  ┌────────┐
+│  core/  │  │platform│ │examples/│ │auto_│ │main.c│  │examples│
+│  *.c    │  │  *.c   │ │dilate/  │ │reg. │ │      │  │ (link) │
+└─────────┘  └────────┘ └─────────┘ └─────┘ └──────┘  └────────┘
+     │            │           │         │         │         │
+     └────────────┴───────────┼─────────┘         │         │
+                              │                   │         │
+                              ▼                   ▼         ▼
+                   ┌────────────────────┐  ┌──────────────────┐
+                   │   LIBRARY BUILD    │  │  EXECUTABLE      │
+                   │ libopencl_imgproc  │  │  opencl_host     │
+                   │   .so / .a         │  │                  │
+                   └────────┬───────────┘  └──────────────────┘
+                            │
+                            ▼
+                   ┌────────────────────┐
+                   │  Copy to lib/      │
+                   │  (for SDK release) │
+                   └────────────────────┘
 
-AUTOMATION SCRIPTS (scripts/ directory):
+SDK BUILD WORKFLOW:
+───────────────────
 
-BUILD & REGISTRY:
-  • build.sh (2.3KB) - Main build script with auto-registry generation
-  • generate_registry.sh (3.6KB) - Auto-discovers and registers algorithms
-  • run.sh (543B) - Quick run wrapper
+Step 1: Build Library (ONCE)
+  $ ./scripts/build.sh --lib
 
-BENCHMARKING & TESTING:
-  • run_all_variants.sh (6.6KB) - Comprehensive benchmarking tool
-    - Runs all algorithm variants automatically
-    - Real-time progress display with spinner
-    - Performance rankings by GPU time
-    - Colored output (PASSED/FAILED)
-    - Summary report with speedup metrics
-  • benchmark.sh (375B) - Build and benchmark all variants
+  → Builds: libopencl_imgproc.so (or .dylib)
+  → Contains: core/ + platform/ + utils/
+  → Copies to: lib/ (for distribution)
+  → Does NOT build: examples or executable
 
-METADATA EXTRACTION:
-  • generate_kernel_json.py (6.1KB) - Extract kernel signatures to JSON
-    - Parses .ini configuration files
-    - Extracts OpenCL kernel function signatures
-    - Generates structured JSON metadata
-  • generate_all_kernel_json.sh (923B) - Batch JSON generation
+Step 2: Build Executable (when examples change)
+  $ ./scripts/build.sh
 
-ALGORITHM CREATION:
-  • create_new_algo.sh (11KB) - Algorithm template generator
-    - Creates directory structure
-    - Generates C reference template
-    - Generates OpenCL kernel template
-    - Generates .ini configuration
+  → Generates: auto_registry.c from examples/
+  → Compiles: main.c + examples/*.c + auto_registry.c
+  → Links: against libopencl_imgproc
+  → Creates: build/opencl_host
+  → Library: NOT rebuilt (unchanged)
 
-TEST DATA GENERATION:
-  • generate_test_image.py (1.2KB) - Synthetic test image generator
-  • generate_gaussian_kernels.py (1.6KB) - Gaussian kernel weight generator
-
-MODULAR STRUCTURE:
-  • main.c (231 lines) - CLI only
-  • algorithm_runner.c (413 lines) - Execution pipeline
-  • utils/config.c - Extended with path utilities
-  • Algorithm modules - Self-contained plugins
-
-EXTERNAL DEPENDENCIES:
-  • OpenCL Runtime (GPU drivers)
-  • Standard C library (libc)
-  • Math library (libm)
-  • Python 3 (for scripts)
-  • Bash (for build automation)
-
-NO EXTERNAL LIBRARIES REQUIRED!
-All algorithms self-contained.
+BENEFITS:
+  ✓ Library built once (core/platform/utils rarely change)
+  ✓ Executable rebuilds quickly (only examples changed)
+  ✓ Clean separation for SDK distribution
+  ✓ Customers can add algorithms without library source
+  ✓ lib/ directory ready for release packaging
 ```
 
 ---
@@ -776,14 +845,14 @@ The `scripts/` directory contains comprehensive automation tooling for developme
    │
    ├─► Invokes generate_registry.sh
    │   │
-   │   ├─► Scans src/ for *_ref.c files
+   │   ├─► Scans examples/ for *_ref.c files
    │   │   - Finds: dilate3x3_ref.c, gaussian5x5_ref.c
    │   │
    │   ├─► Extracts algorithm IDs and display names
    │   │   - Reads config/*.ini files
    │   │   - Extracts [image] display_name fields
    │   │
-   │   └─► Generates src/utils/auto_registry.c
+   │   └─► Generates src/core/auto_registry.c
    │       - Auto-generated extern declarations
    │       - Auto-populated algorithms[] array
    │       - Uses GCC constructor for pre-main init
@@ -875,26 +944,11 @@ OUTPUT: JSON metadata file
   "variants": [
     {
       "variant_id": 0,
-      "kernel_file": "src/gaussian/cl/gaussian0.cl",
+      "kernel_file": "examples/gaussian/cl/gaussian0.cl",
       "function_name": "gaussian5x5",
       "host_type": "standard",
       "parameters": [
         {"type": "__global uchar*", "name": "input"},
-        {"type": "__global uchar*", "name": "output"},
-        {"type": "int", "name": "width"},
-        {"type": "int", "name": "height"},
-        {"type": "__global float*", "name": "kernel_x"},
-        {"type": "__global float*", "name": "kernel_y"}
-      ]
-    },
-    {
-      "variant_id": 1,
-      "kernel_file": "src/gaussian/cl/gaussian1.cl",
-      "function_name": "gaussian5x5_optimized",
-      "host_type": "cl_extension",
-      "parameters": [
-        {"type": "__global uchar*", "name": "input"},
-        {"type": "__global uchar*", "name": "tmp_global"},
         {"type": "__global uchar*", "name": "output"},
         {"type": "int", "name": "width"},
         {"type": "int", "name": "height"},
@@ -930,25 +984,18 @@ PROCESS:
    - Check for duplicates
 
 2. Create directory structure:
-   src/<algo_name>/
-   ├── <algo_name>.h          ← Public interface header
-   ├── <algo_name>.c          ← Main implementation with callbacks
+   examples/<algo_name>/
    ├── c_ref/
-   │   ├── <algo_name>_ref.h  ← C reference header
-   │   └── <algo_name>_ref.c  ← C reference implementation
+   │   └── <algo_name>_ref.c  ← C reference + callbacks + registration
    └── cl/
        └── <algo_name>0.cl    ← OpenCL kernel template
 
 3. Generate template files:
-   ├─► <algo_name>.c contains:
+   ├─► c_ref/*.c contains:
    │   - reference_impl() function (calls C reference)
    │   - verify_result() function (tolerance-based comparison)
    │   - set_kernel_args() function (sets CL kernel arguments)
    │   - Algorithm struct registration
-   │
-   ├─► c_ref/*.c contains:
-   │   - CPU reference implementation skeleton
-   │   - TODO comments for implementation
    │
    └─► cl/*.cl contains:
        - __kernel function skeleton
@@ -962,40 +1009,14 @@ PROCESS:
    └─► [kernel.v0] section (kernel variant configuration)
 
 5. Instructions displayed:
-   ✓ Algorithm structure created in src/<algo_name>/
+   ✓ Algorithm structure created in examples/<algo_name>/
    ✓ Configuration created in config/<algo_name>.ini
 
    NEXT STEPS:
-   1. Implement C reference in src/<algo_name>/c_ref/
-   2. Implement OpenCL kernel in src/<algo_name>/cl/
+   1. Implement C reference in examples/<algo_name>/c_ref/
+   2. Implement OpenCL kernel in examples/<algo_name>/cl/
    3. Update set_kernel_args() for your buffer layout
    4. Run: ./scripts/build.sh && ./scripts/run.sh
-```
-
-### Test Data Generation
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│              TEST DATA GENERATION                               │
-└─────────────────────────────────────────────────────────────────┘
-
-scripts/generate_test_image.py
-├─► Creates synthetic test images
-├─► Supports various patterns:
-│   - Checkerboard
-│   - Gradients
-│   - Geometric shapes
-└─► Output: Binary .raw format (unsigned char)
-
-scripts/generate_gaussian_kernels.py
-├─► Generates Gaussian kernel weights
-├─► Configurable sigma parameter
-├─► Creates separable 1D kernels
-└─► Output: kernel_x.bin, kernel_y.bin (float32)
-
-Usage Examples:
-  python3 scripts/generate_test_image.py 1024 1024 checkerboard
-  python3 scripts/generate_gaussian_kernels.py --sigma 1.4 --size 5
 ```
 
 ### Quick Reference Commands
@@ -1029,58 +1050,218 @@ python3 scripts/generate_kernel_json.py config/gaussian5x5.ini
 
 ---
 
+## 12. SDK Distribution Architecture
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│                  SDK PACKAGE STRUCTURE                          │
+│              (scripts/create_sdk.sh --shared)                   │
+└─────────────────────────────────────────────────────────────────┘
+
+opencl-imgproc-sdk-1.0.0/
+├── lib/
+│   └── libopencl_imgproc.so          ← Compiled library (customers link)
+│
+├── include/                           ← Public API (customers include)
+│   ├── op_interface.h                 → Algorithm interface
+│   ├── op_registry.h                  → Registration macros
+│   ├── algorithm_runner.h             → Forward declarations only
+│   └── utils/
+│       ├── safe_ops.h                 → Safe arithmetic
+│       └── verify.h                   → Verification functions
+│
+├── examples/                          ← Sample algorithms (reference)
+│   ├── main.c.example                 → Example main.c
+│   ├── dilate/
+│   │   ├── c_ref/dilate3x3_ref.c
+│   │   └── cl/dilate0.cl
+│   └── gaussian/
+│       ├── c_ref/gaussian5x5_ref.c
+│       └── cl/gaussian*.cl
+│
+├── tools/
+│   └── generate_registry.sh          ← For customers to use
+│
+└── docs/
+    ├── README.md                      → SDK quick start
+    ├── API_REFERENCE.md               → Public API documentation
+    └── SDK_PACKAGING.md               → Usage guide
+
+CUSTOMER WORKFLOW:
+──────────────────
+
+1. Customer receives SDK package
+2. Customer implements algorithm in their project:
+
+   customer-app/
+   ├── sdk/                            ← Your SDK
+   │   ├── lib/libopencl_imgproc.so
+   │   └── include/
+   ├── main.c                          ← From SDK examples
+   └── my_algorithms/
+       └── edge_detect/
+           └── c_ref/edge_detect_ref.c
+
+3. Customer builds:
+
+   $ cd customer-app
+   $ ../sdk/tools/generate_registry.sh my_algorithms auto_registry.c
+   $ gcc main.c auto_registry.c my_algorithms/*/*.c \
+       -I./sdk/include -L./sdk/lib -lopencl_imgproc \
+       -framework OpenCL -o my_app
+
+4. Customer runs:
+
+   $ ./my_app config/edge_detect.ini 0
+
+WHAT CUSTOMERS GET:
+  ✓ Compiled library (.so)
+  ✓ Public API headers
+  ✓ Example main.c
+  ✓ Sample algorithms
+  ✓ Registration script
+
+WHAT CUSTOMERS CANNOT SEE:
+  ✗ Core implementation (algorithm_runner.c)
+  ✗ Platform implementation (opencl_utils.c)
+  ✗ Utils implementation (config.c, image_io.c)
+  ✗ Internal headers (src/*/*)
+```
+
+---
+
+## 13. Clean Architecture Compliance
+
+```
+┌─────────────────────────────────────────────────────────────────┐
+│              CLEAN ARCHITECTURE ANALYSIS                        │
+└─────────────────────────────────────────────────────────────────┘
+
+LAYER HIERARCHY (Outer → Inner):
+─────────────────────────────────
+
+┌─────────────────┐
+│   examples/     │  User Algorithm Implementations (Outermost)
+└────────┬────────┘  Instability: 1.00 (most unstable)
+         │ depends on
+         ▼
+┌─────────────────┐
+│     main        │  Application Entry Point
+└────────┬────────┘  Instability: 1.00 (most unstable)
+         │ depends on
+         ▼
+┌─────────────────┐
+│   include/      │  Public API (Stable Abstractions)
+│ include/utils/  │  - Interfaces and contracts
+└────────┬────────┘  Instability: 0.00 (most stable)
+         │ used by
+         ▼
+┌─────────────────┐
+│     core/       │  Business Logic (Use Cases)
+└────────┬────────┘  - Algorithm execution pipeline
+         │ depends on  Instability: 1.00
+         ▼
+┌─────────────────┐
+│   platform/     │  Platform Abstraction (Infrastructure)
+└────────┬────────┘  - OpenCL platform management
+         │ depends on  Instability: 0.50
+         ▼
+┌─────────────────┐
+│    utils/       │  Utilities & Entities (Innermost)
+└─────────────────┘  - Configuration, I/O, verification
+                     Instability: 1.00
+
+DEPENDENCY FLOW:
+────────────────
+  examples    → include, include/utils
+  main        → include, include/utils, platform
+  include     → (no dependencies)
+  include/utils → (no dependencies)
+  core        → include, include/utils, platform
+  platform    → include, include/utils
+  utils       → include, include/utils
+
+COMPLIANCE:
+───────────
+✅ Dependency Rule: All dependencies point inward
+✅ Stable Abstractions: include/ is most stable (I=0.00)
+✅ Business Logic Isolation: core/ independent of examples
+✅ Plugin Architecture: examples/ are plugins
+✅ SDK Ready: Public API separated from implementation
+
+PRINCIPLE ADHERENCE:
+────────────────────
+✅ Dependency Inversion Principle
+✅ Open/Closed Principle (extend via examples/)
+✅ Single Responsibility Principle
+✅ Interface Segregation Principle
+✅ Stable Abstractions Principle
+```
+
+---
+
 ## Summary
 
 This architecture provides:
 
-1. **Modularity** - Self-contained algorithm plugins with clean interfaces
-   - CLI layer (main.c) - 231 lines
-   - Execution pipeline (algorithm_runner.c) - 413 lines
-   - Infrastructure utilities (utils/) - Reusable components
-   - 2 complete algorithms with 5 kernel variants
+1. **Modularity** - Library packaging with clear boundaries
+   - Library: core/ + platform/ + utils/
+   - Public API: include/
+   - User code: examples/
+   - Application: src/main.c
 
-2. **Extensibility** - Add algorithms without modifying core code
-   - Auto-discovery system scans for new algorithms
-   - Template generator (create_new_algo.sh) for rapid development
+2. **SDK Distribution** - Easy to package and distribute
+   - Build library once: `./scripts/build.sh --lib`
+   - Distribute: lib/ + include/ + tools/
+   - Customers extend: Add algorithms without library source
+
+3. **Clean Architecture** - Compliant with Clean Architecture principles
+   - Stable abstractions (include/ I=0.00)
+   - Dependency inversion (all deps point inward)
+   - Plugin architecture (examples/ as plugins)
+   - Clear layer boundaries
+
+4. **Extensibility** - Add algorithms without modifying library
+   - Auto-discovery system
+   - Registration script for customers
    - No manual registration required
 
-3. **Flexibility** - Per-algorithm INI files with custom buffer configuration
+5. **Flexibility** - Per-algorithm INI files with custom buffers
    - Support for file-backed and empty buffers
    - Multiple kernel variants per algorithm
    - Auto-derived variant IDs from section names
 
-4. **Performance** - Binary caching accelerates iteration (50-60x)
+6. **Performance** - Binary caching accelerates iteration (50-60x)
    - Kernel binary caching (~100x faster compilation)
    - Golden sample caching (~50x faster CPU reference)
    - Automated benchmarking for performance tracking
 
-5. **Safety** - MISRA-C compliant (static allocation, safe arithmetic)
+7. **Safety** - MISRA-C compliant (static allocation, safe arithmetic)
    - No dynamic allocation in hot paths
    - Bounds checking and safe operations
    - Deterministic memory layout
 
-6. **Verification** - CPU reference validates GPU correctness
+8. **Verification** - CPU reference validates GPU correctness
    - Algorithm-specific tolerance levels
    - Automatic verification on every run
    - Detailed error reporting
 
-7. **Scalability** - Multiple algorithms, multiple variants per algorithm
+9. **Scalability** - Multiple algorithms, multiple variants per algorithm
    - Clean variant management system
    - Support for different optimization strategies
    - API selection (standard vs. cl_extension)
 
-8. **Automation** - Comprehensive tooling infrastructure
-   - **Build automation**: Auto-registry generation and incremental compilation
-   - **Benchmarking**: Automated performance testing across all variants
-   - **Metadata extraction**: JSON export for documentation and analysis
-   - **Algorithm creation**: Template generator for new algorithms
-   - **Test data generation**: Synthetic image and kernel weight generation
+10. **Automation** - Comprehensive tooling infrastructure
+    - **Build automation**: Auto-registry generation and incremental compilation
+    - **Benchmarking**: Automated performance testing across all variants
+    - **Metadata extraction**: JSON export for documentation and analysis
+    - **Algorithm creation**: Template generator for new algorithms
+    - **Test data generation**: Synthetic image and kernel weight generation
 
-9. **Maintainability** - Clear separation of concerns:
-   - Application layer: CLI interface
-   - Execution layer: Algorithm orchestration
-   - Algorithm layer: Self-contained plugins
-   - Infrastructure layer: Reusable utilities
-   - Automation layer: Development and testing scripts
+11. **Maintainability** - Clear separation of concerns
+    - Library code: src/core/, src/platform/, src/utils/
+    - Public API: include/
+    - User code: examples/
+    - Build tools: scripts/
 
 The design follows professional software engineering practices suitable for client demonstrations, research, and production deployment. The comprehensive automation infrastructure enables rapid algorithm development, testing, and performance optimization.

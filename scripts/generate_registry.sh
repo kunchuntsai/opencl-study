@@ -48,10 +48,10 @@ for file in $ALGO_FILES; do
     # Convert snake_case to PascalCase (e.g., dilate3x3 -> Dilate3x3)
     pascal_name=$(echo "$algo_name" | awk -F'_' '{for(i=1;i<=NF;i++) printf "%s", toupper(substr($i,1,1)) substr($i,2)}')
 
-    # Add extern declarations for standard functions
+    # Add extern declaration for reference implementation only
+    # (verification is now config-driven via [verification] section)
     cat >> "$OUTPUT_FILE" <<EOF
 extern void ${pascal_name}Ref(const OpParams* params);
-extern int ${pascal_name}Verify(const OpParams* params, float* max_error);
 EOF
 done
 
@@ -83,13 +83,12 @@ for file in $ALGO_FILES; do
         display_name=$(echo "$algo_name" | sed -E 's/([a-z])([0-9])/\1 \2/g; s/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
     fi
 
-    # Generate algorithm structure
+    # Generate algorithm structure (verify_result removed - now config-driven)
     cat >> "$OUTPUT_FILE" <<EOF
 static Algorithm ${algo_name}_algorithm = {
     .name = "$display_name",
     .id = "$algo_name",
-    .reference_impl = ${pascal_name}Ref,
-    .verify_result = ${pascal_name}Verify
+    .reference_impl = ${pascal_name}Ref
 };
 
 EOF
