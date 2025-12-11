@@ -1,5 +1,6 @@
 #include "opencl_utils.h"
 
+#include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,6 +10,46 @@
 #include "op_interface.h"
 #include "utils/config.h"
 #include "utils/safe_ops.h"
+
+/* OpParams field lookup table for data-driven kernel argument mapping */
+typedef struct {
+    const char* name;
+    size_t offset;
+} OpParamsIntField;
+
+static const OpParamsIntField kOpParamsIntFields[] = {
+    {"src_width", offsetof(OpParams, src_width)},
+    {"src_height", offsetof(OpParams, src_height)},
+    {"src_stride", offsetof(OpParams, src_stride)},
+    {"dst_width", offsetof(OpParams, dst_width)},
+    {"dst_height", offsetof(OpParams, dst_height)},
+    {"dst_stride", offsetof(OpParams, dst_stride)},
+    {"kernel_variant", offsetof(OpParams, kernel_variant)},
+    {NULL, 0} /* sentinel */
+};
+
+/**
+ * @brief Lookup an int field in OpParams by name
+ * @param params The OpParams struct to lookup from
+ * @param field_name The name of the field to find
+ * @return Pointer to the int field, or NULL if not found
+ */
+static const int* OpParamsLookupInt(const OpParams* params, const char* field_name) {
+    const OpParamsIntField* field;
+
+    if ((params == NULL) || (field_name == NULL)) {
+        return NULL;
+    }
+
+    for (field = kOpParamsIntFields; field->name != NULL; field++) {
+        if (strcmp(field->name, field_name) == 0) {
+            /* Calculate pointer to field using offset */
+            return (const int*)((const char*)params + field->offset);
+        }
+    }
+
+    return NULL;
+}
 
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 #define MAX_KERNEL_SOURCE_SIZE (1024 * 1024) /* 1MB max kernel source */
@@ -405,37 +446,20 @@ int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
                 }
                 break;
 
-            case KERNEL_ARG_TYPE_SCALAR_INT:
-                /* Map source_name to OpParams field */
-                if (strcmp(arg_desc->source_name, "src_width") == 0) {
-                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
-                        return -1;
-                    }
-                } else if (strcmp(arg_desc->source_name, "src_height") == 0) {
-                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
-                        return -1;
-                    }
-                } else if (strcmp(arg_desc->source_name, "src_stride") == 0) {
-                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_stride) != CL_SUCCESS) {
-                        return -1;
-                    }
-                } else if (strcmp(arg_desc->source_name, "dst_width") == 0) {
-                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->dst_width) != CL_SUCCESS) {
-                        return -1;
-                    }
-                } else if (strcmp(arg_desc->source_name, "dst_height") == 0) {
-                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->dst_height) != CL_SUCCESS) {
-                        return -1;
-                    }
-                } else if (strcmp(arg_desc->source_name, "dst_stride") == 0) {
-                    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->dst_stride) != CL_SUCCESS) {
-                        return -1;
-                    }
-                } else {
+            case KERNEL_ARG_TYPE_SCALAR_INT: {
+                /* Lookup OpParams field by name using data-driven table */
+                const int* value_ptr = OpParamsLookupInt(params, arg_desc->source_name);
+                if (value_ptr == NULL) {
                     (void)fprintf(stderr, "Error: Unknown scalar source '%s'\n", arg_desc->source_name);
                     return -1;
                 }
+                if (clSetKernelArg(kernel, arg_idx++, sizeof(int), value_ptr) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set scalar int '%s' at arg %d\n",
+                                  arg_desc->source_name, arg_idx - 1);
+                    return -1;
+                }
                 break;
+            }
 
             case KERNEL_ARG_TYPE_SCALAR_SIZE:
                 /* Handle size_t scalars - used for buffer sizes */
