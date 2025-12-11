@@ -193,15 +193,33 @@ typedef struct {
 #define MAX_SCALAR_ARGS 32
 
 /**
+ * @brief Golden sample source type
+ *
+ * Specifies how to obtain the golden sample for verification:
+ * - GOLDEN_SOURCE_C_REF: Generate from C reference implementation (default)
+ * - GOLDEN_SOURCE_FILE: Load from pre-computed golden.bin file
+ */
+typedef enum {
+    GOLDEN_SOURCE_C_REF = 0,  /**< Generate golden from C reference (default) */
+    GOLDEN_SOURCE_FILE        /**< Load golden from file (skip c_ref) */
+} GoldenSourceType;
+
+/**
  * @brief Verification configuration
  *
  * Specifies how GPU output should be verified against reference output.
  * This replaces algorithm-specific verify_result callbacks with config-driven
  * verification using generic library functions.
+ *
+ * Golden sample source:
+ * - If golden_source = c_ref (default): Run C reference implementation to generate golden
+ * - If golden_source = file: Load golden from golden_file path (skip c_ref execution)
  */
 typedef struct {
     float tolerance;             /**< Max per-pixel difference allowed (e.g., 0 for exact, 1 for ±1) */
     float error_rate_threshold;  /**< Max fraction of pixels that can exceed tolerance (e.g., 0.001 = 0.1%) */
+    GoldenSourceType golden_source;  /**< Source of golden sample (c_ref or file) */
+    char golden_file[256];           /**< Path to golden.bin file (when golden_source = file) */
 } VerificationConfig;
 
 /**

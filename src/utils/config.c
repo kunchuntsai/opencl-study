@@ -456,9 +456,11 @@ int ParseConfig(const char* filename, Config* config) {
     config->num_kernels = 0;
     config->custom_buffer_count = 0;
     config->scalar_arg_count = 0;
-    /* Initialize verification config with defaults (exact match) */
+    /* Initialize verification config with defaults (exact match, c_ref golden source) */
     config->verification.tolerance = 0.0f;
     config->verification.error_rate_threshold = 0.0f;
+    config->verification.golden_source = GOLDEN_SOURCE_C_REF;
+    config->verification.golden_file[0] = '\0';
     /* Note: input_image_count, input_images[], output_image_count, and output_images[] preserved */
 
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
@@ -616,6 +618,19 @@ int ParseConfig(const char* filename, Config* config) {
                 config->verification.tolerance = (float)atof(value);
             } else if (strcmp(key, "error_rate_threshold") == 0) {
                 config->verification.error_rate_threshold = (float)atof(value);
+            } else if (strcmp(key, "golden_source") == 0) {
+                if (strcmp(value, "c_ref") == 0) {
+                    config->verification.golden_source = GOLDEN_SOURCE_C_REF;
+                } else if (strcmp(value, "file") == 0) {
+                    config->verification.golden_source = GOLDEN_SOURCE_FILE;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid golden_source value: %s (expected 'c_ref' or 'file')\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "golden_file") == 0) {
+                (void)strncpy(config->verification.golden_file, value, sizeof(config->verification.golden_file) - 1U);
+                config->verification.golden_file[sizeof(config->verification.golden_file) - 1U] = '\0';
             } else {
                 /* Unknown key in verification section - ignore */
             }

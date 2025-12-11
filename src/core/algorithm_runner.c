@@ -262,41 +262,77 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         op_params.custom_scalars = &custom_scalars;
     }
 
-    /* Step 1: Run C reference implementation */
-    (void)printf("\n=== C Reference Implementation ===\n");
-    ref_start = clock();
-    op_params.input = input;
-    op_params.output = ref_output_buffer;
-    algo->reference_impl(&op_params);
-    ref_end = clock();
-    ref_time = (double)(ref_end - ref_start) / (double)CLOCKS_PER_SEC * 1000.0;
-    (void)printf("Reference time: %.3f ms\n", ref_time);
+    /* Step 1: Get golden/reference output (either from C ref or from file) */
+    if (config->verification.golden_source == GOLDEN_SOURCE_FILE) {
+        /* Load golden directly from file (skip c_ref execution) */
+        /* NOTE: Cannot use ReadImage here as it would overwrite the input image
+         * (ReadImage uses a single static buffer). Instead, read directly into
+         * ref_output_buffer. */
+        FILE* golden_fp;
+        size_t read_count;
 
-    /* Step 2: Golden sample verification (c_ref output only) */
-    (void)printf("\n=== Golden Sample Verification ===\n");
-    if (CacheGoldenExists(algo->id, NULL) != 0) {
-        /* Golden sample exists - verify c_ref against it */
-        size_t golden_differences;
-        int golden_result;
-
-        (void)printf("Golden sample found, verifying c_ref output...\n");
-        golden_result = CacheVerifyGolden(algo->id, NULL, ref_output_buffer, (size_t)img_size,
-                                          &golden_differences);
-        if (golden_result < 0) {
-            (void)fprintf(stderr, "Golden verification failed\n");
-        } else if (golden_result == 0) {
-            (void)fprintf(stderr, "Warning: C reference output differs from golden sample\n");
+        (void)printf("\n=== Loading Golden Sample from File ===\n");
+        if (config->verification.golden_file[0] == '\0') {
+            (void)fprintf(stderr, "Error: golden_source=file but golden_file not specified\n");
+            goto cleanup_early;
         }
-    } else {
-        /* No golden sample - create it from C reference output */
-        int save_result;
 
-        (void)printf("No golden sample found, creating from C reference output...\n");
-        save_result = CacheSaveGolden(algo->id, NULL, ref_output_buffer, (size_t)img_size);
-        if (save_result == 0) {
-            (void)printf("Golden sample created successfully\n");
+        golden_fp = fopen(config->verification.golden_file, "rb");
+        if (golden_fp == NULL) {
+            (void)fprintf(stderr, "Failed to open golden file: %s\n",
+                          config->verification.golden_file);
+            goto cleanup_early;
+        }
+
+        read_count = fread(ref_output_buffer, 1U, (size_t)img_size, golden_fp);
+        (void)fclose(golden_fp);
+
+        if (read_count != (size_t)img_size) {
+            (void)fprintf(stderr, "Failed to read golden file: expected %d bytes, got %zu\n",
+                          img_size, read_count);
+            goto cleanup_early;
+        }
+
+        (void)printf("Loaded golden sample from: %s (%d bytes)\n",
+                     config->verification.golden_file, img_size);
+        ref_time = 0.0; /* No c_ref execution time */
+    } else {
+        /* Default: Run C reference implementation to generate golden */
+        (void)printf("\n=== C Reference Implementation ===\n");
+        ref_start = clock();
+        op_params.input = input;
+        op_params.output = ref_output_buffer;
+        algo->reference_impl(&op_params);
+        ref_end = clock();
+        ref_time = (double)(ref_end - ref_start) / (double)CLOCKS_PER_SEC * 1000.0;
+        (void)printf("Reference time: %.3f ms\n", ref_time);
+
+        /* Step 2: Golden sample verification (c_ref output only) */
+        (void)printf("\n=== Golden Sample Verification ===\n");
+        if (CacheGoldenExists(algo->id, NULL) != 0) {
+            /* Golden sample exists - verify c_ref against it */
+            size_t golden_differences;
+            int golden_result;
+
+            (void)printf("Golden sample found, verifying c_ref output...\n");
+            golden_result = CacheVerifyGolden(algo->id, NULL, ref_output_buffer, (size_t)img_size,
+                                              &golden_differences);
+            if (golden_result < 0) {
+                (void)fprintf(stderr, "Golden verification failed\n");
+            } else if (golden_result == 0) {
+                (void)fprintf(stderr, "Warning: C reference output differs from golden sample\n");
+            }
         } else {
-            (void)fprintf(stderr, "Failed to create golden sample\n");
+            /* No golden sample - create it from C reference output */
+            int save_result;
+
+            (void)printf("No golden sample found, creating from C reference output...\n");
+            save_result = CacheSaveGolden(algo->id, NULL, ref_output_buffer, (size_t)img_size);
+            if (save_result == 0) {
+                (void)printf("Golden sample created successfully\n");
+            } else {
+                (void)fprintf(stderr, "Failed to create golden sample\n");
+            }
         }
     }
 
@@ -405,9 +441,13 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
 
     /* Display results */
     (void)printf("\n=== Results ===\n");
-    (void)printf("C Reference time: %.3f ms\n", ref_time);
+    if (config->verification.golden_source == GOLDEN_SOURCE_FILE) {
+        (void)printf("Golden source:    file (%s)\n", config->verification.golden_file);
+    } else {
+        (void)printf("C Reference time: %.3f ms\n", ref_time);
+        (void)printf("Speedup:          %.2fx\n", ref_time / gpu_time);
+    }
     (void)printf("OpenCL GPU time:  %.3f ms\n", gpu_time);
-    (void)printf("Speedup:          %.2fx\n", ref_time / gpu_time);
     (void)printf("Verification:     %s\n", (passed != 0) ? "PASSED" : "FAILED");
     (void)printf("Max error:        %.2f\n", (double)max_error);
 
