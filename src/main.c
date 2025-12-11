@@ -98,7 +98,14 @@ int main(int argc, char** argv) {
         return 1;
     }
 
-    /* 1b. Parse algorithm configuration */
+    /* 1b. Parse output images configuration (config/outputs.ini) */
+    parse_result = ParseOutputsConfig("config/outputs.ini", &config);
+    if (parse_result != 0) {
+        (void)fprintf(stderr, "Failed to parse config/outputs.ini\n");
+        return 1;
+    }
+
+    /* 1c. Parse algorithm configuration */
     parse_result = ParseConfig(config_path, &config);
     if (parse_result != 0) {
         (void)fprintf(stderr, "Failed to parse %s\n", config_path);

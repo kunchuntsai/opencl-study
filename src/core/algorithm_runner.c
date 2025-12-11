@@ -110,9 +110,54 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         op_params.src_width = img_cfg->src_width;
         op_params.src_height = img_cfg->src_height;
         op_params.src_stride = img_cfg->src_stride;
-        op_params.dst_width = config->dst_width; /* Most algorithms keep same size */
-        op_params.dst_height = config->dst_height;
-        op_params.dst_stride = config->dst_stride;
+    }
+
+    /* Resolve output image configuration from config/outputs.ini */
+    if (config->output_image_count == 0) {
+        (void)fprintf(stderr, "Error: No output images configured in config/outputs.ini\n");
+        return;
+    }
+
+    /* Find the specified output image by output_image_id */
+    {
+        const OutputImageConfig* out_cfg = NULL;
+        int selected_index = 0;
+        int i;
+
+        /* If output_image_id is specified, find matching output */
+        if (config->output_image_id[0] != '\0') {
+            for (i = 0; i < config->output_image_count; i++) {
+                /* Extract output_N from section name for comparison */
+                char output_name[64];
+                (void)snprintf(output_name, sizeof(output_name), "output_%d", i + 1);
+                if (strcmp(config->output_image_id, output_name) == 0) {
+                    out_cfg = &config->output_images[i];
+                    selected_index = i + 1;
+                    break;
+                }
+            }
+            if (out_cfg == NULL) {
+                (void)fprintf(stderr, "Error: Specified output_image_id '%s' not found\n",
+                              config->output_image_id);
+                (void)fprintf(stderr, "Available outputs: output_1 to output_%d\n",
+                              config->output_image_count);
+                return;
+            }
+        } else {
+            /* Default to first output if not specified */
+            out_cfg = &config->output_images[0];
+            selected_index = 1;
+        }
+
+        (void)printf("\n=== Output Configuration ===\n");
+        (void)printf("Using output image %d of %d: %s (%dx%d)\n", selected_index,
+                     config->output_image_count, out_cfg->output_path, out_cfg->dst_width,
+                     out_cfg->dst_height);
+
+        /* Set output parameters from output image config */
+        op_params.dst_width = out_cfg->dst_width;
+        op_params.dst_height = out_cfg->dst_height;
+        op_params.dst_stride = out_cfg->dst_stride;
     }
 
     /* Check if image fits in static buffers */

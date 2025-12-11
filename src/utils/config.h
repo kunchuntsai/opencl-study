@@ -45,6 +45,9 @@
 /** Maximum number of input images */
 #define MAX_INPUT_IMAGES 16
 
+/** Maximum number of output images */
+#define MAX_OUTPUT_IMAGES 16
+
 /* Note: HostType and BufferType are defined in utils/op_interface.h */
 
 /**
@@ -60,6 +63,20 @@ typedef struct {
     int src_channels;     /**< Number of channels (e.g., 3 for RGB) */
     int src_stride;       /**< Stride in bytes (may differ from width * channels) */
 } InputImageConfig;
+
+/**
+ * @brief Output image configuration
+ *
+ * Contains parameters for a single output image, including file path
+ * and image dimensions.
+ */
+typedef struct {
+    char output_path[256]; /**< Path to output image file */
+    int dst_width;         /**< Destination image width in pixels */
+    int dst_height;        /**< Destination image height in pixels */
+    int dst_channels;      /**< Number of channels (e.g., 3 for RGB) */
+    int dst_stride;        /**< Stride in bytes (may differ from width * channels) */
+} OutputImageConfig;
 
 /* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
 
@@ -176,10 +193,10 @@ typedef struct {
     int input_image_count;                           /**< Number of input images configured */
     char input_image_id[64]; /**< Which input image to use (e.g., "image_1", "image_2") */
 
-    /* Output configuration (from algorithm .ini files) */
-    int dst_width;  /**< Destination image width (for resize ops) */
-    int dst_height; /**< Destination image height (for resize ops) */
-    int dst_stride; /**< Destination image stride in bytes */
+    /* Output images configuration (from config/outputs.ini) */
+    OutputImageConfig output_images[MAX_OUTPUT_IMAGES]; /**< Array of output image configurations */
+    int output_image_count;                             /**< Number of output images configured */
+    char output_image_id[64]; /**< Which output image to use (e.g., "output_1", "output_2") */
 
     /* Kernel configurations */
     int num_kernels;                          /**< Number of kernel variants configured */
@@ -217,6 +234,18 @@ int ParseConfig(const char* filename, Config* config);
  * @return 0 on success, -1 on error
  */
 int ParseInputsConfig(const char* filename, Config* config);
+
+/**
+ * @brief Parse output images configuration file
+ *
+ * Reads and parses an INI-style outputs configuration file with multiple
+ * [output_N] sections, populating the output_images array in Config.
+ *
+ * @param[in] filename Path to outputs configuration file (e.g., config/outputs.ini)
+ * @param[out] config Configuration structure to populate with output images
+ * @return 0 on success, -1 on error
+ */
+int ParseOutputsConfig(const char* filename, Config* config);
 
 /**
  * @brief Get all kernel variants for a specific algorithm

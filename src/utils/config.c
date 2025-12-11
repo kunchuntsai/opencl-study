@@ -432,16 +432,14 @@ int ParseConfig(const char* filename, Config* config) {
         return -1;
     }
 
-    /* Initialize algorithm-specific fields (preserve input_images from ParseInputsConfig) */
+    /* Initialize algorithm-specific fields (preserve input_images and output_images from Parse*Config) */
     config->op_id[0] = '\0';
     config->input_image_id[0] = '\0';
-    config->dst_width = 0;
-    config->dst_height = 0;
-    config->dst_stride = 0;
+    config->output_image_id[0] = '\0';
     config->num_kernels = 0;
     config->custom_buffer_count = 0;
     config->scalar_arg_count = 0;
-    /* Note: input_image_count and input_images[] preserved from ParseInputsConfig */
+    /* Note: input_image_count, input_images[], output_image_count, and output_images[] preserved */
 
     while (fgets(line, (int)sizeof(line), fp) != NULL) {
         trimmed = Trim(line);
@@ -581,36 +579,19 @@ int ParseConfig(const char* filename, Config* config) {
                 (void)strncpy(config->input_image_id, value, sizeof(config->input_image_id) - 1U);
                 config->input_image_id[sizeof(config->input_image_id) - 1U] = '\0';
             }
-        } else if ((strcmp(section, "image") == 0) || (strcmp(section, "output") == 0)) {
+        } else if (strcmp(section, "output") == 0) {
+            if (strcmp(key, "output_image_id") == 0) {
+                (void)strncpy(config->output_image_id, value, sizeof(config->output_image_id) - 1U);
+                config->output_image_id[sizeof(config->output_image_id) - 1U] = '\0';
+            } else {
+                /* Unknown key in output section - ignore */
+            }
+        } else if (strcmp(section, "image") == 0) {
             if (strcmp(key, "op_id") == 0) {
                 (void)strncpy(config->op_id, value, sizeof(config->op_id) - 1U);
                 config->op_id[sizeof(config->op_id) - 1U] = '\0';
-            } else if (strcmp(key, "dst_width") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    config->dst_width = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid dst_width value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "dst_height") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    config->dst_height = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid dst_height value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "dst_stride") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    config->dst_stride = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid dst_stride value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
             } else {
-                /* Unknown key in image/output section - ignore */
+                /* Unknown key in image section - ignore */
             }
         } else if ((strncmp(section, "kernel.", 7U) == 0) && (kernel_index >= 0)) {
             KernelConfig* kc = &config->kernels[kernel_index];
@@ -1084,5 +1065,173 @@ int ParseInputsConfig(const char* filename, Config* config) {
 
     (void)printf("Parsed inputs config file: %s (%d input images)\n", filename,
                  config->input_image_count);
+    return 0;
+}
+
+/* Parse output section name to extract output index */
+/* Format: "output_1" -> 0, "output_2" -> 1, etc. (converts 1-based to 0-based) */
+static int ParseOutputSection(const char* section, int* output_index) {
+    const char* underscore;
+    long temp_long;
+
+    if ((section == NULL) || (output_index == NULL)) {
+        return -1;
+    }
+
+    /* Check if section starts with "output_" */
+    if (strncmp(section, "output_", 7U) != 0) {
+        return -1;
+    }
+
+    underscore = section + 7; /* Points to start of index */
+
+    /* Parse the index number */
+    if (!SafeStrtol(underscore, &temp_long) || (temp_long < 1) || (temp_long > MAX_OUTPUT_IMAGES)) {
+        return -1;
+    }
+
+    /* Convert to 0-based index */
+    *output_index = (int)(temp_long - 1);
+    return 0;
+}
+
+int ParseOutputsConfig(const char* filename, Config* config) {
+    FILE* fp;
+    char line[MAX_LINE_LENGTH];
+    char section[MAX_SECTION_LENGTH] = "";
+    int current_output_index = -1;
+    char* trimmed;
+    char* equals;
+    char* key;
+    char* value;
+    char* end;
+    long temp_long;
+    size_t temp_size;
+
+    if ((filename == NULL) || (config == NULL)) {
+        return -1;
+    }
+
+    fp = fopen(filename, "r");
+    if (fp == NULL) {
+        (void)fprintf(stderr, "Error: Failed to open outputs config file: %s\n", filename);
+        return -1;
+    }
+
+    /* Initialize output images count */
+    config->output_image_count = 0;
+
+    while (fgets(line, (int)sizeof(line), fp) != NULL) {
+        trimmed = Trim(line);
+
+        /* Skip empty lines and comments */
+        if ((trimmed[0] == '\0') || (trimmed[0] == '#') || (trimmed[0] == ';')) {
+            continue;
+        }
+
+        /* Check for section header */
+        if (trimmed[0] == '[') {
+            end = strchr(trimmed, ']');
+            if (end != NULL) {
+                *end = '\0';
+                (void)strncpy(section, trimmed + 1, sizeof(section) - 1U);
+                section[sizeof(section) - 1U] = '\0';
+
+                /* If section starts with "output_", it's an output image configuration */
+                if (strncmp(section, "output_", 7U) == 0) {
+                    if (ParseOutputSection(section, &current_output_index) != 0) {
+                        (void)fprintf(stderr, "Error: Invalid output section name: %s\n", section);
+                        (void)fprintf(stderr, "Expected format: output_1, output_2, etc.\n");
+                        (void)fclose(fp);
+                        return -1;
+                    }
+
+                    /* Update output count */
+                    if (current_output_index + 1 > config->output_image_count) {
+                        config->output_image_count = current_output_index + 1;
+                    }
+
+                    /* Initialize this output config */
+                    (void)memset(&config->output_images[current_output_index], 0,
+                                 sizeof(OutputImageConfig));
+                } else {
+                    /* Unknown section */
+                    current_output_index = -1;
+                }
+            }
+            continue;
+        }
+
+        /* Parse key=value pairs */
+        equals = strchr(trimmed, '=');
+        if (equals == NULL) {
+            continue;
+        }
+
+        *equals = '\0';
+        key = Trim(trimmed);
+        value = Trim(equals + 1);
+
+        /* Strip inline comments from value (everything after #) */
+        {
+            char* comment = strchr(value, '#');
+            if (comment != NULL) {
+                *comment = '\0';
+                value = Trim(value); /* Trim again after removing comment */
+            }
+        }
+
+        /* Parse based on current section */
+        if ((strncmp(section, "output_", 7U) == 0) && (current_output_index >= 0)) {
+            OutputImageConfig* img = &config->output_images[current_output_index];
+
+            if (strcmp(key, "output") == 0) {
+                (void)strncpy(img->output_path, value, sizeof(img->output_path) - 1U);
+                img->output_path[sizeof(img->output_path) - 1U] = '\0';
+            } else if (strcmp(key, "dst_width") == 0) {
+                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
+                    img->dst_width = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid dst_width value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "dst_height") == 0) {
+                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
+                    img->dst_height = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid dst_height value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "dst_channels") == 0) {
+                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
+                    img->dst_channels = (int)temp_long;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid dst_channels value: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else if (strcmp(key, "dst_stride") == 0) {
+                /* Support arithmetic expressions like "1920 * 3" */
+                if (EvalExpression(value, &temp_size) == 0) {
+                    img->dst_stride = (int)temp_size;
+                } else {
+                    (void)fprintf(stderr, "Error: Invalid dst_stride expression: %s\n", value);
+                    (void)fclose(fp);
+                    return -1;
+                }
+            } else {
+                /* Unknown key in output section */
+            }
+        } else {
+            /* Unknown section or invalid index */
+        }
+    }
+
+    (void)fclose(fp);
+
+    (void)printf("Parsed outputs config file: %s (%d output images)\n", filename,
+                 config->output_image_count);
     return 0;
 }
