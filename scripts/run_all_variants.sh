@@ -18,13 +18,112 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 EXECUTABLE="$BUILD_DIR/opencl_host"
+CONFIG_DIR="$PROJECT_ROOT/config"
 
-# Algorithm configurations
+# Algorithm configurations will be auto-discovered
 # Format: "algorithm:variants" where variants are space-separated
-ALGORITHMS=(
-    "dilate3x3:0 1"
-    "gaussian5x5:0 1 2"
-)
+declare -a ALGORITHMS
+
+# Discover algorithms and variants from config files
+discover_algorithms_from_config() {
+    local algo_file
+    local algo_name
+    local variants
+    local variant_num
+
+    for algo_file in "$CONFIG_DIR"/*.ini; do
+        # Skip inputs.ini
+        algo_name=$(basename "$algo_file" .ini)
+        if [ "$algo_name" = "inputs" ]; then
+            continue
+        fi
+
+        # Extract variant numbers from [kernel.vN] sections
+        variants=""
+        while IFS= read -r variant_num; do
+            if [ -n "$variants" ]; then
+                variants="$variants $variant_num"
+            else
+                variants="$variant_num"
+            fi
+        done < <(grep -oP '^\[kernel\.v\K[0-9]+' "$algo_file" | sort -n)
+
+        if [ -n "$variants" ]; then
+            ALGORITHMS+=("$algo_name:$variants")
+        fi
+    done
+}
+
+# Discover algorithms and variants from executable help output
+discover_algorithms_from_executable() {
+    local help_output
+    local current_algo=""
+    local current_variants=""
+    local algo_pattern variant_pattern
+
+    # Get help output from executable
+    help_output=$("$EXECUTABLE" -h 2>&1)
+
+    # Define regex patterns (assign to variables to avoid bash syntax issues)
+    # Match algorithm line: "  0 - AlgoName (ID: algo_id)"
+    algo_pattern='^[[:space:]]+[0-9]+[[:space:]]+-[[:space:]]+.*\(ID:[[:space:]]*([^)]+)\)'
+    # Match variant line: "      [0] v0"
+    variant_pattern='^[[:space:]]+\[([0-9]+)\]'
+
+    # Parse the output line by line
+    while IFS= read -r line; do
+        if [[ "$line" =~ $algo_pattern ]]; then
+            # Save previous algorithm if exists
+            if [ -n "$current_algo" ] && [ -n "$current_variants" ]; then
+                ALGORITHMS+=("$current_algo:$current_variants")
+            fi
+            current_algo="${BASH_REMATCH[1]}"
+            current_variants=""
+        elif [[ "$line" =~ $variant_pattern ]]; then
+            variant_num="${BASH_REMATCH[1]}"
+            if [ -n "$current_variants" ]; then
+                current_variants="$current_variants $variant_num"
+            else
+                current_variants="$variant_num"
+            fi
+        fi
+    done <<< "$help_output"
+
+    # Save last algorithm
+    if [ -n "$current_algo" ] && [ -n "$current_variants" ]; then
+        ALGORITHMS+=("$current_algo:$current_variants")
+    fi
+}
+
+# Auto-discover algorithms and their variants
+discover_algorithms() {
+    ALGORITHMS=()
+
+    # Try executable first (more authoritative), fall back to config parsing
+    if [ -x "$EXECUTABLE" ]; then
+        echo -e "${BLUE}Discovering algorithms from executable...${NC}"
+        discover_algorithms_from_executable
+    fi
+
+    # Fall back to config files if no algorithms found
+    if [ ${#ALGORITHMS[@]} -eq 0 ]; then
+        echo -e "${BLUE}Discovering algorithms from config files...${NC}"
+        discover_algorithms_from_config
+    fi
+
+    if [ ${#ALGORITHMS[@]} -eq 0 ]; then
+        echo -e "${RED}Error: No algorithms found${NC}"
+        exit 1
+    fi
+
+    echo -e "${GREEN}Found ${#ALGORITHMS[@]} algorithm(s):${NC}"
+    for algo_entry in "${ALGORITHMS[@]}"; do
+        local algo="${algo_entry%%:*}"
+        local variants="${algo_entry#*:}"
+        echo -e "  - $algo: variants [$variants]"
+    done
+    echo ""
+}
 
 # Result storage
 declare -a RESULTS
@@ -181,6 +280,9 @@ main() {
     check_executable
 
     echo -e "${CYAN}=== OpenCL Algorithm Benchmark ===${NC}\n"
+
+    # Auto-discover algorithms and variants
+    discover_algorithms
 
     # Count total variants
     local total_variants=0
