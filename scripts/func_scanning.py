@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """
-C Code Style Scanner - Google Naming Convention Checker
+C/C++ Code Style Scanner - Google Naming Convention Checker
 
-Scans C source files (.c, .h) for naming convention violations
-based on Google C/C++ Style Guide.
+Scans C/C++ source files (.c, .h, .cpp, .hpp) for naming convention
+violations based on Google C++ Style Guide.
 
-Naming Conventions:
-  - Functions: snake_case (lowercase with underscores)
-  - Variables: snake_case (lowercase with underscores)
-  - Constants/Macros: UPPER_SNAKE_CASE
-  - Types (struct, enum, typedef): CamelCase or snake_case
+Google C++ Style Guide Naming Conventions:
+  - Functions: PascalCase (e.g., AddTableEntry, OpenFile)
+  - Variables: snake_case (e.g., table_name, num_entries)
+  - Constants: kCamelCase (e.g., kDaysInWeek) or UPPER_SNAKE_CASE for macros
+  - Types (struct, class, enum, typedef): PascalCase (e.g., UrlTable)
 
 Usage:
     python3 func_scanning.py /path/to/project
@@ -39,6 +39,8 @@ if sys.version_info < (3, 6):
 
 # File extensions to scan
 C_EXTENSIONS = {'.c', '.h'}
+CPP_EXTENSIONS = {'.cpp', '.hpp', '.cc', '.hh', '.cxx', '.hxx'}
+ALL_EXTENSIONS = C_EXTENSIONS | CPP_EXTENSIONS
 
 # Directories to exclude
 DEFAULT_EXCLUDES = {
@@ -48,7 +50,7 @@ DEFAULT_EXCLUDES = {
     '__pycache__', 'node_modules',
 }
 
-# C keywords to ignore
+# C/C++ keywords to ignore
 C_KEYWORDS = {
     'auto', 'break', 'case', 'char', 'const', 'continue', 'default', 'do',
     'double', 'else', 'enum', 'extern', 'float', 'for', 'goto', 'if',
@@ -59,10 +61,15 @@ C_KEYWORDS = {
     'int8_t', 'int16_t', 'int32_t', 'int64_t',
     'uint8_t', 'uint16_t', 'uint32_t', 'uint64_t',
     'intptr_t', 'uintptr_t', 'intmax_t', 'uintmax_t',
+    # C++ keywords
+    'class', 'namespace', 'template', 'typename', 'this', 'new', 'delete',
+    'public', 'private', 'protected', 'virtual', 'override', 'final',
+    'nullptr', 'constexpr', 'noexcept', 'decltype', 'explicit',
 }
 
-# Common library function prefixes to ignore
+# Common library function prefixes to ignore (these follow their own conventions)
 IGNORED_PREFIXES = (
+    # C standard library
     'printf', 'fprintf', 'sprintf', 'snprintf', 'scanf', 'sscanf',
     'malloc', 'calloc', 'realloc', 'free',
     'memcpy', 'memmove', 'memset', 'memcmp',
@@ -78,11 +85,14 @@ IGNORED_PREFIXES = (
     'exit', 'abort', 'assert', 'perror', 'strerror',
     'clock', 'time', 'difftime', 'mktime',
     'pthread_', 'sem_', 'mutex_',
-    # OpenCL
+    # OpenCL (uses its own naming convention)
     'cl', 'CL_',
     # Common macros
     'MIN', 'MAX', 'ABS', 'CLAMP',
 )
+
+# Functions that should remain as-is (main, etc.)
+SPECIAL_FUNCTIONS = {'main', 'wmain', 'WinMain', 'DllMain'}
 
 
 # =============================================================================
@@ -90,7 +100,7 @@ IGNORED_PREFIXES = (
 # =============================================================================
 
 def is_snake_case(name):
-    """Check if name follows snake_case convention."""
+    """Check if name follows snake_case convention (lowercase with underscores)."""
     if not name:
         return True
     # Allow leading underscore for private symbols
@@ -108,11 +118,28 @@ def is_upper_snake_case(name):
     return bool(re.match(r'^[A-Z][A-Z0-9_]*$', name))
 
 
-def is_camel_case(name):
-    """Check if name follows CamelCase convention."""
+def is_pascal_case(name):
+    """Check if name follows PascalCase (UpperCamelCase) convention."""
     if not name:
         return True
+    # PascalCase: starts with uppercase, no underscores, mixed case allowed
+    # Also allow acronyms like "HTTPServer" or "URLParser"
+    if '_' in name:
+        return False
+    if not name[0].isupper():
+        return False
+    # Must have at least one lowercase letter (to distinguish from UPPER_SNAKE)
+    # unless it's a short name (2-3 chars which could be an acronym)
+    if len(name) > 3 and name.isupper():
+        return False
     return bool(re.match(r'^[A-Z][a-zA-Z0-9]*$', name))
+
+
+def is_k_constant(name):
+    """Check if name follows kConstantName convention."""
+    if not name:
+        return True
+    return bool(re.match(r'^k[A-Z][a-zA-Z0-9]*$', name))
 
 
 def to_snake_case(name):
@@ -136,16 +163,57 @@ def to_snake_case(name):
     return prefix + result
 
 
-def should_ignore(name):
-    """Check if name should be ignored."""
+def to_pascal_case(name):
+    """Convert name to PascalCase."""
+    # Handle leading underscores (remove them for PascalCase)
+    name = name.lstrip('_')
+
+    if not name:
+        return name
+
+    # If already PascalCase, return as-is
+    if is_pascal_case(name):
+        return name
+
+    # Split by underscores or camelCase boundaries
+    if '_' in name:
+        # snake_case to PascalCase
+        parts = name.split('_')
+        return ''.join(word.capitalize() for word in parts if word)
+    else:
+        # camelCase to PascalCase (just capitalize first letter)
+        return name[0].upper() + name[1:]
+
+
+def should_ignore_function(name):
+    """Check if function name should be ignored."""
+    if not name:
+        return True
+    if name in C_KEYWORDS:
+        return True
+    if name in SPECIAL_FUNCTIONS:
+        return True
+    if name.startswith(IGNORED_PREFIXES):
+        return True
+    # Ignore all-caps (likely macros)
+    if is_upper_snake_case(name):
+        return True
+    return False
+
+
+def should_ignore_variable(name):
+    """Check if variable name should be ignored."""
     if not name:
         return True
     if name in C_KEYWORDS:
         return True
     if name.startswith(IGNORED_PREFIXES):
         return True
-    # Ignore all-caps (likely macros/constants)
+    # Ignore all-caps (likely macros/constants - those are OK)
     if is_upper_snake_case(name):
+        return True
+    # Ignore kConstant style (Google constant convention)
+    if is_k_constant(name):
         return True
     # Ignore single letter variables (common in loops)
     if len(name) == 1:
@@ -161,7 +229,7 @@ def should_ignore(name):
 # =============================================================================
 
 class CCodeParser:
-    """Simple C code parser for extracting function and variable names."""
+    """Simple C/C++ code parser for extracting function and variable names."""
 
     def __init__(self, content, filename):
         self.content = content
@@ -267,7 +335,7 @@ class CCodeParser:
             pos = match.start(1)
             line = self._get_line_number(pos)
 
-            if not should_ignore(name):
+            if not should_ignore_function(name):
                 functions.append({
                     'name': name,
                     'line': line,
@@ -305,7 +373,7 @@ class CCodeParser:
             if after.startswith('('):
                 continue
 
-            if not should_ignore(name):
+            if not should_ignore_variable(name):
                 variables.append({
                     'name': name,
                     'line': line,
@@ -314,7 +382,6 @@ class CCodeParser:
                 })
 
         # Also find function parameters
-        param_pattern = r'\(\s*([^)]+)\s*\)'
         for func_match in re.finditer(r'[a-zA-Z_][a-zA-Z0-9_]*\s*\([^)]+\)', self.clean_content):
             params_str = func_match.group(0)
             params_match = re.search(r'\(([^)]+)\)', params_str)
@@ -334,7 +401,7 @@ class CCodeParser:
                             continue
                         pos = func_match.start()
                         line = self._get_line_number(pos)
-                        if not should_ignore(name):
+                        if not should_ignore_variable(name):
                             variables.append({
                                 'name': name,
                                 'line': line,
@@ -348,21 +415,21 @@ class CCodeParser:
         """Check all names for convention violations."""
         issues = []
 
-        # Check functions
+        # Check functions - should be PascalCase
         for func in self.find_functions():
             name = func['name']
-            if not is_snake_case(name):
-                suggested = to_snake_case(name)
+            if not is_pascal_case(name):
+                suggested = to_pascal_case(name)
                 issues.append({
                     'file': self.filename,
                     'line': func['line'],
                     'type': 'function',
                     'name': name,
                     'suggested': suggested,
-                    'message': 'Function "{}" should be snake_case: "{}"'.format(name, suggested),
+                    'message': 'Function "{}" should be PascalCase: "{}"'.format(name, suggested),
                 })
 
-        # Check variables (deduplicate by name+line)
+        # Check variables - should be snake_case
         seen = set()
         for var in self.find_variables():
             name = var['name']
@@ -392,29 +459,30 @@ class CCodeParser:
 # =============================================================================
 
 class StyleScanner:
-    """Scans C files for naming convention violations."""
+    """Scans C/C++ files for naming convention violations."""
 
-    def __init__(self, root_path, exclude_dirs=None):
+    def __init__(self, root_path, exclude_dirs=None, extensions=None):
         self.root_path = os.path.abspath(root_path)
         self.exclude_dirs = exclude_dirs or DEFAULT_EXCLUDES
+        self.extensions = extensions or C_EXTENSIONS
         self.files = []
         self.issues = []
 
     def scan(self):
-        """Scan all C files in the project."""
+        """Scan all C/C++ files in the project."""
         self._find_files()
         self._analyze_files()
         return self
 
     def _find_files(self):
-        """Find all C source files."""
+        """Find all C/C++ source files."""
         for dirpath, dirnames, filenames in os.walk(self.root_path):
             # Filter excluded directories
             dirnames[:] = [d for d in dirnames if d not in self.exclude_dirs]
 
             for filename in filenames:
                 ext = os.path.splitext(filename)[1].lower()
-                if ext in C_EXTENSIONS:
+                if ext in self.extensions:
                     full_path = os.path.join(dirpath, filename)
                     rel_path = os.path.relpath(full_path, self.root_path)
                     self.files.append({
@@ -526,10 +594,12 @@ def print_summary(scanner):
     issues_by_file = scanner.get_issues_by_file()
 
     print("\n" + "=" * 70)
-    print("C CODE STYLE SCANNER - Google Naming Convention")
+    print("C/C++ CODE STYLE SCANNER - Google C++ Style Guide")
     print("=" * 70)
     print("\nProject: {}".format(scanner.root_path))
     print("Files scanned: {}".format(len(scanner.files)))
+    print()
+    print("Convention: Functions=PascalCase, Variables=snake_case")
     print()
 
     if not issues:
@@ -601,20 +671,23 @@ def print_fix_results(changes, dry_run):
 def main():
     """Main entry point."""
     parser = argparse.ArgumentParser(
-        description='Scan C code for Google naming convention violations.',
+        description='Scan C/C++ code for Google C++ Style Guide naming violations.',
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog='''
-Google C Style Guide Naming Conventions:
-  - Functions: snake_case (e.g., calculate_sum)
-  - Variables: snake_case (e.g., total_count)
-  - Constants: UPPER_SNAKE_CASE (e.g., MAX_SIZE)
-  - Types: CamelCase (e.g., MyStruct)
+Google C++ Style Guide Naming Conventions:
+  - Functions:  PascalCase      (e.g., AddTableEntry, OpenFile)
+  - Variables:  snake_case      (e.g., table_name, num_entries)
+  - Parameters: snake_case      (e.g., input_buffer, max_size)
+  - Constants:  kCamelCase      (e.g., kDaysInWeek, kMaxSize)
+  - Macros:     UPPER_SNAKE     (e.g., MAX_BUFFER_SIZE)
+  - Types:      PascalCase      (e.g., UrlTable, MyClass)
 
 Examples:
   %(prog)s /path/to/project           # Scan and show summary
   %(prog)s /path/to/project --fix     # Auto-fix violations
   %(prog)s . --fix --dry-run          # Preview fixes without applying
   %(prog)s . --exclude build,test     # Exclude directories
+  %(prog)s . --cpp                     # Include C++ files (.cpp, .hpp)
         '''
     )
 
@@ -644,6 +717,12 @@ Examples:
     )
 
     parser.add_argument(
+        '--cpp',
+        action='store_true',
+        help='Also scan C++ files (.cpp, .hpp, .cc, .hh)'
+    )
+
+    parser.add_argument(
         '-q', '--quiet',
         action='store_true',
         help='Only show summary, not individual issues'
@@ -652,7 +731,7 @@ Examples:
     parser.add_argument(
         '--version',
         action='version',
-        version='%(prog)s 1.0.0'
+        version='%(prog)s 2.0.0'
     )
 
     args = parser.parse_args()
@@ -667,8 +746,13 @@ Examples:
     if args.exclude:
         exclude_dirs.update(e.strip() for e in args.exclude.split(','))
 
+    # Determine extensions to scan
+    extensions = C_EXTENSIONS.copy()
+    if args.cpp:
+        extensions.update(CPP_EXTENSIONS)
+
     # Scan
-    scanner = StyleScanner(args.project_path, exclude_dirs)
+    scanner = StyleScanner(args.project_path, exclude_dirs, extensions)
     scanner.scan()
 
     if args.fix:
