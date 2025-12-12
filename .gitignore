@@ -78,6 +78,10 @@ env/
 # Documentation (generated)
 docs/html/
 
+# Generated reports
+dependency_report.html
+*_report.html
+
 # Temporary files
 *.tmp
 *.log
