@@ -217,3 +217,21 @@ int CacheLoadGolden(const char* algorithm_id, const char* variant_id, unsigned c
  */
 int CacheVerifyGolden(const char* algorithm_id, const char* variant_id, const unsigned char* data,
                       size_t size, size_t* differences);
+
+/**
+ * @brief Load golden sample from an external file path
+ *
+ * Reads a pre-computed golden sample from an arbitrary file path.
+ * This is used when golden_source=file is configured, allowing
+ * reference data from external sources (e.g., vendor reference outputs).
+ *
+ * Unlike CacheLoadGolden which uses the cache directory structure,
+ * this function reads from the exact path specified.
+ *
+ * @param golden_file_path Path to the golden sample file
+ * @param buffer Buffer to receive the golden sample data
+ * @param expected_size Expected size of the golden data in bytes
+ * @return 0 on success, -1 on error (file not found, size mismatch, etc.)
+ */
+int CacheLoadGoldenFromFile(const char* golden_file_path, unsigned char* buffer,
+                            size_t expected_size);
