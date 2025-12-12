@@ -759,3 +759,68 @@ int CacheVerifyGolden(const char* algorithm_id, const char* variant_id, const un
         return 0;
     }
 }
+
+int CacheLoadGoldenFromFile(const char* golden_file_path, unsigned char* buffer,
+                            size_t expected_size) {
+    FILE* fp;
+    long file_size;
+    size_t read_size;
+
+    if ((golden_file_path == NULL) || (buffer == NULL) || (expected_size == 0U)) {
+        (void)fprintf(stderr, "Error: Invalid parameters for CacheLoadGoldenFromFile\n");
+        return -1;
+    }
+
+    /* Open golden file */
+    fp = fopen(golden_file_path, "rb");
+    if (fp == NULL) {
+        (void)fprintf(stderr, "Error: Failed to open golden file: %s\n", golden_file_path);
+        return -1;
+    }
+
+    /* Get file size for validation */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        (void)fprintf(stderr, "Error: Failed to seek in golden file\n");
+        (void)fclose(fp);
+        return -1;
+    }
+
+    file_size = ftell(fp);
+    if (file_size < 0) {
+        (void)fprintf(stderr, "Error: Failed to get golden file size\n");
+        (void)fclose(fp);
+        return -1;
+    }
+
+    /* Validate file size matches expected size */
+    if ((size_t)file_size != expected_size) {
+        (void)fprintf(stderr,
+                      "Error: Golden file size mismatch (expected %zu bytes, got %ld bytes)\n",
+                      expected_size, file_size);
+        (void)fclose(fp);
+        return -1;
+    }
+
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        (void)fprintf(stderr, "Error: Failed to rewind golden file\n");
+        (void)fclose(fp);
+        return -1;
+    }
+
+    /* Read golden data directly into provided buffer */
+    read_size = fread(buffer, 1U, expected_size, fp);
+    if (read_size != expected_size) {
+        (void)fprintf(stderr, "Error: Failed to read golden file (%zu of %zu bytes)\n", read_size,
+                      expected_size);
+        (void)fclose(fp);
+        return -1;
+    }
+
+    if (fclose(fp) != 0) {
+        (void)fprintf(stderr, "Warning: Failed to close golden file\n");
+    }
+
+    (void)printf("Loaded golden sample from file (%zu bytes): %s\n", expected_size,
+                 golden_file_path);
+    return 0;
+}

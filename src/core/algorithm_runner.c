@@ -265,11 +265,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     /* Step 1: Get golden/reference output (either from C ref or from file) */
     if (config->verification.golden_source == GOLDEN_SOURCE_FILE) {
         /* Load golden directly from file (skip c_ref execution) */
-        /* NOTE: Cannot use ReadImage here as it would overwrite the input image
-         * (ReadImage uses a single static buffer). Instead, read directly into
-         * ref_output_buffer. */
-        FILE* golden_fp;
-        size_t read_count;
+        int load_result;
 
         (void)printf("\n=== Loading Golden Sample from File ===\n");
         if (config->verification.golden_file[0] == '\0') {
@@ -277,24 +273,14 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             goto cleanup_early;
         }
 
-        golden_fp = fopen(config->verification.golden_file, "rb");
-        if (golden_fp == NULL) {
-            (void)fprintf(stderr, "Failed to open golden file: %s\n",
+        load_result = CacheLoadGoldenFromFile(config->verification.golden_file, ref_output_buffer,
+                                              (size_t)img_size);
+        if (load_result != 0) {
+            (void)fprintf(stderr, "Failed to load golden file: %s\n",
                           config->verification.golden_file);
             goto cleanup_early;
         }
 
-        read_count = fread(ref_output_buffer, 1U, (size_t)img_size, golden_fp);
-        (void)fclose(golden_fp);
-
-        if (read_count != (size_t)img_size) {
-            (void)fprintf(stderr, "Failed to read golden file: expected %d bytes, got %zu\n",
-                          img_size, read_count);
-            goto cleanup_early;
-        }
-
-        (void)printf("Loaded golden sample from: %s (%d bytes)\n",
-                     config->verification.golden_file, img_size);
         ref_time = 0.0; /* No c_ref execution time */
     } else {
         /* Default: Run C reference implementation to generate golden */
