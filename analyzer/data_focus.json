@@ -1,0 +1,34 @@
+{
+  "_comment": "Data structure focus configuration. Edit to customize.",
+  "_usage": "Set show_only_focused=true to filter the graph to focus_categories only.",
+  "categories": {
+    "algorithm": [
+      "Algorithm",
+      "CustomBuffers",
+      "CustomScalars",
+      "OpParams",
+      "OpenCLEnv",
+      "RuntimeBuffer"
+    ],
+    "unknown": [
+      "KernelArgDescriptor",
+      "value"
+    ],
+    "platform": [
+      "CLExtensionContext"
+    ],
+    "config": [
+      "Config",
+      "CustomBufferConfig",
+      "InputImageConfig",
+      "KernelConfig",
+      "OutputImageConfig",
+      "VerificationConfig"
+    ]
+  },
+  "focus_categories": [
+    "config",
+    "algorithm"
+  ],
+  "show_only_focused": false
+}

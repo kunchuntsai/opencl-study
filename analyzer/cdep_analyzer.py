@@ -275,6 +275,9 @@ class CleanArchAnalyzer:
 
         num_layers = len(self.layers)
 
+        # Check if user has configured directory_layers (non-empty config)
+        has_user_config = len(self.directory_layers) > 0 or len(self.file_overrides) > 0
+
         for file_path in self.scanner.files:
             # Check for config-based assignment first (file override or directory)
             config_layer = self._get_layer_for_file(file_path)
@@ -282,6 +285,13 @@ class CleanArchAnalyzer:
                 self.file_layers[file_path] = config_layer
                 continue
 
+            # If user has configured layers, skip files not in config (don't auto-detect)
+            # This ensures the CA diagram only shows what user explicitly configured
+            if has_user_config:
+                # File not in any configured directory - exclude from CA analysis
+                continue
+
+            # Auto-detection only runs on first generation (no user config yet)
             depth = self.file_depths.get(file_path, 0)
             fan_in = len(self.scanner.reverse_deps.get(file_path, set()))
             fan_out = len(self.scanner.dependencies.get(file_path, set()))
@@ -322,15 +332,23 @@ class CleanArchAnalyzer:
         self._classify_by_dependency()
 
         # Find violations (inner layer depending on outer layer)
-        # With dependency-based classification, violations should be minimal
+        # Only analyze files that are in the configured layers
         self.violations = []
         self.warnings = []
         for src_file, deps in self.scanner.dependencies.items():
-            src_layer = self.file_layers.get(src_file, self.layers[0]['name'])
+            # Skip files not in the layer config
+            if src_file not in self.file_layers:
+                continue
+
+            src_layer = self.file_layers[src_file]
             src_idx = self._get_layer_index(src_layer)
 
             for dep_file in deps:
-                dep_layer = self.file_layers.get(dep_file, self.layers[0]['name'])
+                # Skip dependencies to files not in the layer config
+                if dep_file not in self.file_layers:
+                    continue
+
+                dep_layer = self.file_layers[dep_file]
                 dep_idx = self._get_layer_index(dep_layer)
 
                 # Violation: inner layer (higher index) depends on outer layer (lower index)
@@ -699,8 +717,9 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
     for idx, (rel_path, info) in enumerate(scanner.files.items()):
         node_index[rel_path] = idx
         dir_name = os.path.dirname(rel_path) or '.'
-        layer = ca_file_layers.get(rel_path, DEFAULT_LAYER)
-        layer_color = next((l['color'] for l in ca_layers if l['name'] == layer), '#888888')
+        # Use None for files not in config (they'll be excluded from CA diagram)
+        layer = ca_file_layers.get(rel_path)
+        layer_color = next((l['color'] for l in ca_layers if l['name'] == layer), '#888888') if layer else '#888888'
         nodes.append({
             'id': idx,
             'name': info['filename'],
@@ -710,7 +729,7 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
             'lines': info['line_count'],
             'fanIn': len(scanner.reverse_deps.get(rel_path, set())),
             'fanOut': len(scanner.dependencies.get(rel_path, set())),
-            'layer': layer,
+            'layer': layer,  # None if not in config
             'layerColor': layer_color,
         })
 
@@ -1629,9 +1648,12 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
         const caHeight = caContainer ? caContainer.clientHeight : 500;
 
         if (caContainer && caLayers.length > 0) {{
-            // Group files by directory and determine CA layer
+            // Group files by directory, only include files with configured layers
             const dirFiles = {{}};
             nodes.forEach(n => {{
+                // Skip files not in any configured layer (layer is null)
+                if (!n.layer) return;
+
                 const dir = n.directory || '.';
                 if (!dirFiles[dir]) dirFiles[dir] = [];
                 dirFiles[dir].push(n);
@@ -1642,25 +1664,30 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
             Object.keys(dirFiles).forEach(dir => {{
                 const layerCounts = {{}};
                 dirFiles[dir].forEach(n => {{
-                    layerCounts[n.layer] = (layerCounts[n.layer] || 0) + 1;
+                    if (n.layer) {{
+                        layerCounts[n.layer] = (layerCounts[n.layer] || 0) + 1;
+                    }}
                 }});
-                let maxCount = 0, dominantLayer = 'Application';
+                let maxCount = 0, dominantLayer = null;
                 Object.entries(layerCounts).forEach(([layer, count]) => {{
                     if (count > maxCount) {{ maxCount = count; dominantLayer = layer; }}
                 }});
                 dirCALayers[dir] = dominantLayer;
             }});
 
-            // Build module nodes with CA layer info
-            const caModules = Object.keys(dirFiles).map(dir => ({{
-                id: dir,
-                name: dir,
-                fileCount: dirFiles[dir].length,
-                caLayer: dirCALayers[dir],
-                color: caLayers.find(l => l.name === dirCALayers[dir])?.color || '#888'
-            }}));
+            // Build module nodes with CA layer info (only directories with configured files)
+            const caModules = Object.keys(dirFiles)
+                .filter(dir => dirCALayers[dir])  // Exclude directories with no layer
+                .map(dir => ({{
+                    id: dir,
+                    name: dir,
+                    fileCount: dirFiles[dir].length,
+                    caLayer: dirCALayers[dir],
+                    color: caLayers.find(l => l.name === dirCALayers[dir])?.color || '#888'
+                }}));
 
-            // Build module links from file dependencies
+            // Build module links from file dependencies (only between configured directories)
+            const configuredDirs = new Set(Object.keys(dirFiles));
             const caModuleLinks = [];
             const seenLinks = new Set();
             Object.keys(dirFiles).forEach(srcDir => {{
@@ -1670,7 +1697,8 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
                             const tgtNode = nodes.find(n => n.id === link.target);
                             if (tgtNode) {{
                                 const tgtDir = tgtNode.directory || '.';
-                                if (srcDir !== tgtDir) {{
+                                // Only create links to configured directories
+                                if (srcDir !== tgtDir && configuredDirs.has(tgtDir)) {{
                                     const key = srcDir + '|' + tgtDir;
                                     if (!seenLinks.has(key)) {{
                                         seenLinks.add(key);
@@ -1754,71 +1782,53 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
             }});
             caTempText.remove();
 
-            // Position modules by CA layer:
-            // Presentation(top-left) -> Application(mid-left) -> Core(bottom)
-            //                           Infrastructure(mid-right) -> Core(bottom)
-            const layerOrder = ['Presentation', 'Application', 'Infrastructure', 'Core'];
+            // Position modules by CA layer dynamically based on caLayers config
+            // Layers are rendered top to bottom in the order they appear in caLayers
             const startY = 60;
+            const layerPositions = {{}};
 
-            layerOrder.forEach(layerName => {{
+            caLayers.forEach((layer, idx) => {{
+                layerPositions[layer.name] = {{
+                    y: startY + idx * layerSpacing,
+                    x: 10,
+                    width: caWidth - 20
+                }};
+            }});
+
+            caLayers.forEach(layer => {{
+                const layerName = layer.name;
                 const nodesInLayer = modulesByCALayer[layerName] || [];
-                let y, xOffset, availWidth;
-
-                if (layerName === 'Presentation') {{
-                    // Top-left, only above Application
-                    y = startY;
-                    xOffset = 0;
-                    availWidth = caWidth / 2 - 20;
-                }} else if (layerName === 'Application') {{
-                    // Middle-left, below Presentation
-                    y = startY + layerSpacing;
-                    xOffset = 0;
-                    availWidth = caWidth / 2 - 20;
-                }} else if (layerName === 'Infrastructure') {{
-                    // Middle-right, same row as Application (no Presentation above)
-                    y = startY + layerSpacing;
-                    xOffset = caWidth / 2;
-                    availWidth = caWidth / 2 - 20;
-                }} else {{
-                    // Core at bottom, full width
-                    y = startY + 2 * layerSpacing;
-                    xOffset = 0;
-                    availWidth = caWidth;
-                }}
+                const pos = layerPositions[layerName];
 
                 const totalWidth = nodesInLayer.reduce((sum, n) => sum + n.nodeWidth, 0) + (nodesInLayer.length - 1) * nodeSpacingH;
-                let x = xOffset + (availWidth - totalWidth) / 2;
+                let x = pos.x + (pos.width - totalWidth) / 2;
 
                 nodesInLayer.forEach(n => {{
                     n.x = x + n.nodeWidth / 2;
-                    n.y = y;
+                    n.y = pos.y;
                     x += n.nodeWidth + nodeSpacingH;
                 }});
             }});
 
-            // Draw layer backgrounds
-            const layerBgData = [
-                {{ name: 'Presentation', y: startY - 30, height: 70, x: 10, width: caWidth / 2 - 20 }},
-                {{ name: 'Application', y: startY + layerSpacing - 30, height: 70, x: 10, width: caWidth / 2 - 20 }},
-                {{ name: 'Infrastructure', y: startY + layerSpacing - 30, height: 70, x: caWidth / 2 + 10, width: caWidth / 2 - 20 }},
-                {{ name: 'Core', y: startY + 2 * layerSpacing - 30, height: 70, x: 10, width: caWidth - 20 }}
-            ];
+            // Draw layer backgrounds dynamically from caLayers (show all layers including empty ones)
+            caLayers.forEach((layer, idx) => {{
+                const pos = layerPositions[layer.name];
+                const nodesInLayer = modulesByCALayer[layer.name] || [];
 
-            layerBgData.forEach(bg => {{
-                const layer = caLayers.find(l => l.name === bg.name);
-                if (!layer) return;
                 caG.append('rect')
-                    .attr('x', bg.x).attr('y', bg.y)
-                    .attr('width', bg.width).attr('height', bg.height)
+                    .attr('x', pos.x).attr('y', pos.y - 30)
+                    .attr('width', pos.width).attr('height', 70)
                     .attr('rx', 6)
-                    .attr('fill', layer.color).attr('fill-opacity', 0.08)
+                    .attr('fill', layer.color).attr('fill-opacity', nodesInLayer.length > 0 ? 0.08 : 0.03)
                     .attr('stroke', layer.color).attr('stroke-width', 1.5)
-                    .attr('stroke-dasharray', '5,3');
+                    .attr('stroke-dasharray', '5,3')
+                    .attr('stroke-opacity', nodesInLayer.length > 0 ? 1 : 0.4);
                 caG.append('text')
-                    .attr('x', bg.x + 10).attr('y', bg.y + 16)
+                    .attr('x', pos.x + 10).attr('y', pos.y - 14)
                     .attr('font-size', '12px').attr('font-weight', 'bold')
                     .attr('fill', layer.color)
-                    .text(layer.name);
+                    .attr('opacity', nodesInLayer.length > 0 ? 1 : 0.5)
+                    .text(layer.name + (nodesInLayer.length === 0 ? ' (empty)' : ''));
             }});
 
             const caNodeById = new Map(caModules.map(n => [n.id, n]));
