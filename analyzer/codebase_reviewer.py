@@ -1386,7 +1386,7 @@ def generate_review_report(
         /* Layer colors */
         .layer-presentation {{ color: #F44336; }}
         .layer-application {{ color: #2196F3; }}
-        .layer-core {{ color: #4CAF50; }}
+        .layer-domain {{ color: #4CAF50; }}
         .layer-infrastructure {{ color: #FF9800; }}
 
         /* Footer */

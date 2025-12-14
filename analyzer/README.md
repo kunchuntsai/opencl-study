@@ -49,7 +49,7 @@ Order: outermost to innermost
 |-------|-------------|
 | Presentation | Entry points, UI, drivers |
 | Application | Use cases, orchestration |
-| Core | Business logic, interfaces |
+| Domain | Business logic, interfaces |
 | Infrastructure | External services, utilities |
 
 **Violation**: Inner layer depending on outer layer (e.g., Infrastructure -> Presentation)
@@ -62,7 +62,7 @@ Order: outermost to innermost
   "directory_layers": {
     "Presentation": ["src"],
     "Application": ["src/core"],
-    "Core": ["include"],
+    "Domain": ["include"],
     "Infrastructure": ["src/utils", "examples"]
   },
   "file_overrides": {}

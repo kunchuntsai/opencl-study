@@ -114,7 +114,7 @@ DEFAULT_EXCLUDES = {
 # Standard Clean Architecture layers:
 #   - Presentation: Entry points, UI, drivers (outermost)
 #   - Application: Use cases, orchestration
-#   - Core: Business logic, interfaces
+#   - Domain: Business logic, interfaces
 #   - Infrastructure: External services, utilities (innermost)
 CLEAN_ARCH_LAYERS = [
     {
@@ -128,7 +128,7 @@ CLEAN_ARCH_LAYERS = [
         'color': '#2196F3',  # Blue
     },
     {
-        'name': 'Core',
+        'name': 'Domain',
         'description': 'Business logic, interfaces',
         'color': '#4CAF50',  # Green
     },
@@ -151,7 +151,7 @@ class CleanArchAnalyzer:
     """Analyzes code against Clean Architecture principles.
 
     Layer classification is based on actual dependency analysis:
-    - Core (innermost): Files that are most depended upon, with few/no outgoing deps
+    - Domain (innermost): Files that are most depended upon, with few/no outgoing deps
     - Operations: Files with balanced fan-in/fan-out
     - Services: Utility files used across the codebase
     - HAL (outermost): Files that depend on many others but are rarely depended upon
@@ -285,10 +285,10 @@ class CleanArchAnalyzer:
         max_depth = max(all_depths) if all_depths else 0
 
         # Define layer boundaries based on depth distribution
-        # Layer order (outermost to innermost): Presentation, Application, Core, Infrastructure
+        # Layer order (outermost to innermost): Presentation, Application, Domain, Infrastructure
         # Presentation: highest depth (entry points, depend on many)
         # Application: medium-high depth (use cases)
-        # Core: low depth, high fan-in (interfaces, business logic)
+        # Domain: low depth, high fan-in (interfaces, business logic)
         # Infrastructure: depth 0, high fan-in (utilities, no outgoing deps)
 
         num_layers = len(self.layers)
@@ -324,13 +324,13 @@ class CleanArchAnalyzer:
                 # No outgoing dependencies = Infrastructure (innermost, foundational)
                 layer_idx = num_layers - 1
             elif fan_in > fan_out and fan_in > 2:
-                # High fan-in (many dependents) = Core (interfaces/utilities)
+                # High fan-in (many dependents) = Domain (interfaces/utilities)
                 layer_idx = num_layers - 2
             elif depth >= max_depth - 1 and fan_out > fan_in:
                 # Highest depth, more deps than dependents = Presentation (entry points)
                 layer_idx = 0
             else:
-                # Scale remaining to Application/Core range
+                # Scale remaining to Application/Domain range
                 if max_depth > 1:
                     # Invert: higher depth = lower index (outer)
                     normalized = 1.0 - (depth / max_depth)
@@ -437,7 +437,7 @@ class CleanArchAnalyzer:
             dir_dominant[d] = dominant
 
         # Group directories by layer: {"LayerName": ["dir1", "dir2"]}
-        # Build in layer order (Presentation, Application, Core, Infrastructure)
+        # Build in layer order (Presentation, Application, Domain, Infrastructure)
         # Keep all layers even if empty, so users can see the full structure
         layer_dirs = {}
         for layer_def in self.layers:
@@ -1157,7 +1157,7 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
             <h2>Clean Architecture Analysis</h2>
             <p style="color: #666; margin-bottom: 15px;">
                 Module-level dependencies organized by Clean Architecture layers.
-                Dependencies should flow: Presentation &rarr; Application &rarr; Core &larr; Infrastructure
+                Dependencies should flow: Presentation &rarr; Application &rarr; Domain &larr; Infrastructure
                 <span class="violation-badge" style="margin-left: 10px;">{violation_count} violations</span>
             </p>
 
@@ -2159,7 +2159,7 @@ Example:
 Clean Architecture Layers (outermost to innermost):
   Presentation   - Entry points, UI, drivers (outermost)
   Application    - Use cases, orchestration
-  Core           - Business logic, interfaces
+  Domain         - Business logic, interfaces
   Infrastructure - External services, utilities (innermost)
 
   Layers are auto-detected based on dependency analysis.
