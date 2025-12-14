@@ -29,15 +29,20 @@ python3 cdep_analyzer.py /path/to/project
 By default, HTML reports load D3.js from CDN and require internet access.
 To enable offline viewing:
 
+### Option 1: Use the helper HTML (recommended)
+1. Open `get_d3_offline.html` in a browser (on a machine with internet)
+2. Click "Download d3.v7.min.js"
+3. Copy the file to the `analyzer/` directory
+
+### Option 2: Python script
 ```bash
-# Run once to download D3.js (~280KB)
 python3 download_d3.py
 ```
 
-After this, generated HTML reports will embed D3.js inline and work without internet.
+### Option 3: Manual download
+Download https://d3js.org/d3.v7.min.js and save as `analyzer/d3.v7.min.js`
 
-**Manual download**: If the script fails, download https://d3js.org/d3.v7.min.js
-and save it as `d3.v7.min.js` in the analyzer directory.
+After adding the file, generated HTML reports will embed D3.js inline and work offline.
 
 ## Clean Architecture Layers
 
