@@ -43,6 +43,24 @@ if sys.version_info < (3, 6):
 # Configuration
 # =============================================================================
 
+# D3.js for HTML visualization
+D3_LOCAL_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'd3.v7.min.js')
+D3_CDN_URL = 'https://d3js.org/d3.v7.min.js'
+
+
+def get_d3_script_tag():
+    """Get D3.js script tag - inline if local file exists, otherwise CDN."""
+    if os.path.exists(D3_LOCAL_FILE):
+        try:
+            with open(D3_LOCAL_FILE, 'r', encoding='utf-8') as f:
+                d3_content = f.read()
+            if len(d3_content) > 100000:  # Sanity check: D3.js should be > 100KB
+                return '<script>{}</script>'.format(d3_content)
+        except (IOError, OSError):
+            pass
+    return '<script src="{}"></script>'.format(D3_CDN_URL)
+
+
 # File extensions to scan
 C_EXTENSIONS = {'.c', '.h'}
 CPP_EXTENSIONS = {'.cpp', '.hpp', '.cc', '.hh', '.cxx', '.hxx', '.c++', '.h++'}
@@ -1217,7 +1235,7 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
 
     <div id="tooltip" class="tooltip" style="display: none;"></div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    {d3_script_tag}
     <script>
         // Data
         const nodes = {nodes_json};
@@ -2096,6 +2114,7 @@ def generate_html_report(scanner, output_path, clean_arch_analyzer=None):
         total_lines=stats['total_lines'],
         total_deps=stats['total_dependencies'],
         cycle_count=len(cycles),
+        d3_script_tag=get_d3_script_tag(),
         nodes_json=json.dumps(nodes),
         links_json=json.dumps(links),
         dir_deps_json=json.dumps(dir_deps),

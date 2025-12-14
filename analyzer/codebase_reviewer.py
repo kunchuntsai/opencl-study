@@ -46,6 +46,7 @@ try:
         DEFAULT_EXCLUDES,
         ALL_EXTENSIONS,
         C_EXTENSIONS,
+        get_d3_script_tag,
     )
 except ImportError:
     print("Error: cdep_analyzer.py must be in the same directory")
@@ -1717,7 +1718,7 @@ def generate_review_report(
 
     <div id="tooltip" class="tooltip" style="display: none;"></div>
 
-    <script src="https://d3js.org/d3.v7.min.js"></script>
+    {d3_script_tag}
     <script>
         // Data
         const modules = {modules_json};
@@ -2841,6 +2842,7 @@ def generate_review_report(
         module_call_nodes_json=json.dumps(module_call_nodes),
         module_call_links_json=json.dumps(module_call_links),
         ca_layers_json=json.dumps(ca_layers),
+        d3_script_tag=get_d3_script_tag(),
         python_version='{}.{}.{}'.format(*sys.version_info[:3]),
     )
 

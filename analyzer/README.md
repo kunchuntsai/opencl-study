@@ -24,6 +24,21 @@ python3 cdep_analyzer.py /path/to/project
 - `ca_layers.json` - Layer configuration
 - `dep_report.html` - Interactive visualization
 
+## Offline Mode (for local networks)
+
+By default, HTML reports load D3.js from CDN and require internet access.
+To enable offline viewing:
+
+```bash
+# Run once to download D3.js (~280KB)
+python3 download_d3.py
+```
+
+After this, generated HTML reports will embed D3.js inline and work without internet.
+
+**Manual download**: If the script fails, download https://d3js.org/d3.v7.min.js
+and save it as `d3.v7.min.js` in the analyzer directory.
+
 ## Clean Architecture Layers
 
 Order: outermost to innermost
