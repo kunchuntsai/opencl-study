@@ -1,7 +1,4 @@
 {
-    "_comment": "Gaussian 5x5 Algorithm Configuration - Gaussian blur filter with 5x5 kernel",
-    "_note": "op_id is auto-derived from filename (gaussian5x5.json -> op_id = gaussian5x5)",
-
     "input": {
         "input_image_id": "image_2"
     },
@@ -11,7 +8,6 @@
     },
 
     "verification": {
-        "_comment": "Verification settings (allow +/-1 tolerance due to floating-point rounding)",
         "tolerance": 1,
         "error_rate_threshold": 0.001
     },
@@ -33,7 +29,6 @@
 
     "buffers": {
         "tmp_global": {
-            "_comment": "Custom buffer 0: temporary global buffer for intermediate results",
             "type": "READ_WRITE",
             "size_bytes": 400000
         },
@@ -42,14 +37,12 @@
             "size_bytes": 512000
         },
         "kernel_x": {
-            "_comment": "Custom buffer 1: horizontal Gaussian weights (5 floats)",
             "type": "READ_ONLY",
             "data_type": "float",
             "num_elements": 5,
             "source_file": "test_data/gaussian5x5/kernel_x.bin"
         },
         "kernel_y": {
-            "_comment": "Custom buffer 2: vertical Gaussian weights (5 floats)",
             "type": "READ_ONLY",
             "data_type": "float",
             "num_elements": 5,
@@ -59,7 +52,6 @@
 
     "kernels": {
         "v0": {
-            "_comment": "Variant 0: Basic implementation using standard OpenCL API",
             "host_type": "standard",
             "kernel_file": "examples/gaussian5x5/cl/gaussian0.cl",
             "kernel_function": "gaussian5x5",
@@ -76,7 +68,6 @@
             ]
         },
         "v1": {
-            "_comment": "Variant 1: Optimized with local memory using custom CL extension API",
             "host_type": "cl_extension",
             "kernel_file": "examples/gaussian5x5/cl/gaussian1.cl",
             "kernel_function": "gaussian5x5_optimized",
@@ -95,7 +86,6 @@
             ]
         },
         "v2": {
-            "_comment": "Variant 2: Two-pass separable convolution using custom CL extension API",
             "host_type": "cl_extension",
             "kernel_file": "examples/gaussian5x5/cl/gaussian2.cl",
             "kernel_function": "gaussian5x5_horizontal",
@@ -116,7 +106,6 @@
             ]
         },
         "v3": {
-            "_comment": "Variant 3: Custom scalars demo - computes Gaussian weights on-the-fly",
             "host_type": "standard",
             "kernel_file": "examples/gaussian5x5/cl/gaussian3.cl",
             "kernel_function": "gaussian_custom",

@@ -1,7 +1,4 @@
 {
-    "_comment": "Dilate 3x3 Algorithm Configuration - Morphological dilation with 3x3 structuring element",
-    "_note": "op_id is auto-derived from filename (dilate3x3.json -> op_id = dilate3x3)",
-
     "input": {
         "input_image_id": "image_1"
     },
@@ -11,7 +8,6 @@
     },
 
     "verification": {
-        "_comment": "Verification settings (exact match required for morphological operations)",
         "tolerance": 0,
         "error_rate_threshold": 0,
         "golden_source": "file",
@@ -20,7 +16,6 @@
 
     "kernels": {
         "v0": {
-            "_comment": "Variant 0: Basic implementation",
             "kernel_file": "examples/dilate3x3/cl/dilate0.cl",
             "kernel_function": "dilate3x3",
             "work_dim": 2,
@@ -34,7 +29,6 @@
             ]
         },
         "v1": {
-            "_comment": "Variant 1: Optimized with local memory",
             "kernel_file": "examples/dilate3x3/cl/dilate1.cl",
             "kernel_function": "dilate3x3_optimized",
             "work_dim": 2,
