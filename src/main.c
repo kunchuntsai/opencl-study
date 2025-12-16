@@ -85,23 +85,23 @@ int main(int argc, char** argv) {
         variant_index = -1;
     }
 
-    /* Resolve algorithm name to config path (config/<name>.ini) */
+    /* Resolve algorithm name to config path (config/<name>.json) */
     if (ResolveConfigPath(config_input, config_path, sizeof(config_path)) != 0) {
         (void)fprintf(stderr, "Failed to resolve config path: %s\n", config_input);
         return 1;
     }
 
-    /* 1a. Parse input images configuration (config/inputs.ini) */
-    parse_result = ParseInputsConfig("config/inputs.ini", &config);
+    /* 1a. Parse input images configuration (config/inputs.json) */
+    parse_result = ParseInputsConfig("config/inputs.json", &config);
     if (parse_result != 0) {
-        (void)fprintf(stderr, "Failed to parse config/inputs.ini\n");
+        (void)fprintf(stderr, "Failed to parse config/inputs.json\n");
         return 1;
     }
 
-    /* 1b. Parse output images configuration (config/outputs.ini) */
-    parse_result = ParseOutputsConfig("config/outputs.ini", &config);
+    /* 1b. Parse output images configuration (config/outputs.json) */
+    parse_result = ParseOutputsConfig("config/outputs.json", &config);
     if (parse_result != 0) {
-        (void)fprintf(stderr, "Failed to parse config/outputs.ini\n");
+        (void)fprintf(stderr, "Failed to parse config/outputs.json\n");
         return 1;
     }
 

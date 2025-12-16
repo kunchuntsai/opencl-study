@@ -8,64 +8,53 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "cJSON.h"
 #include "utils/safe_ops.h"
 
 /* Maximum line length for config file */
 #define MAX_LINE_LENGTH 512
-#define MAX_SECTION_LENGTH 64
 #define MAX_BUFFER_LENGTH 256
 
-/* Helper function to Trim whitespace */
-static char* Trim(char* str) {
-    char* end;
+/* Helper function to read entire file into string */
+static char* ReadFileToString(const char* filename) {
+    FILE* fp;
+    long file_size;
+    char* buffer;
+    size_t bytes_read;
 
-    /* Trim leading space */
-    while (isspace((unsigned char)*str)) {
-        str++;
+    fp = fopen(filename, "rb");
+    if (fp == NULL) {
+        return NULL;
     }
 
-    if (*str == '\0') {
-        return str;
+    /* Get file size */
+    if (fseek(fp, 0, SEEK_END) != 0) {
+        (void)fclose(fp);
+        return NULL;
+    }
+    file_size = ftell(fp);
+    if (file_size < 0) {
+        (void)fclose(fp);
+        return NULL;
+    }
+    if (fseek(fp, 0, SEEK_SET) != 0) {
+        (void)fclose(fp);
+        return NULL;
     }
 
-    /* Trim trailing space */
-    end = str + strlen(str) - 1;
-    while ((end > str) && isspace((unsigned char)*end)) {
-        end--;
+    /* Allocate buffer */
+    buffer = (char*)malloc((size_t)file_size + 1U);
+    if (buffer == NULL) {
+        (void)fclose(fp);
+        return NULL;
     }
 
-    /* Write new null terminator */
-    *(end + 1) = '\0';
+    /* Read file */
+    bytes_read = fread(buffer, 1U, (size_t)file_size, fp);
+    buffer[bytes_read] = '\0';
 
-    return str;
-}
-
-/* Parse kernel section name to extract variant_id */
-/* Format: "kernel.<variant_id>" */
-static int ParseKernelSection(const char* section, char* variant_id, size_t variant_id_size) {
-    const char* first_dot;
-    size_t variant_len;
-
-    if ((section == NULL) || (variant_id == NULL)) {
-        return -1;
-    }
-
-    /* Skip "kernel." prefix */
-    if (strncmp(section, "kernel.", 7U) != 0) {
-        return -1;
-    }
-
-    first_dot = section + 7; /* Points to start of variant_id */
-
-    /* Extract variant_id */
-    variant_len = strlen(first_dot);
-    if ((variant_len == 0U) || (variant_len >= variant_id_size)) {
-        return -1; /* variant_id empty or too long */
-    }
-    (void)strncpy(variant_id, first_dot, variant_id_size - 1U);
-    variant_id[variant_id_size - 1U] = '\0';
-
-    return 0;
+    (void)fclose(fp);
+    return buffer;
 }
 
 /* Extract numeric variant number from variant_id */
@@ -93,62 +82,6 @@ static int ExtractVariantNumber(const char* variant_id) {
     }
 
     return (int)temp_long;
-}
-
-/* Parse buffer section name to extract buffer name */
-/* Format: "buffer.<name>" */
-static int ParseBufferSection(const char* section, char* name, size_t name_size) {
-    const char* first_dot;
-    size_t name_len;
-
-    if ((section == NULL) || (name == NULL)) {
-        return -1;
-    }
-
-    /* Skip "buffer." prefix */
-    if (strncmp(section, "buffer.", 7U) != 0) {
-        return -1;
-    }
-
-    first_dot = section + 7; /* Points to start of buffer name */
-
-    /* Extract buffer name */
-    name_len = strlen(first_dot);
-    if ((name_len == 0U) || (name_len >= name_size)) {
-        return -1; /* name empty or too long */
-    }
-    (void)strncpy(name, first_dot, name_size - 1U);
-    name[name_size - 1U] = '\0';
-
-    return 0;
-}
-
-/* Parse scalar section name to extract scalar name */
-/* Format: "scalar.<name>" */
-static int ParseScalarSection(const char* section, char* name, size_t name_size) {
-    const char* first_dot;
-    size_t name_len;
-
-    if ((section == NULL) || (name == NULL)) {
-        return -1;
-    }
-
-    /* Skip "scalar." prefix */
-    if (strncmp(section, "scalar.", 7U) != 0) {
-        return -1;
-    }
-
-    first_dot = section + 7; /* Points to start of scalar name */
-
-    /* Extract scalar name */
-    name_len = strlen(first_dot);
-    if ((name_len == 0U) || (name_len >= name_size)) {
-        return -1; /* name empty or too long */
-    }
-    (void)strncpy(name, first_dot, name_size - 1U);
-    name[name_size - 1U] = '\0';
-
-    return 0;
 }
 
 /* Parse data type from string */
@@ -184,37 +117,6 @@ static size_t GetDataTypeSize(DataType type) {
         default:
             return 0;
     }
-}
-
-/* Parse a size_t array from a string like "1024,1024" or "1024" */
-/* MISRA-C:2023 Rule 21.17: Replaced strtok with strtok_r */
-static int ParseSizeArray(const char* str, size_t* arr, int max_count) {
-    char buffer[MAX_BUFFER_LENGTH];
-    char* saveptr = NULL;
-    char* token;
-    int count = 0;
-    size_t val;
-
-    if ((str == NULL) || (arr == NULL)) {
-        return 0;
-    }
-
-    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
-    buffer[sizeof(buffer) - 1U] = '\0';
-
-    token = strtok_r(buffer, ",", &saveptr);
-    while ((token != NULL) && (count < max_count)) {
-        if (SafeStrToSize(Trim(token), &val)) {
-            arr[count] = val;
-            count++;
-        } else {
-            /* Conversion failed */
-            return -1;
-        }
-        token = strtok_r(NULL, ",", &saveptr);
-    }
-
-    return count;
 }
 
 /* Parse host type from string */
@@ -289,77 +191,6 @@ static KernelArgType ParseKernelArgType(const char* str) {
     return KERNEL_ARG_TYPE_NONE;
 }
 
-/* Parse kernel arguments from string like "{int, src_width} {int, src_height}" */
-static int ParseKernelArgs(const char* str, KernelArgDescriptor* args, int max_count) {
-    char buffer[MAX_LINE_LENGTH * 2]; /* Larger buffer for long kernel_args strings */
-    char* current;
-    char* brace_start;
-    char* brace_end;
-    char* comma;
-    char type_str[64];
-    char source_str[64];
-    int count = 0;
-
-    if ((str == NULL) || (args == NULL)) {
-        return 0;
-    }
-
-    (void)strncpy(buffer, str, sizeof(buffer) - 1U);
-    buffer[sizeof(buffer) - 1U] = '\0';
-
-    current = buffer;
-
-    /* Find each {...} block */
-    while (count < max_count) {
-        /* Find opening brace */
-        brace_start = strchr(current, '{');
-        if (brace_start == NULL) {
-            break; /* No more arguments */
-        }
-
-        /* Find closing brace */
-        brace_end = strchr(brace_start, '}');
-        if (brace_end == NULL) {
-            (void)fprintf(stderr, "Error: Unclosed brace in kernel_args\n");
-            return -1;
-        }
-
-        /* Extract content between braces */
-        *brace_end = '\0';
-        char* content = Trim(brace_start + 1);
-
-        /* Find comma separator */
-        comma = strchr(content, ',');
-        if (comma == NULL) {
-            (void)fprintf(stderr, "Error: Missing comma in kernel_args: {%s}\n", content);
-            return -1;
-        }
-
-        /* Split into type and source */
-        *comma = '\0';
-        (void)strncpy(type_str, Trim(content), sizeof(type_str) - 1U);
-        type_str[sizeof(type_str) - 1U] = '\0';
-        (void)strncpy(source_str, Trim(comma + 1), sizeof(source_str) - 1U);
-        source_str[sizeof(source_str) - 1U] = '\0';
-
-        /* Parse type */
-        args[count].arg_type = ParseKernelArgType(type_str);
-        if (args[count].arg_type == KERNEL_ARG_TYPE_NONE) {
-            (void)fprintf(stderr, "Error: Invalid kernel arg type: %s\n", type_str);
-            return -1;
-        }
-
-        /* Store source name */
-        (void)strncpy(args[count].source_name, source_str, sizeof(args[count].source_name) - 1U);
-        args[count].source_name[sizeof(args[count].source_name) - 1U] = '\0';
-
-        count++;
-        current = brace_end + 1;
-    }
-
-    return count;
-}
-
 /* Evaluate simple arithmetic expression (e.g., "1920 * 1080 * 4") */
 static int EvalExpression(const char* str, size_t* result) {
     char buffer[MAX_BUFFER_LENGTH];
@@ -424,415 +255,426 @@ static int EvalExpression(const char* str, size_t* result) {
     return 0;
 }
 
+/* Helper to get integer from JSON (supports both number and string expression) */
+static int GetJsonInt(const cJSON* json, const char* key, int* value) {
+    cJSON* item = cJSON_GetObjectItemCaseSensitive(json, key);
+    if (item == NULL) {
+        return -1;
+    }
+
+    if (cJSON_IsNumber(item)) {
+        *value = item->valueint;
+        return 0;
+    } else if (cJSON_IsString(item)) {
+        size_t temp;
+        if (EvalExpression(item->valuestring, &temp) == 0) {
+            *value = (int)temp;
+            return 0;
+        }
+    }
+    return -1;
+}
+
+/* Helper to get size_t from JSON (supports both number and string expression) */
+static int GetJsonSize(const cJSON* json, const char* key, size_t* value) {
+    cJSON* item = cJSON_GetObjectItemCaseSensitive(json, key);
+    if (item == NULL) {
+        return -1;
+    }
+
+    if (cJSON_IsNumber(item)) {
+        *value = (size_t)item->valuedouble;
+        return 0;
+    } else if (cJSON_IsString(item)) {
+        return EvalExpression(item->valuestring, value);
+    }
+    return -1;
+}
+
+/* Helper to get string from JSON */
+static int GetJsonString(const cJSON* json, const char* key, char* buffer, size_t buffer_size) {
+    cJSON* item = cJSON_GetObjectItemCaseSensitive(json, key);
+    if ((item == NULL) || !cJSON_IsString(item)) {
+        return -1;
+    }
+
+    (void)strncpy(buffer, item->valuestring, buffer_size - 1U);
+    buffer[buffer_size - 1U] = '\0';
+    return 0;
+}
+
+/* Helper to get float from JSON */
+static int GetJsonFloat(const cJSON* json, const char* key, float* value) {
+    cJSON* item = cJSON_GetObjectItemCaseSensitive(json, key);
+    if (item == NULL) {
+        return -1;
+    }
+
+    if (cJSON_IsNumber(item)) {
+        *value = (float)item->valuedouble;
+        return 0;
+    }
+    return -1;
+}
+
+/* Parse kernel arguments from JSON array */
+static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* args, int max_count) {
+    const cJSON* arg;
+    int count = 0;
+
+    if ((args_array == NULL) || !cJSON_IsArray(args_array)) {
+        return 0;
+    }
+
+    cJSON_ArrayForEach(arg, args_array) {
+        if (count >= max_count) {
+            (void)fprintf(stderr, "Error: Too many kernel arguments (max %d)\n", max_count);
+            return -1;
+        }
+
+        if (!cJSON_IsObject(arg)) {
+            (void)fprintf(stderr, "Error: Kernel argument must be an object\n");
+            return -1;
+        }
+
+        /* Get type */
+        cJSON* type_item = cJSON_GetObjectItemCaseSensitive(arg, "type");
+        if ((type_item == NULL) || !cJSON_IsString(type_item)) {
+            (void)fprintf(stderr, "Error: Kernel argument missing 'type' field\n");
+            return -1;
+        }
+
+        args[count].arg_type = ParseKernelArgType(type_item->valuestring);
+        if (args[count].arg_type == KERNEL_ARG_TYPE_NONE) {
+            (void)fprintf(stderr, "Error: Invalid kernel arg type: %s\n", type_item->valuestring);
+            return -1;
+        }
+
+        /* Get source */
+        cJSON* source_item = cJSON_GetObjectItemCaseSensitive(arg, "source");
+        if ((source_item == NULL) || !cJSON_IsString(source_item)) {
+            (void)fprintf(stderr, "Error: Kernel argument missing 'source' field\n");
+            return -1;
+        }
+
+        (void)strncpy(args[count].source_name, source_item->valuestring,
+                      sizeof(args[count].source_name) - 1U);
+        args[count].source_name[sizeof(args[count].source_name) - 1U] = '\0';
+
+        count++;
+    }
+
+    return count;
+}
+
 int ParseConfig(const char* filename, Config* config) {
-    FILE* fp;
-    char line[MAX_LINE_LENGTH];
-    char section[MAX_SECTION_LENGTH] = "";
-    int kernel_index = -1;
-    int buffer_index = -1;
-    int scalar_index = -1;
-    char* trimmed;
-    char* equals;
-    char* key;
-    char* value;
-    char* end;
-    long temp_long;
-    size_t temp_size;
+    char* json_str;
+    cJSON* root;
+    cJSON* item;
+    cJSON* kernels;
+    cJSON* kernel;
+    cJSON* buffers;
+    cJSON* buffer;
+    cJSON* scalars;
+    cJSON* scalar;
 
     if ((filename == NULL) || (config == NULL)) {
         return -1;
     }
 
-    fp = fopen(filename, "r");
-    if (fp == NULL) {
+    /* Read JSON file */
+    json_str = ReadFileToString(filename);
+    if (json_str == NULL) {
         (void)fprintf(stderr, "Error: Failed to open config file: %s\n", filename);
         return -1;
     }
 
-    /* Initialize algorithm-specific fields (preserve input_images and output_images from Parse*Config) */
+    /* Parse JSON */
+    root = cJSON_Parse(json_str);
+    free(json_str);
+
+    if (root == NULL) {
+        const char* error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            (void)fprintf(stderr, "Error: JSON parse error before: %s\n", error_ptr);
+        }
+        return -1;
+    }
+
+    /* Initialize algorithm-specific fields */
     config->op_id[0] = '\0';
     config->input_image_id[0] = '\0';
     config->output_image_id[0] = '\0';
     config->num_kernels = 0;
     config->custom_buffer_count = 0;
     config->scalar_arg_count = 0;
-    /* Initialize verification config with defaults (exact match, c_ref golden source) */
     config->verification.tolerance = 0.0f;
     config->verification.error_rate_threshold = 0.0f;
     config->verification.golden_source = GOLDEN_SOURCE_C_REF;
     config->verification.golden_file[0] = '\0';
-    /* Note: input_image_count, input_images[], output_image_count, and output_images[] preserved */
 
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        trimmed = Trim(line);
+    /* Parse input section */
+    item = cJSON_GetObjectItemCaseSensitive(root, "input");
+    if (item != NULL) {
+        (void)GetJsonString(item, "input_image_id", config->input_image_id,
+                            sizeof(config->input_image_id));
+    }
 
-        /* Skip empty lines and comments */
-        if ((trimmed[0] == '\0') || (trimmed[0] == '#') || (trimmed[0] == ';')) {
-            continue;
-        }
+    /* Parse output section */
+    item = cJSON_GetObjectItemCaseSensitive(root, "output");
+    if (item != NULL) {
+        (void)GetJsonString(item, "output_image_id", config->output_image_id,
+                            sizeof(config->output_image_id));
+    }
 
-        /* Check for section header */
-        if (trimmed[0] == '[') {
-            end = strchr(trimmed, ']');
-            if (end != NULL) {
-                *end = '\0';
-                (void)strncpy(section, trimmed + 1, sizeof(section) - 1U);
-                section[sizeof(section) - 1U] = '\0';
+    /* Parse verification section */
+    item = cJSON_GetObjectItemCaseSensitive(root, "verification");
+    if (item != NULL) {
+        (void)GetJsonFloat(item, "tolerance", &config->verification.tolerance);
+        (void)GetJsonFloat(item, "error_rate_threshold", &config->verification.error_rate_threshold);
 
-                /* If section starts with "kernel.", it's a kernel configuration */
-                if (strncmp(section, "kernel.", 7U) == 0) {
-                    int variant_num;
-
-                    kernel_index = config->num_kernels;
-                    buffer_index = -1;
-                    scalar_index = -1;
-                    config->num_kernels++;
-                    if (config->num_kernels > MAX_KERNEL_CONFIGS) {
-                        (void)fprintf(stderr, "Error: Too many kernel configurations (max %d)\n",
-                                      MAX_KERNEL_CONFIGS);
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    /* Parse variant_id from section name */
-                    if (ParseKernelSection(section, config->kernels[kernel_index].variant_id,
-                                           sizeof(config->kernels[kernel_index].variant_id)) != 0) {
-                        (void)fprintf(stderr, "Error: Invalid kernel section name format: %s\n",
-                                      section);
-                        (void)fprintf(stderr, "Expected format: kernel.<variant_id>\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    /* Initialize host_type to default (standard) */
-                    config->kernels[kernel_index].host_type = HOST_TYPE_STANDARD;
-                    /* Auto-derive kernel_variant from variant_id (e.g., "v0" -> 0, "v1"
-                     * -> 1) */
-                    variant_num = ExtractVariantNumber(config->kernels[kernel_index].variant_id);
-                    if (variant_num < 0) {
-                        (void)fprintf(stderr,
-                                      "Error: Invalid variant_id format: %s (expected v0, "
-                                      "v1, v2, ...)\n",
-                                      config->kernels[kernel_index].variant_id);
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    config->kernels[kernel_index].kernel_variant = variant_num;
-                }
-                /* If section starts with "buffer.", it's a custom buffer configuration
-                 */
-                else if (strncmp(section, "buffer.", 7U) == 0) {
-                    buffer_index = config->custom_buffer_count;
-                    kernel_index = -1;
-                    scalar_index = -1;
-                    config->custom_buffer_count++;
-                    if (config->custom_buffer_count > MAX_CUSTOM_BUFFERS) {
-                        (void)fprintf(stderr, "Error: Too many custom buffers (max %d)\n",
-                                      MAX_CUSTOM_BUFFERS);
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    /* Initialize buffer config to zeros */
-                    (void)memset(&config->custom_buffers[buffer_index], 0,
-                                 sizeof(CustomBufferConfig));
-                    /* Parse buffer name from section name */
-                    if (ParseBufferSection(section, config->custom_buffers[buffer_index].name,
-                                           sizeof(config->custom_buffers[buffer_index].name)) !=
-                        0) {
-                        (void)fprintf(stderr, "Error: Invalid buffer section name format: %s\n",
-                                      section);
-                        (void)fprintf(stderr, "Expected format: buffer.<name>\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                }
-                /* If section starts with "scalar.", it's a scalar argument
-                   configuration */
-                else if (strncmp(section, "scalar.", 7U) == 0) {
-                    scalar_index = config->scalar_arg_count;
-                    kernel_index = -1;
-                    buffer_index = -1;
-                    config->scalar_arg_count++;
-                    if (config->scalar_arg_count > MAX_SCALAR_ARGS) {
-                        (void)fprintf(stderr, "Error: Too many scalar arguments (max %d)\n",
-                                      MAX_SCALAR_ARGS);
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    /* Initialize scalar config to zeros */
-                    (void)memset(&config->scalar_args[scalar_index], 0,
-                                 sizeof(ScalarArgConfig));
-                    /* Parse scalar name from section name */
-                    if (ParseScalarSection(section, config->scalar_args[scalar_index].name,
-                                           sizeof(config->scalar_args[scalar_index].name)) != 0) {
-                        (void)fprintf(stderr, "Error: Invalid scalar section name format: %s\n",
-                                      section);
-                        (void)fprintf(stderr, "Expected format: scalar.<name>\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    /* Default to int type */
-                    config->scalar_args[scalar_index].type = SCALAR_TYPE_INT;
-                } else {
-                    /* Other sections like [image] - reset indices */
-                    kernel_index = -1;
-                    buffer_index = -1;
-                    scalar_index = -1;
-                }
-            }
-            continue;
-        }
-
-        /* Parse key=value pairs */
-        equals = strchr(trimmed, '=');
-        if (equals == NULL) {
-            continue;
-        }
-
-        *equals = '\0';
-        key = Trim(trimmed);
-        value = Trim(equals + 1);
-
-        /* Strip inline comments from value (everything after #) */
-        {
-            char* comment = strchr(value, '#');
-            if (comment != NULL) {
-                *comment = '\0';
-                value = Trim(value); /* Trim again after removing comment */
+        cJSON* golden_source = cJSON_GetObjectItemCaseSensitive(item, "golden_source");
+        if ((golden_source != NULL) && cJSON_IsString(golden_source)) {
+            if (strcmp(golden_source->valuestring, "file") == 0) {
+                config->verification.golden_source = GOLDEN_SOURCE_FILE;
+            } else {
+                config->verification.golden_source = GOLDEN_SOURCE_C_REF;
             }
         }
 
-        /* Parse based on section */
-        if (strcmp(section, "input") == 0) {
-            if (strcmp(key, "input_image_id") == 0) {
-                (void)strncpy(config->input_image_id, value, sizeof(config->input_image_id) - 1U);
-                config->input_image_id[sizeof(config->input_image_id) - 1U] = '\0';
+        (void)GetJsonString(item, "golden_file", config->verification.golden_file,
+                            sizeof(config->verification.golden_file));
+    }
+
+    /* Parse scalars section */
+    scalars = cJSON_GetObjectItemCaseSensitive(root, "scalars");
+    if ((scalars != NULL) && cJSON_IsObject(scalars)) {
+        cJSON_ArrayForEach(scalar, scalars) {
+            /* Skip documentation fields */
+            if (scalar->string[0] == '_') {
+                continue;
             }
-        } else if (strcmp(section, "output") == 0) {
-            if (strcmp(key, "output_image_id") == 0) {
-                (void)strncpy(config->output_image_id, value, sizeof(config->output_image_id) - 1U);
-                config->output_image_id[sizeof(config->output_image_id) - 1U] = '\0';
-            } else {
-                /* Unknown key in output section - ignore */
+
+            if (config->scalar_arg_count >= MAX_SCALAR_ARGS) {
+                (void)fprintf(stderr, "Error: Too many scalar arguments (max %d)\n", MAX_SCALAR_ARGS);
+                cJSON_Delete(root);
+                return -1;
             }
-        } else if (strcmp(section, "verification") == 0) {
-            if (strcmp(key, "tolerance") == 0) {
-                config->verification.tolerance = (float)atof(value);
-            } else if (strcmp(key, "error_rate_threshold") == 0) {
-                config->verification.error_rate_threshold = (float)atof(value);
-            } else if (strcmp(key, "golden_source") == 0) {
-                if (strcmp(value, "c_ref") == 0) {
-                    config->verification.golden_source = GOLDEN_SOURCE_C_REF;
-                } else if (strcmp(value, "file") == 0) {
-                    config->verification.golden_source = GOLDEN_SOURCE_FILE;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid golden_source value: %s (expected 'c_ref' or 'file')\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "golden_file") == 0) {
-                (void)strncpy(config->verification.golden_file, value, sizeof(config->verification.golden_file) - 1U);
-                config->verification.golden_file[sizeof(config->verification.golden_file) - 1U] = '\0';
-            } else {
-                /* Unknown key in verification section - ignore */
+
+            ScalarArgConfig* sc = &config->scalar_args[config->scalar_arg_count];
+            (void)memset(sc, 0, sizeof(ScalarArgConfig));
+
+            /* Copy name */
+            (void)strncpy(sc->name, scalar->string, sizeof(sc->name) - 1U);
+            sc->name[sizeof(sc->name) - 1U] = '\0';
+
+            /* Get type */
+            char type_str[32] = "int";
+            (void)GetJsonString(scalar, "type", type_str, sizeof(type_str));
+            sc->type = ParseScalarTypeStr(type_str);
+
+            if (sc->type == SCALAR_TYPE_NONE) {
+                (void)fprintf(stderr, "Error: Invalid scalar type for '%s'\n", sc->name);
+                cJSON_Delete(root);
+                return -1;
             }
-        } else if (strcmp(section, "image") == 0) {
-            if (strcmp(key, "op_id") == 0) {
-                (void)strncpy(config->op_id, value, sizeof(config->op_id) - 1U);
-                config->op_id[sizeof(config->op_id) - 1U] = '\0';
-            } else {
-                /* Unknown key in image section - ignore */
-            }
-        } else if ((strncmp(section, "kernel.", 7U) == 0) && (kernel_index >= 0)) {
-            KernelConfig* kc = &config->kernels[kernel_index];
 
-            if (strcmp(key, "kernel_file") == 0) {
-                (void)strncpy(kc->kernel_file, value, sizeof(kc->kernel_file) - 1U);
-                kc->kernel_file[sizeof(kc->kernel_file) - 1U] = '\0';
-            } else if (strcmp(key, "kernel_function") == 0) {
-                (void)strncpy(kc->kernel_function, value, sizeof(kc->kernel_function) - 1U);
-                kc->kernel_function[sizeof(kc->kernel_function) - 1U] = '\0';
-            } else if (strcmp(key, "work_dim") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    kc->work_dim = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid work_dim value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "global_work_size") == 0) {
-                if (ParseSizeArray(value, kc->global_work_size, 3) < 0) {
-                    (void)fprintf(stderr, "Error: Invalid global_work_size: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "local_work_size") == 0) {
-                if (ParseSizeArray(value, kc->local_work_size, 3) < 0) {
-                    (void)fprintf(stderr, "Error: Invalid local_work_size: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "host_type") == 0) {
-                kc->host_type = ParseHostType(value);
-            } else if (strcmp(key, "kernel_args") == 0) {
-                /* Check if value starts with opening brace (multi-line format) */
-                char* trimmed_value = Trim(value);
-                if (trimmed_value[0] == '{' && trimmed_value[1] == '\0') {
-                    /* Multi-line format: read until closing brace */
-                    char multiline_buffer[MAX_LINE_LENGTH * 4]; /* Larger buffer for multi-line */
-                    size_t buffer_pos = 0;
-                    int found_closing_brace = 0;
-
-                    multiline_buffer[0] = '\0';
-
-                    /* Read lines until we find closing brace */
-                    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-                        trimmed = Trim(line);
-
-                        /* Check if this line is just the closing brace */
-                        if (strcmp(trimmed, "}") == 0) {
-                            found_closing_brace = 1;
-                            break;
-                        }
-
-                        /* Skip empty lines and comments */
-                        if ((trimmed[0] == '\0') || (trimmed[0] == '#') || (trimmed[0] == ';')) {
-                            continue;
-                        }
-
-                        /* Append this line to buffer with space separator */
-                        size_t line_len = strlen(trimmed);
-                        if (buffer_pos + line_len + 2 < sizeof(multiline_buffer)) {
-                            if (buffer_pos > 0) {
-                                multiline_buffer[buffer_pos] = ' ';
-                                buffer_pos++;
-                            }
-                            (void)strcpy(multiline_buffer + buffer_pos, trimmed);
-                            buffer_pos += line_len;
-                        } else {
-                            (void)fprintf(stderr, "Error: kernel_args too long\n");
-                            (void)fclose(fp);
-                            return -1;
-                        }
-                    }
-
-                    if (!found_closing_brace) {
-                        (void)fprintf(stderr, "Error: Missing closing brace for kernel_args\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-
-                    /* Parse accumulated multi-line value */
-                    int arg_count = ParseKernelArgs(multiline_buffer, kc->kernel_args, MAX_KERNEL_ARGS);
-                    if (arg_count < 0) {
-                        (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    kc->kernel_arg_count = arg_count;
-                } else {
-                    /* Single-line format: parse directly */
-                    int arg_count = ParseKernelArgs(value, kc->kernel_args, MAX_KERNEL_ARGS);
-                    if (arg_count < 0) {
-                        (void)fprintf(stderr, "Error: Failed to parse kernel_args\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-                    kc->kernel_arg_count = arg_count;
-                }
-            } else {
-                /* Unknown key in kernel section */
-                /* Note: kernel_variant is auto-derived from section name (e.g.,
-                 * [kernel.v0] -> variant 0) */
-            }
-        } else if ((strncmp(section, "buffer.", 7U) == 0) && (buffer_index >= 0)) {
-            CustomBufferConfig* buf = &config->custom_buffers[buffer_index];
-
-            if (strcmp(key, "type") == 0) {
-                buf->type = ParseBufferType(value);
-                if (buf->type == BUFFER_TYPE_NONE) {
-                    (void)fprintf(stderr, "Error: Invalid buffer type: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "data_type") == 0) {
-                buf->data_type = ParseDataType(value);
-                if (buf->data_type == DATA_TYPE_NONE) {
-                    (void)fprintf(stderr, "Error: Invalid data type: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "num_elements") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    buf->num_elements = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid num_elements value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "source_file") == 0) {
-                (void)strncpy(buf->source_file, value, sizeof(buf->source_file) - 1U);
-                buf->source_file[sizeof(buf->source_file) - 1U] = '\0';
-            } else if (strcmp(key, "size_bytes") == 0) {
-                if (EvalExpression(value, &temp_size) == 0) {
-                    buf->size_bytes = temp_size;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid size_bytes expression: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else {
-                /* Unknown key in buffer section */
-            }
-        } else if ((strncmp(section, "scalar.", 7U) == 0) && (scalar_index >= 0)) {
-            ScalarArgConfig* scalar = &config->scalar_args[scalar_index];
-
-            if (strcmp(key, "type") == 0) {
-                scalar->type = ParseScalarTypeStr(value);
-                if (scalar->type == SCALAR_TYPE_NONE) {
-                    (void)fprintf(stderr, "Error: Invalid scalar type: %s (expected int, float, or size_t)\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "value") == 0) {
-                /* Parse value based on type (default to int if type not yet set) */
-                ScalarType effective_type = (scalar->type != SCALAR_TYPE_NONE) ? scalar->type : SCALAR_TYPE_INT;
-
-                switch (effective_type) {
+            /* Get value based on type */
+            cJSON* value_item = cJSON_GetObjectItemCaseSensitive(scalar, "value");
+            if (value_item != NULL) {
+                switch (sc->type) {
                     case SCALAR_TYPE_INT:
-                        if (SafeStrtol(value, &temp_long)) {
-                            scalar->value.int_value = (int)temp_long;
-                        } else {
-                            (void)fprintf(stderr, "Error: Invalid int scalar value: %s\n", value);
-                            (void)fclose(fp);
-                            return -1;
+                        if (cJSON_IsNumber(value_item)) {
+                            sc->value.int_value = value_item->valueint;
                         }
                         break;
                     case SCALAR_TYPE_FLOAT:
-                        scalar->value.float_value = (float)atof(value);
+                        if (cJSON_IsNumber(value_item)) {
+                            sc->value.float_value = (float)value_item->valuedouble;
+                        }
                         break;
                     case SCALAR_TYPE_SIZE:
-                        if (EvalExpression(value, &temp_size) == 0) {
-                            scalar->value.size_value = temp_size;
-                        } else {
-                            (void)fprintf(stderr, "Error: Invalid size_t scalar value: %s\n", value);
-                            (void)fclose(fp);
-                            return -1;
+                        if (cJSON_IsNumber(value_item)) {
+                            sc->value.size_value = (size_t)value_item->valuedouble;
+                        } else if (cJSON_IsString(value_item)) {
+                            size_t temp;
+                            if (EvalExpression(value_item->valuestring, &temp) == 0) {
+                                sc->value.size_value = temp;
+                            }
                         }
                         break;
                     default:
-                        /* Should not happen */
-                        (void)fprintf(stderr, "Error: Unknown scalar type\n");
-                        (void)fclose(fp);
-                        return -1;
+                        break;
                 }
-            } else {
-                /* Unknown key in scalar section */
             }
-        } else {
-            /* Unknown section or invalid index */
+
+            config->scalar_arg_count++;
         }
     }
 
-    (void)fclose(fp);
+    /* Parse buffers section */
+    buffers = cJSON_GetObjectItemCaseSensitive(root, "buffers");
+    if ((buffers != NULL) && cJSON_IsObject(buffers)) {
+        cJSON_ArrayForEach(buffer, buffers) {
+            /* Skip documentation fields */
+            if (buffer->string[0] == '_') {
+                continue;
+            }
+
+            if (config->custom_buffer_count >= MAX_CUSTOM_BUFFERS) {
+                (void)fprintf(stderr, "Error: Too many custom buffers (max %d)\n", MAX_CUSTOM_BUFFERS);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            CustomBufferConfig* buf = &config->custom_buffers[config->custom_buffer_count];
+            (void)memset(buf, 0, sizeof(CustomBufferConfig));
+
+            /* Copy name */
+            (void)strncpy(buf->name, buffer->string, sizeof(buf->name) - 1U);
+            buf->name[sizeof(buf->name) - 1U] = '\0';
+
+            /* Get type */
+            char type_str[32] = "";
+            (void)GetJsonString(buffer, "type", type_str, sizeof(type_str));
+            buf->type = ParseBufferType(type_str);
+
+            if (buf->type == BUFFER_TYPE_NONE) {
+                (void)fprintf(stderr, "Error: Invalid buffer type for '%s': %s\n", buf->name, type_str);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            /* Get optional fields */
+            char data_type_str[32] = "";
+            if (GetJsonString(buffer, "data_type", data_type_str, sizeof(data_type_str)) == 0) {
+                buf->data_type = ParseDataType(data_type_str);
+            }
+
+            (void)GetJsonInt(buffer, "num_elements", &buf->num_elements);
+            (void)GetJsonString(buffer, "source_file", buf->source_file, sizeof(buf->source_file));
+            (void)GetJsonSize(buffer, "size_bytes", &buf->size_bytes);
+
+            /* Calculate size_bytes for file-backed buffers */
+            if ((buf->source_file[0] != '\0') && (buf->size_bytes == 0)) {
+                if ((buf->data_type != DATA_TYPE_NONE) && (buf->num_elements > 0)) {
+                    buf->size_bytes = GetDataTypeSize(buf->data_type) * (size_t)buf->num_elements;
+                }
+            }
+
+            config->custom_buffer_count++;
+        }
+    }
+
+    /* Parse kernels section */
+    kernels = cJSON_GetObjectItemCaseSensitive(root, "kernels");
+    if ((kernels != NULL) && cJSON_IsObject(kernels)) {
+        cJSON_ArrayForEach(kernel, kernels) {
+            /* Skip documentation fields */
+            if (kernel->string[0] == '_') {
+                continue;
+            }
+
+            if (config->num_kernels >= MAX_KERNEL_CONFIGS) {
+                (void)fprintf(stderr, "Error: Too many kernel configurations (max %d)\n",
+                              MAX_KERNEL_CONFIGS);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            KernelConfig* kc = &config->kernels[config->num_kernels];
+            (void)memset(kc, 0, sizeof(KernelConfig));
+
+            /* Copy variant_id (e.g., "v0", "v1") */
+            (void)strncpy(kc->variant_id, kernel->string, sizeof(kc->variant_id) - 1U);
+            kc->variant_id[sizeof(kc->variant_id) - 1U] = '\0';
+
+            /* Extract variant number */
+            int variant_num = ExtractVariantNumber(kc->variant_id);
+            if (variant_num < 0) {
+                (void)fprintf(stderr, "Error: Invalid variant_id format: %s (expected v0, v1, v2, ...)\n",
+                              kc->variant_id);
+                cJSON_Delete(root);
+                return -1;
+            }
+            kc->kernel_variant = variant_num;
+
+            /* Get host_type (default to standard) */
+            char host_type_str[32] = "standard";
+            (void)GetJsonString(kernel, "host_type", host_type_str, sizeof(host_type_str));
+            kc->host_type = ParseHostType(host_type_str);
+
+            /* Get kernel file and function */
+            if (GetJsonString(kernel, "kernel_file", kc->kernel_file, sizeof(kc->kernel_file)) != 0) {
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'kernel_file'\n", kc->variant_id);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            if (GetJsonString(kernel, "kernel_function", kc->kernel_function,
+                              sizeof(kc->kernel_function)) != 0) {
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'kernel_function'\n", kc->variant_id);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            /* Get work dimensions */
+            if (GetJsonInt(kernel, "work_dim", &kc->work_dim) != 0) {
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'work_dim'\n", kc->variant_id);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            /* Get global_work_size array */
+            cJSON* gws = cJSON_GetObjectItemCaseSensitive(kernel, "global_work_size");
+            if ((gws != NULL) && cJSON_IsArray(gws)) {
+                int idx = 0;
+                cJSON* gws_item;
+                cJSON_ArrayForEach(gws_item, gws) {
+                    if ((idx < 3) && cJSON_IsNumber(gws_item)) {
+                        kc->global_work_size[idx] = (size_t)gws_item->valuedouble;
+                        idx++;
+                    }
+                }
+            } else {
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'global_work_size'\n", kc->variant_id);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            /* Get local_work_size array */
+            cJSON* lws = cJSON_GetObjectItemCaseSensitive(kernel, "local_work_size");
+            if ((lws != NULL) && cJSON_IsArray(lws)) {
+                int idx = 0;
+                cJSON* lws_item;
+                cJSON_ArrayForEach(lws_item, lws) {
+                    if ((idx < 3) && cJSON_IsNumber(lws_item)) {
+                        kc->local_work_size[idx] = (size_t)lws_item->valuedouble;
+                        idx++;
+                    }
+                }
+            } else {
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'local_work_size'\n", kc->variant_id);
+                cJSON_Delete(root);
+                return -1;
+            }
+
+            /* Parse kernel_args */
+            cJSON* args = cJSON_GetObjectItemCaseSensitive(kernel, "kernel_args");
+            if (args != NULL) {
+                int arg_count = ParseKernelArgsJson(args, kc->kernel_args, MAX_KERNEL_ARGS);
+                if (arg_count < 0) {
+                    cJSON_Delete(root);
+                    return -1;
+                }
+                kc->kernel_arg_count = arg_count;
+            }
+
+            config->num_kernels++;
+        }
+    }
+
+    cJSON_Delete(root);
 
     /* Validate custom buffers */
     {
@@ -840,29 +682,18 @@ int ParseConfig(const char* filename, Config* config) {
         for (i = 0; i < config->custom_buffer_count; i++) {
             CustomBufferConfig* buf = &config->custom_buffers[i];
 
-            /* Check if buffer type is set */
-            if (buf->type == BUFFER_TYPE_NONE) {
-                (void)fprintf(stderr, "Error: Buffer '%s' missing 'type' field\n", buf->name);
-                return -1;
-            }
-
-            /* File-backed buffer: must have source_file, data_type, and num_elements
-             */
+            /* File-backed buffer: must have source_file, data_type, and num_elements */
             if (buf->source_file[0] != '\0') {
                 if (buf->data_type == DATA_TYPE_NONE) {
-                    (void)fprintf(stderr,
-                                  "Error: File-backed buffer '%s' missing 'data_type' field\n",
+                    (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'data_type' field\n",
                                   buf->name);
                     return -1;
                 }
                 if (buf->num_elements == 0) {
-                    (void)fprintf(stderr,
-                                  "Error: File-backed buffer '%s' missing 'num_elements' field\n",
+                    (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'num_elements' field\n",
                                   buf->name);
                     return -1;
                 }
-                /* Calculate size_bytes from data_type and num_elements */
-                buf->size_bytes = GetDataTypeSize(buf->data_type) * (size_t)buf->num_elements;
             }
             /* Empty buffer: must have size_bytes */
             else {
@@ -875,19 +706,9 @@ int ParseConfig(const char* filename, Config* config) {
         }
     }
 
-    /* Note: op_id is now optional - can be auto-derived from filename in main.c
-     */
-    if (config->op_id[0] != '\0') {
-        (void)printf(
-            "Parsed config file: %s (op_id: %s, %d kernels, %d custom buffers, %d "
-            "scalars)\n",
-            filename, config->op_id, config->num_kernels, config->custom_buffer_count,
-            config->scalar_arg_count);
-    } else {
-        (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n",
-                     filename, config->num_kernels, config->custom_buffer_count,
-                     config->scalar_arg_count);
-    }
+    (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n",
+                 filename, config->num_kernels, config->custom_buffer_count,
+                 config->scalar_arg_count);
     return 0;
 }
 
@@ -908,9 +729,6 @@ int GetOpVariants(const Config* config, const char* op_id, KernelConfig* variant
 
     /* All kernels in the config are variants of this operation */
     for (i = 0; i < config->num_kernels; i++) {
-        /* Casting away const for backwards compatibility */
-        /* In a stricter implementation, Config should not be const */
-        /* or variants should be const KernelConfig* */
         variants[i] = (KernelConfig*)&config->kernels[i];
     }
 
@@ -926,8 +744,8 @@ int ResolveConfigPath(const char* input, char* output, size_t output_size) {
         return -1;
     }
 
-    /* Treat input as algorithm name - construct config/<name>.ini */
-    written = snprintf(output, output_size, "config/%s.ini", input);
+    /* Treat input as algorithm name - construct config/<name>.json */
+    written = snprintf(output, output_size, "config/%s.json", input);
     if ((written < 0) || ((size_t)written >= output_size)) {
         return -1;
     }
@@ -979,336 +797,154 @@ int ExtractOpIdFromPath(const char* config_path, char* op_id, size_t op_id_size)
     return 0;
 }
 
-/* Parse image section name to extract image index */
-/* Format: "image_N" where N is 1, 2, 3, etc. */
-static int ParseImageSection(const char* section, int* image_index) {
-    const char* underscore;
-    long temp_long;
-
-    if ((section == NULL) || (image_index == NULL)) {
-        return -1;
-    }
-
-    /* Check if section starts with "image_" */
-    if (strncmp(section, "image_", 6U) != 0) {
-        return -1;
-    }
-
-    underscore = section + 6; /* Points to start of index */
-
-    /* Parse the index number */
-    if (!SafeStrtol(underscore, &temp_long) || (temp_long < 1) || (temp_long > MAX_INPUT_IMAGES)) {
-        return -1;
-    }
-
-    /* Convert to 0-based index */
-    *image_index = (int)temp_long - 1;
-    return 0;
-}
-
 int ParseInputsConfig(const char* filename, Config* config) {
-    FILE* fp;
-    char line[MAX_LINE_LENGTH];
-    char section[MAX_SECTION_LENGTH] = "";
-    int current_image_index = -1;
-    char* trimmed;
-    char* equals;
-    char* key;
-    char* value;
-    char* end;
-    long temp_long;
-    size_t temp_size;
+    char* json_str;
+    cJSON* root;
+    cJSON* image;
 
     if ((filename == NULL) || (config == NULL)) {
         return -1;
     }
 
-    fp = fopen(filename, "r");
-    if (fp == NULL) {
+    /* Read JSON file */
+    json_str = ReadFileToString(filename);
+    if (json_str == NULL) {
         (void)fprintf(stderr, "Error: Failed to open inputs config file: %s\n", filename);
+        return -1;
+    }
+
+    /* Parse JSON */
+    root = cJSON_Parse(json_str);
+    free(json_str);
+
+    if (root == NULL) {
+        const char* error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            (void)fprintf(stderr, "Error: JSON parse error before: %s\n", error_ptr);
+        }
         return -1;
     }
 
     /* Initialize input images count */
     config->input_image_count = 0;
 
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        trimmed = Trim(line);
-
-        /* Skip empty lines and comments */
-        if ((trimmed[0] == '\0') || (trimmed[0] == '#') || (trimmed[0] == ';')) {
+    /* Iterate over all image entries */
+    cJSON_ArrayForEach(image, root) {
+        /* Skip non-image entries */
+        if (strncmp(image->string, "image_", 6U) != 0) {
             continue;
         }
 
-        /* Check for section header */
-        if (trimmed[0] == '[') {
-            end = strchr(trimmed, ']');
-            if (end != NULL) {
-                *end = '\0';
-                (void)strncpy(section, trimmed + 1, sizeof(section) - 1U);
-                section[sizeof(section) - 1U] = '\0';
-
-                /* If section starts with "image_", it's an input image configuration */
-                if (strncmp(section, "image_", 6U) == 0) {
-                    if (ParseImageSection(section, &current_image_index) != 0) {
-                        (void)fprintf(stderr, "Error: Invalid image section name: %s\n", section);
-                        (void)fprintf(stderr, "Expected format: image_1, image_2, etc.\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-
-                    /* Update image count */
-                    if (current_image_index + 1 > config->input_image_count) {
-                        config->input_image_count = current_image_index + 1;
-                    }
-
-                    /* Initialize this image config */
-                    (void)memset(&config->input_images[current_image_index], 0,
-                                 sizeof(InputImageConfig));
-                } else {
-                    /* Unknown section */
-                    current_image_index = -1;
-                }
-            }
-            continue;
+        /* Parse image index from name (image_1 -> 0, image_2 -> 1, etc.) */
+        long temp_long;
+        if (!SafeStrtol(image->string + 6, &temp_long) || (temp_long < 1) ||
+            (temp_long > MAX_INPUT_IMAGES)) {
+            (void)fprintf(stderr, "Error: Invalid image name: %s\n", image->string);
+            cJSON_Delete(root);
+            return -1;
         }
 
-        /* Parse key=value pairs */
-        equals = strchr(trimmed, '=');
-        if (equals == NULL) {
-            continue;
+        int image_index = (int)temp_long - 1;
+
+        /* Update image count */
+        if (image_index + 1 > config->input_image_count) {
+            config->input_image_count = image_index + 1;
         }
 
-        *equals = '\0';
-        key = Trim(trimmed);
-        value = Trim(equals + 1);
+        InputImageConfig* img = &config->input_images[image_index];
+        (void)memset(img, 0, sizeof(InputImageConfig));
 
-        /* Strip inline comments from value (everything after #) */
-        {
-            char* comment = strchr(value, '#');
-            if (comment != NULL) {
-                *comment = '\0';
-                value = Trim(value); /* Trim again after removing comment */
-            }
-        }
+        /* Parse image properties */
+        (void)GetJsonString(image, "input", img->input_path, sizeof(img->input_path));
+        (void)GetJsonInt(image, "src_width", &img->src_width);
+        (void)GetJsonInt(image, "src_height", &img->src_height);
+        (void)GetJsonInt(image, "src_channels", &img->src_channels);
 
-        /* Parse based on current section */
-        if ((strncmp(section, "image_", 6U) == 0) && (current_image_index >= 0)) {
-            InputImageConfig* img = &config->input_images[current_image_index];
-
-            if (strcmp(key, "input") == 0) {
-                (void)strncpy(img->input_path, value, sizeof(img->input_path) - 1U);
-                img->input_path[sizeof(img->input_path) - 1U] = '\0';
-            } else if (strcmp(key, "src_width") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    img->src_width = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid src_width value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "src_height") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    img->src_height = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid src_height value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "src_channels") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    img->src_channels = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid src_channels value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "src_stride") == 0) {
-                /* Support arithmetic expressions like "1920 * 3" */
-                if (EvalExpression(value, &temp_size) == 0) {
-                    img->src_stride = (int)temp_size;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid src_stride expression: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else {
-                /* Unknown key in image section */
-            }
-        } else {
-            /* Unknown section or invalid index */
+        /* src_stride can be a number or expression string */
+        size_t stride_val;
+        if (GetJsonSize(image, "src_stride", &stride_val) == 0) {
+            img->src_stride = (int)stride_val;
         }
     }
 
-    (void)fclose(fp);
+    cJSON_Delete(root);
 
     (void)printf("Parsed inputs config file: %s (%d input images)\n", filename,
                  config->input_image_count);
     return 0;
 }
 
-/* Parse output section name to extract output index */
-/* Format: "output_1" -> 0, "output_2" -> 1, etc. (converts 1-based to 0-based) */
-static int ParseOutputSection(const char* section, int* output_index) {
-    const char* underscore;
-    long temp_long;
-
-    if ((section == NULL) || (output_index == NULL)) {
-        return -1;
-    }
-
-    /* Check if section starts with "output_" */
-    if (strncmp(section, "output_", 7U) != 0) {
-        return -1;
-    }
-
-    underscore = section + 7; /* Points to start of index */
-
-    /* Parse the index number */
-    if (!SafeStrtol(underscore, &temp_long) || (temp_long < 1) || (temp_long > MAX_OUTPUT_IMAGES)) {
-        return -1;
-    }
-
-    /* Convert to 0-based index */
-    *output_index = (int)(temp_long - 1);
-    return 0;
-}
-
 int ParseOutputsConfig(const char* filename, Config* config) {
-    FILE* fp;
-    char line[MAX_LINE_LENGTH];
-    char section[MAX_SECTION_LENGTH] = "";
-    int current_output_index = -1;
-    char* trimmed;
-    char* equals;
-    char* key;
-    char* value;
-    char* end;
-    long temp_long;
-    size_t temp_size;
+    char* json_str;
+    cJSON* root;
+    cJSON* output;
 
     if ((filename == NULL) || (config == NULL)) {
         return -1;
     }
 
-    fp = fopen(filename, "r");
-    if (fp == NULL) {
+    /* Read JSON file */
+    json_str = ReadFileToString(filename);
+    if (json_str == NULL) {
         (void)fprintf(stderr, "Error: Failed to open outputs config file: %s\n", filename);
+        return -1;
+    }
+
+    /* Parse JSON */
+    root = cJSON_Parse(json_str);
+    free(json_str);
+
+    if (root == NULL) {
+        const char* error_ptr = cJSON_GetErrorPtr();
+        if (error_ptr != NULL) {
+            (void)fprintf(stderr, "Error: JSON parse error before: %s\n", error_ptr);
+        }
         return -1;
     }
 
     /* Initialize output images count */
     config->output_image_count = 0;
 
-    while (fgets(line, (int)sizeof(line), fp) != NULL) {
-        trimmed = Trim(line);
-
-        /* Skip empty lines and comments */
-        if ((trimmed[0] == '\0') || (trimmed[0] == '#') || (trimmed[0] == ';')) {
+    /* Iterate over all output entries */
+    cJSON_ArrayForEach(output, root) {
+        /* Skip non-output entries */
+        if (strncmp(output->string, "output_", 7U) != 0) {
             continue;
         }
 
-        /* Check for section header */
-        if (trimmed[0] == '[') {
-            end = strchr(trimmed, ']');
-            if (end != NULL) {
-                *end = '\0';
-                (void)strncpy(section, trimmed + 1, sizeof(section) - 1U);
-                section[sizeof(section) - 1U] = '\0';
-
-                /* If section starts with "output_", it's an output image configuration */
-                if (strncmp(section, "output_", 7U) == 0) {
-                    if (ParseOutputSection(section, &current_output_index) != 0) {
-                        (void)fprintf(stderr, "Error: Invalid output section name: %s\n", section);
-                        (void)fprintf(stderr, "Expected format: output_1, output_2, etc.\n");
-                        (void)fclose(fp);
-                        return -1;
-                    }
-
-                    /* Update output count */
-                    if (current_output_index + 1 > config->output_image_count) {
-                        config->output_image_count = current_output_index + 1;
-                    }
-
-                    /* Initialize this output config */
-                    (void)memset(&config->output_images[current_output_index], 0,
-                                 sizeof(OutputImageConfig));
-                } else {
-                    /* Unknown section */
-                    current_output_index = -1;
-                }
-            }
-            continue;
+        /* Parse output index from name (output_1 -> 0, output_2 -> 1, etc.) */
+        long temp_long;
+        if (!SafeStrtol(output->string + 7, &temp_long) || (temp_long < 1) ||
+            (temp_long > MAX_OUTPUT_IMAGES)) {
+            (void)fprintf(stderr, "Error: Invalid output name: %s\n", output->string);
+            cJSON_Delete(root);
+            return -1;
         }
 
-        /* Parse key=value pairs */
-        equals = strchr(trimmed, '=');
-        if (equals == NULL) {
-            continue;
+        int output_index = (int)temp_long - 1;
+
+        /* Update output count */
+        if (output_index + 1 > config->output_image_count) {
+            config->output_image_count = output_index + 1;
         }
 
-        *equals = '\0';
-        key = Trim(trimmed);
-        value = Trim(equals + 1);
+        OutputImageConfig* img = &config->output_images[output_index];
+        (void)memset(img, 0, sizeof(OutputImageConfig));
 
-        /* Strip inline comments from value (everything after #) */
-        {
-            char* comment = strchr(value, '#');
-            if (comment != NULL) {
-                *comment = '\0';
-                value = Trim(value); /* Trim again after removing comment */
-            }
-        }
+        /* Parse output properties */
+        (void)GetJsonString(output, "output", img->output_path, sizeof(img->output_path));
+        (void)GetJsonInt(output, "dst_width", &img->dst_width);
+        (void)GetJsonInt(output, "dst_height", &img->dst_height);
+        (void)GetJsonInt(output, "dst_channels", &img->dst_channels);
 
-        /* Parse based on current section */
-        if ((strncmp(section, "output_", 7U) == 0) && (current_output_index >= 0)) {
-            OutputImageConfig* img = &config->output_images[current_output_index];
-
-            if (strcmp(key, "output") == 0) {
-                (void)strncpy(img->output_path, value, sizeof(img->output_path) - 1U);
-                img->output_path[sizeof(img->output_path) - 1U] = '\0';
-            } else if (strcmp(key, "dst_width") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    img->dst_width = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid dst_width value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "dst_height") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    img->dst_height = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid dst_height value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "dst_channels") == 0) {
-                if (SafeStrtol(value, &temp_long) && (temp_long > 0)) {
-                    img->dst_channels = (int)temp_long;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid dst_channels value: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else if (strcmp(key, "dst_stride") == 0) {
-                /* Support arithmetic expressions like "1920 * 3" */
-                if (EvalExpression(value, &temp_size) == 0) {
-                    img->dst_stride = (int)temp_size;
-                } else {
-                    (void)fprintf(stderr, "Error: Invalid dst_stride expression: %s\n", value);
-                    (void)fclose(fp);
-                    return -1;
-                }
-            } else {
-                /* Unknown key in output section */
-            }
-        } else {
-            /* Unknown section or invalid index */
+        /* dst_stride can be a number or expression string */
+        size_t stride_val;
+        if (GetJsonSize(output, "dst_stride", &stride_val) == 0) {
+            img->dst_stride = (int)stride_val;
         }
     }
 
-    (void)fclose(fp);
+    cJSON_Delete(root);
 
     (void)printf("Parsed outputs config file: %s (%d output images)\n", filename,
                  config->output_image_count);

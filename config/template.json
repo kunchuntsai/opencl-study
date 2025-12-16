@@ -1,0 +1,159 @@
+{
+    "_documentation": {
+        "title": "OpenCL Framework Configuration Template",
+        "description": "This template documents all available configuration options for the OpenCL image processing framework. Copy this file and rename it to your algorithm name (e.g., gaussian5x5.json) to create a new configuration.",
+        "note": "op_id is auto-derived from filename (gaussian5x5.json -> op_id = gaussian5x5)"
+    },
+
+    "input": {
+        "_comment": "Input Image Selection - Selects which input image to use from config/inputs.json",
+        "input_image_id": "image_1"
+    },
+
+    "output": {
+        "_comment": "Output Image Selection - Selects which output configuration to use from config/outputs.json",
+        "output_image_id": "output_1"
+    },
+
+    "verification": {
+        "_comment": "Result Verification Settings - Configures how GPU output is verified against golden reference",
+        "_golden_sources": "c_ref (default) - Generate from C reference implementation, file - Load pre-computed golden binary",
+        "tolerance": 0,
+        "error_rate_threshold": 0.0,
+        "golden_source": "c_ref",
+        "golden_file": "test_data/algo/golden.bin"
+    },
+
+    "scalars": {
+        "_comment": "Custom Scalar Arguments - Defines scalar values to pass to the kernel",
+        "_supported_types": ["int", "float", "size_t"],
+
+        "sigma": {
+            "_comment": "Example: Gaussian blur sigma parameter",
+            "type": "float",
+            "value": 1.4
+        },
+        "kernel_radius": {
+            "_comment": "Example: Kernel radius",
+            "type": "int",
+            "value": 2
+        },
+        "normalize": {
+            "_comment": "Example: Boolean flag (as int: 0=false, 1=true)",
+            "type": "int",
+            "value": 1
+        },
+        "buffer_size": {
+            "_comment": "Example: Size type parameter with arithmetic expression",
+            "type": "size_t",
+            "value": "1920 * 1080 * 4"
+        }
+    },
+
+    "buffers": {
+        "_comment": "Custom Buffer Definitions - Defines additional OpenCL buffers beyond input/output",
+        "_buffer_types": "READ_ONLY (CL_MEM_READ_ONLY), WRITE_ONLY (CL_MEM_WRITE_ONLY), READ_WRITE (CL_MEM_READ_WRITE)",
+        "_buffer_modes": "Empty buffer: specify size_bytes only, File-backed: specify source_file, data_type, and num_elements",
+        "_data_types": ["float (4 bytes)", "int (4 bytes)", "short (2 bytes)", "uchar (1 byte)"],
+
+        "tmp_global": {
+            "_comment": "Example: Empty scratch buffer (for intermediate results)",
+            "type": "READ_WRITE",
+            "size_bytes": "1920 * 1080 * 4"
+        },
+        "kernel_weights": {
+            "_comment": "Example: File-backed read-only buffer (pre-computed kernel weights)",
+            "type": "READ_ONLY",
+            "data_type": "float",
+            "num_elements": 25,
+            "source_file": "test_data/algo/weights.bin"
+        }
+    },
+
+    "kernels": {
+        "_comment": "Kernel Variant Configurations - Defines OpenCL kernel execution parameters",
+        "_variant_format": "Keys should be v0, v1, v2, etc. The variant number is auto-extracted",
+        "_host_types": ["standard (default)", "cl_extension"],
+        "_arg_types": {
+            "input": "Input image buffer (cl_mem from input_image_id)",
+            "output": "Output image buffer (cl_mem from output_image_id)",
+            "buffer": "Custom buffer by name (defined in buffers section)",
+            "int": "Integer scalar (from scalars section or built-in params)",
+            "float": "Float scalar (from scalars section or built-in params)",
+            "size_t": "Size_t scalar (from scalars section or built-in params)"
+        },
+        "_built_in_sources": ["src_width", "src_height", "src_channels", "src_stride", "dst_width", "dst_height", "dst_channels", "dst_stride"],
+
+        "v0": {
+            "_comment": "Variant 0: Basic implementation",
+            "host_type": "standard",
+            "kernel_file": "examples/algo/cl/algo_v0.cl",
+            "kernel_function": "algo_kernel",
+            "work_dim": 2,
+            "global_work_size": [1920, 1080],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"}
+            ]
+        },
+        "v1": {
+            "_comment": "Variant 1: Optimized implementation with custom extension",
+            "host_type": "cl_extension",
+            "kernel_file": "examples/algo/cl/algo_v1.cl",
+            "kernel_function": "algo_kernel_optimized",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "buffer", "source": "tmp_global"},
+                {"type": "size_t", "source": "tmp_global.size"},
+                {"type": "float", "source": "sigma"},
+                {"type": "int", "source": "normalize"}
+            ]
+        }
+    },
+
+    "_examples": {
+        "simple_filter": {
+            "_comment": "Example 1: Simple image filter (input -> output with dimensions)",
+            "_kernel_signature": "__kernel void simple_filter(__global const uchar* input, __global uchar* output, int width, int height)",
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"}
+            ]
+        },
+        "gaussian_blur": {
+            "_comment": "Example 2: Gaussian blur with custom scalars and buffers",
+            "_kernel_signature": "__kernel void gaussian_blur(__global const uchar* input, __global uchar* output, __global float* tmp_buffer, __global const float* weights, float sigma, int radius, int width, int height)",
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "buffer", "source": "tmp_global"},
+                {"type": "buffer", "source": "kernel_weights"},
+                {"type": "float", "source": "sigma"},
+                {"type": "int", "source": "kernel_radius"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"}
+            ]
+        },
+        "resize": {
+            "_comment": "Example 3: Using output dimensions (for resize operations)",
+            "_kernel_signature": "__kernel void resize(__global const uchar* input, __global uchar* output, int src_width, int src_height, int dst_width, int dst_height)",
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"},
+                {"type": "int", "source": "dst_width"},
+                {"type": "int", "source": "dst_height"}
+            ]
+        }
+    }
+}
