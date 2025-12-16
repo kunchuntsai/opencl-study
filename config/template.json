@@ -1,0 +1,126 @@
+{
+    "input": {
+        "input_image_id": "image_1"
+    },
+
+    "output": {
+        "output_image_id": "output_1"
+    },
+
+    "verification": {
+        "tolerance": 1,
+        "error_rate_threshold": 0.001,
+        "golden_source": "c_ref",
+        "golden_file": "test_data/algo/golden.bin"
+    },
+
+    "scalars": {
+        "int_param": {
+            "type": "int",
+            "value": 5
+        },
+        "float_param": {
+            "type": "float",
+            "value": 1.4
+        },
+        "size_param": {
+            "type": "size_t",
+            "value": "1920 * 1080 * 4"
+        }
+    },
+
+    "buffers": {
+        "empty_buffer": {
+            "type": "READ_WRITE",
+            "size_bytes": "1920 * 1080 * 4"
+        },
+        "readonly_buffer": {
+            "type": "READ_ONLY",
+            "size_bytes": 4096
+        },
+        "writeonly_buffer": {
+            "type": "WRITE_ONLY",
+            "size_bytes": 8192
+        },
+        "file_float_buffer": {
+            "type": "READ_ONLY",
+            "data_type": "float",
+            "num_elements": 25,
+            "source_file": "test_data/algo/weights.bin"
+        },
+        "file_uchar_buffer": {
+            "type": "READ_ONLY",
+            "data_type": "uchar",
+            "num_elements": 256,
+            "source_file": "test_data/algo/lut.bin"
+        },
+        "file_int_buffer": {
+            "type": "READ_ONLY",
+            "data_type": "int",
+            "num_elements": 16,
+            "source_file": "test_data/algo/offsets.bin"
+        },
+        "file_short_buffer": {
+            "type": "READ_ONLY",
+            "data_type": "short",
+            "num_elements": 64,
+            "source_file": "test_data/algo/coeffs.bin"
+        }
+    },
+
+    "kernels": {
+        "v0": {
+            "host_type": "standard",
+            "kernel_file": "examples/algo/cl/algo_v0.cl",
+            "kernel_function": "algo_kernel",
+            "work_dim": 2,
+            "global_work_size": [1920, 1080],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"},
+                {"type": "int", "source": "src_channels"},
+                {"type": "int", "source": "src_stride"},
+                {"type": "int", "source": "dst_width"},
+                {"type": "int", "source": "dst_height"},
+                {"type": "int", "source": "dst_channels"},
+                {"type": "int", "source": "dst_stride"}
+            ]
+        },
+        "v1": {
+            "host_type": "cl_extension",
+            "kernel_file": "examples/algo/cl/algo_v1.cl",
+            "kernel_function": "algo_kernel_optimized",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "buffer", "source": "empty_buffer"},
+                {"type": "size_t", "source": "empty_buffer.size"},
+                {"type": "buffer", "source": "file_float_buffer"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"},
+                {"type": "float", "source": "float_param"},
+                {"type": "int", "source": "int_param"},
+                {"type": "size_t", "source": "size_param"}
+            ]
+        },
+        "v2": {
+            "host_type": "standard",
+            "kernel_file": "examples/algo/cl/algo_v2.cl",
+            "kernel_function": "algo_kernel_1d",
+            "work_dim": 1,
+            "global_work_size": [2073600],
+            "local_work_size": [256],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "size_t", "source": "size_param"}
+            ]
+        }
+    }
+}

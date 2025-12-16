@@ -13,6 +13,10 @@
 #define MAX_PATH_LENGTH 512
 #define MAX_IMAGE_SIZE (4096 * 4096)
 
+/* Configuration file paths */
+#define CONFIG_INPUTS_PATH "config/inputs.json"
+#define CONFIG_OUTPUTS_PATH "config/outputs.json"
+
 static unsigned char gpu_output_buffer[MAX_IMAGE_SIZE];
 static unsigned char ref_output_buffer[MAX_IMAGE_SIZE];
 
@@ -85,23 +89,23 @@ int main(int argc, char** argv) {
         variant_index = -1;
     }
 
-    /* Resolve algorithm name to config path (config/<name>.ini) */
+    /* Resolve algorithm name to config path (config/<name>.json) */
     if (ResolveConfigPath(config_input, config_path, sizeof(config_path)) != 0) {
         (void)fprintf(stderr, "Failed to resolve config path: %s\n", config_input);
         return 1;
     }
 
-    /* 1a. Parse input images configuration (config/inputs.ini) */
-    parse_result = ParseInputsConfig("config/inputs.ini", &config);
+    /* 1a. Parse input images configuration */
+    parse_result = ParseInputsConfig(CONFIG_INPUTS_PATH, &config);
     if (parse_result != 0) {
-        (void)fprintf(stderr, "Failed to parse config/inputs.ini\n");
+        (void)fprintf(stderr, "Failed to parse %s\n", CONFIG_INPUTS_PATH);
         return 1;
     }
 
-    /* 1b. Parse output images configuration (config/outputs.ini) */
-    parse_result = ParseOutputsConfig("config/outputs.ini", &config);
+    /* 1b. Parse output images configuration */
+    parse_result = ParseOutputsConfig(CONFIG_OUTPUTS_PATH, &config);
     if (parse_result != 0) {
-        (void)fprintf(stderr, "Failed to parse config/outputs.ini\n");
+        (void)fprintf(stderr, "Failed to parse %s\n", CONFIG_OUTPUTS_PATH);
         return 1;
     }
 

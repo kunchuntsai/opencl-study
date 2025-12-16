@@ -70,7 +70,7 @@ void ListAlgorithms(void) {
                          registered_algorithms[i]->id);
 
             /* Construct config path for this algorithm */
-            (void)snprintf(config_path, sizeof(config_path), "config/%s.ini",
+            (void)snprintf(config_path, sizeof(config_path), "config/%s.json",
                            registered_algorithms[i]->id);
 
             /* Try to load and parse config for this algorithm */

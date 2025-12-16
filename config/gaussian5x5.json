@@ -1,0 +1,126 @@
+{
+    "input": {
+        "input_image_id": "image_2"
+    },
+
+    "output": {
+        "output_image_id": "output_2"
+    },
+
+    "verification": {
+        "tolerance": 1,
+        "error_rate_threshold": 0.001
+    },
+
+    "scalars": {
+        "sigma": {
+            "type": "float",
+            "value": 1.4
+        },
+        "kernel_radius": {
+            "type": "int",
+            "value": 2
+        },
+        "normalize": {
+            "type": "int",
+            "value": 1
+        }
+    },
+
+    "buffers": {
+        "tmp_global": {
+            "type": "READ_WRITE",
+            "size_bytes": 400000
+        },
+        "tmp_global2": {
+            "type": "READ_WRITE",
+            "size_bytes": 512000
+        },
+        "kernel_x": {
+            "type": "READ_ONLY",
+            "data_type": "float",
+            "num_elements": 5,
+            "source_file": "test_data/gaussian5x5/kernel_x.bin"
+        },
+        "kernel_y": {
+            "type": "READ_ONLY",
+            "data_type": "float",
+            "num_elements": 5,
+            "source_file": "test_data/gaussian5x5/kernel_y.bin"
+        }
+    },
+
+    "kernels": {
+        "v0": {
+            "host_type": "standard",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian0.cl",
+            "kernel_function": "gaussian5x5",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"},
+                {"type": "buffer", "source": "kernel_x"},
+                {"type": "buffer", "source": "kernel_y"}
+            ]
+        },
+        "v1": {
+            "host_type": "cl_extension",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian1.cl",
+            "kernel_function": "gaussian5x5_optimized",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "buffer", "source": "tmp_global"},
+                {"type": "size_t", "source": "tmp_global.size"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"},
+                {"type": "buffer", "source": "kernel_x"},
+                {"type": "buffer", "source": "kernel_y"}
+            ]
+        },
+        "v2": {
+            "host_type": "cl_extension",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian2.cl",
+            "kernel_function": "gaussian5x5_horizontal",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "buffer", "source": "tmp_global"},
+                {"type": "size_t", "source": "tmp_global.size"},
+                {"type": "buffer", "source": "tmp_global2"},
+                {"type": "size_t", "source": "tmp_global2.size"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"},
+                {"type": "buffer", "source": "kernel_x"},
+                {"type": "buffer", "source": "kernel_y"}
+            ]
+        },
+        "v3": {
+            "host_type": "standard",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian3.cl",
+            "kernel_function": "gaussian_custom",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"type": "input", "source": "input_image_id"},
+                {"type": "output", "source": "output"},
+                {"type": "int", "source": "src_width"},
+                {"type": "int", "source": "src_height"},
+                {"type": "float", "source": "sigma"},
+                {"type": "int", "source": "kernel_radius"},
+                {"type": "int", "source": "normalize"}
+            ]
+        }
+    }
+}

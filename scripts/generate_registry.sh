@@ -65,23 +65,8 @@ for file in $ALGO_FILES; do
     # Convert snake_case to PascalCase (e.g., dilate3x3 -> Dilate3x3)
     pascal_name=$(echo "$algo_name" | awk -F'_' '{for(i=1;i<=NF;i++) printf "%s", toupper(substr($i,1,1)) substr($i,2)}')
 
-    # Extract display name from config file first line
-    # Config files start with: "# Dilate 3x3 Algorithm Configuration"
-    config_file="$PROJECT_ROOT/config/${algo_name}.ini"
-    display_name=""
-
-    if [ -f "$config_file" ]; then
-        # Extract first comment line and get the algorithm name part
-        first_line=$(head -n1 "$config_file")
-        # Remove "# " prefix and " Algorithm Configuration" suffix
-        display_name=$(echo "$first_line" | sed 's/^#[[:space:]]*//; s/ Algorithm Configuration$//')
-    fi
-
-    # If no display name found in config, generate from algo_name
-    if [ -z "$display_name" ]; then
-        # Convert snake_case to Title Case with spaces (e.g., dilate3x3 -> Dilate 3x3)
-        display_name=$(echo "$algo_name" | sed -E 's/([a-z])([0-9])/\1 \2/g; s/_/ /g' | awk '{for(i=1;i<=NF;i++) $i=toupper(substr($i,1,1)) tolower(substr($i,2))}1')
-    fi
+    # Use PascalCase for display name (e.g., dilate3x3 -> Dilate3x3)
+    display_name="$pascal_name"
 
     # Generate algorithm structure (verify_result removed - now config-driven)
     cat >> "$OUTPUT_FILE" <<EOF

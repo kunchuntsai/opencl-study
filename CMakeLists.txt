@@ -30,6 +30,14 @@ else()
 endif()
 
 # ============================================================================
+# Third-party Libraries
+# ============================================================================
+
+# cJSON library for JSON parsing
+set(CJSON_SOURCES "${CMAKE_SOURCE_DIR}/third_party/cjson/cJSON.c")
+set(CJSON_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/cjson")
+
+# ============================================================================
 # Library: Core + Platform + Utils
 # ============================================================================
 
@@ -47,6 +55,7 @@ if(BUILD_SHARED_LIBS)
         ${CORE_SOURCES}
         ${PLATFORM_SOURCES}
         ${UTILS_SOURCES}
+        ${CJSON_SOURCES}
     )
     # Version information for shared library
     set_target_properties(opencl_imgproc PROPERTIES
@@ -58,6 +67,7 @@ else()
         ${CORE_SOURCES}
         ${PLATFORM_SOURCES}
         ${UTILS_SOURCES}
+        ${CJSON_SOURCES}
     )
 endif()
 
@@ -68,6 +78,7 @@ target_include_directories(opencl_imgproc
         ${OpenCL_INCLUDE_DIRS}           # OpenCL headers (needed by op_interface.h)
     PRIVATE
         ${CMAKE_SOURCE_DIR}/src          # Internal: platform/, utils/, core/ (private)
+        ${CJSON_INCLUDE_DIR}             # cJSON headers (for config parsing)
 )
 
 # Link OpenCL to library

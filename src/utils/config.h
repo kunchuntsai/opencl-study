@@ -2,30 +2,28 @@
  * @file config.h
  * @brief Configuration file parser for OpenCL framework
  *
- * Parses INI-style configuration files containing:
+ * Parses JSON configuration files containing:
  * - Image processing parameters (dimensions, file paths)
  * - Algorithm selection (op_id)
  * - Kernel variant configurations (work sizes, kernel files)
  * - Buffer configurations (types, sizes)
  *
- * Configuration file format:
- * [image]
- * op_id = algorithm_name
- * input = path/to/input
- * output = path/to/output
- * src_width = 1920
- * src_height = 1080
- * kernel_x_file = path/to/kernel_x.bin
- * kernel_y_file = path/to/kernel_y.bin
- * cl_buffer_type = READ_ONLY, WRITE_ONLY
- * cl_buffer_size = 1920 * 1080 * 4, 1920 * 1080 * 4
- *
- * [kernel.v0]
- * kernel_file = path/to/kernel.cl
- * kernel_function = function_name
- * work_dim = 2
- * global_work_size = 1920,1080
- * local_work_size = 16,16
+ * Configuration file format (JSON):
+ * {
+ *   "input": { "input_image_id": "image_1" },
+ *   "output": { "output_image_id": "output_1" },
+ *   "verification": { "tolerance": 0, "error_rate_threshold": 0 },
+ *   "kernels": {
+ *     "v0": {
+ *       "kernel_file": "path/to/kernel.cl",
+ *       "kernel_function": "function_name",
+ *       "work_dim": 2,
+ *       "global_work_size": [1920, 1080],
+ *       "local_work_size": [16, 16],
+ *       "kernel_args": [{"type": "input", "source": "input_image_id"}]
+ *     }
+ *   }
+ * }
  *
  * MISRA C 2023 Compliance:
  * - Rule 21.7: Uses strtok_r (reentrant) instead of strtok
@@ -231,12 +229,12 @@ typedef struct {
 typedef struct {
     char op_id[32]; /**< Algorithm identifier (e.g., "dilate3x3") */
 
-    /* Input images configuration (from config/inputs.ini) */
+    /* Input images configuration (from config/inputs.json) */
     InputImageConfig input_images[MAX_INPUT_IMAGES]; /**< Array of input image configurations */
     int input_image_count;                           /**< Number of input images configured */
     char input_image_id[64]; /**< Which input image to use (e.g., "image_1", "image_2") */
 
-    /* Output images configuration (from config/outputs.ini) */
+    /* Output images configuration (from config/outputs.json) */
     OutputImageConfig output_images[MAX_OUTPUT_IMAGES]; /**< Array of output image configurations */
     int output_image_count;                             /**< Number of output images configured */
     char output_image_id[64]; /**< Which output image to use (e.g., "output_1", "output_2") */
@@ -260,8 +258,8 @@ typedef struct {
 /**
  * @brief Parse configuration file
  *
- * Reads and parses an INI-style configuration file into a Config structure.
- * Supports [image] section and multiple [kernel.variant] sections.
+ * Reads and parses a JSON configuration file into a Config structure.
+ * Supports input, output, verification, scalars, buffers, and kernels sections.
  *
  * @param[in] filename Path to configuration file
  * @param[out] config Configuration structure to populate
@@ -272,10 +270,10 @@ int ParseConfig(const char* filename, Config* config);
 /**
  * @brief Parse input images configuration file
  *
- * Reads and parses an INI-style inputs configuration file with multiple
- * [image_N] sections, populating the input_images array in Config.
+ * Reads and parses a JSON inputs configuration file with multiple
+ * image_N entries, populating the input_images array in Config.
  *
- * @param[in] filename Path to inputs configuration file (e.g., config/inputs.ini)
+ * @param[in] filename Path to inputs configuration file (e.g., config/inputs.json)
  * @param[out] config Configuration structure to populate with input images
  * @return 0 on success, -1 on error
  */
@@ -284,10 +282,10 @@ int ParseInputsConfig(const char* filename, Config* config);
 /**
  * @brief Parse output images configuration file
  *
- * Reads and parses an INI-style outputs configuration file with multiple
- * [output_N] sections, populating the output_images array in Config.
+ * Reads and parses a JSON outputs configuration file with multiple
+ * output_N entries, populating the output_images array in Config.
  *
- * @param[in] filename Path to outputs configuration file (e.g., config/outputs.ini)
+ * @param[in] filename Path to outputs configuration file (e.g., config/outputs.json)
  * @param[out] config Configuration structure to populate with output images
  * @return 0 on success, -1 on error
  */
@@ -310,16 +308,14 @@ int ParseOutputsConfig(const char* filename, Config* config);
 int GetOpVariants(const Config* config, const char* op_id, KernelConfig* variants[], int* count);
 
 /**
- * @brief Resolve config path from algorithm name or explicit path
+ * @brief Resolve config path from algorithm name
  *
- * Handles three cases:
- * 1. Algorithm name (e.g., "dilate3x3") -> "config/dilate3x3.ini"
- * 2. Explicit relative path (e.g., "config/custom.ini") -> unchanged
- * 3. Explicit absolute path (e.g., "/path/to/config.ini") -> unchanged
+ * Converts algorithm name to config path:
+ * Algorithm name (e.g., "dilate3x3") -> "config/dilate3x3.json"
  *
  * Verifies that the resolved file exists.
  *
- * @param[in] input User input (algorithm name or path)
+ * @param[in] input User input (algorithm name)
  * @param[out] output Resolved config file path
  * @param[in] output_size Size of output buffer
  * @return 0 on success, -1 on error
@@ -330,7 +326,7 @@ int ResolveConfigPath(const char* input, char* output, size_t output_size);
  * @brief Extract op_id from config file path
  *
  * Extracts the base filename without extension to use as op_id.
- * Example: "config/dilate3x3.ini" -> "dilate3x3"
+ * Example: "config/dilate3x3.json" -> "dilate3x3"
  *
  * @param[in] config_path Path to config file
  * @param[out] op_id Extracted algorithm identifier
