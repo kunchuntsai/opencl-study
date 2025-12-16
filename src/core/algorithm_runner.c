@@ -399,9 +399,10 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     op_params.host_type = kernel_cfg->host_type;
     op_params.kernel_variant = kernel_cfg->kernel_variant;
 
-    run_result = OpenclRunKernel(env, kernel, algo, input_buf, output_buf, &op_params,
-                                 kernel_cfg->global_work_size, kernel_cfg->local_work_size,
-                                 kernel_cfg->work_dim, kernel_cfg, kernel_cfg->host_type, &gpu_time);
+    run_result =
+        OpenclRunKernel(env, kernel, algo, input_buf, output_buf, &op_params,
+                        kernel_cfg->global_work_size, kernel_cfg->local_work_size,
+                        kernel_cfg->work_dim, kernel_cfg, kernel_cfg->host_type, &gpu_time);
     if (run_result != 0) {
         (void)fprintf(stderr, "Failed to run kernel\n");
         goto cleanup;
@@ -420,11 +421,9 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     /* Step 7: Verify GPU results against C reference using config-driven tolerance */
     op_params.gpu_output = gpu_output_buffer;
     op_params.ref_output = ref_output_buffer;
-    passed = VerifyWithTolerance(gpu_output_buffer, ref_output_buffer,
-                                 op_params.dst_width, op_params.dst_height,
-                                 config->verification.tolerance,
-                                 config->verification.error_rate_threshold,
-                                 &max_error);
+    passed = VerifyWithTolerance(gpu_output_buffer, ref_output_buffer, op_params.dst_width,
+                                 op_params.dst_height, config->verification.tolerance,
+                                 config->verification.error_rate_threshold, &max_error);
 
     /* Display results */
     (void)printf("\n=== Results ===\n");

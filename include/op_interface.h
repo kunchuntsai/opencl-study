@@ -96,8 +96,8 @@ typedef enum {
  * Supports int, float, and size_t types.
  */
 typedef struct {
-    char name[64];    /**< Scalar name (from config) */
-    ScalarType type;  /**< Value type */
+    char name[64];   /**< Scalar name (from config) */
+    ScalarType type; /**< Value type */
     union {
         int int_value;     /**< Integer value */
         float float_value; /**< Float value */

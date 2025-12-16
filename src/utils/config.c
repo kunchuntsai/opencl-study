@@ -431,7 +431,8 @@ int ParseConfig(const char* filename, Config* config) {
     item = cJSON_GetObjectItemCaseSensitive(root, "verification");
     if (item != NULL) {
         (void)GetJsonFloat(item, "tolerance", &config->verification.tolerance);
-        (void)GetJsonFloat(item, "error_rate_threshold", &config->verification.error_rate_threshold);
+        (void)GetJsonFloat(item, "error_rate_threshold",
+                           &config->verification.error_rate_threshold);
 
         cJSON* golden_source = cJSON_GetObjectItemCaseSensitive(item, "golden_source");
         if ((golden_source != NULL) && cJSON_IsString(golden_source)) {
@@ -456,7 +457,8 @@ int ParseConfig(const char* filename, Config* config) {
             }
 
             if (config->scalar_arg_count >= MAX_SCALAR_ARGS) {
-                (void)fprintf(stderr, "Error: Too many scalar arguments (max %d)\n", MAX_SCALAR_ARGS);
+                (void)fprintf(stderr, "Error: Too many scalar arguments (max %d)\n",
+                              MAX_SCALAR_ARGS);
                 cJSON_Delete(root);
                 return -1;
             }
@@ -522,7 +524,8 @@ int ParseConfig(const char* filename, Config* config) {
             }
 
             if (config->custom_buffer_count >= MAX_CUSTOM_BUFFERS) {
-                (void)fprintf(stderr, "Error: Too many custom buffers (max %d)\n", MAX_CUSTOM_BUFFERS);
+                (void)fprintf(stderr, "Error: Too many custom buffers (max %d)\n",
+                              MAX_CUSTOM_BUFFERS);
                 cJSON_Delete(root);
                 return -1;
             }
@@ -540,7 +543,8 @@ int ParseConfig(const char* filename, Config* config) {
             buf->type = ParseBufferType(type_str);
 
             if (buf->type == BUFFER_TYPE_NONE) {
-                (void)fprintf(stderr, "Error: Invalid buffer type for '%s': %s\n", buf->name, type_str);
+                (void)fprintf(stderr, "Error: Invalid buffer type for '%s': %s\n", buf->name,
+                              type_str);
                 cJSON_Delete(root);
                 return -1;
             }
@@ -592,7 +596,8 @@ int ParseConfig(const char* filename, Config* config) {
             /* Extract variant number */
             int variant_num = ExtractVariantNumber(kc->variant_id);
             if (variant_num < 0) {
-                (void)fprintf(stderr, "Error: Invalid variant_id format: %s (expected v0, v1, v2, ...)\n",
+                (void)fprintf(stderr,
+                              "Error: Invalid variant_id format: %s (expected v0, v1, v2, ...)\n",
                               kc->variant_id);
                 cJSON_Delete(root);
                 return -1;
@@ -606,10 +611,12 @@ int ParseConfig(const char* filename, Config* config) {
 
             /* Get kernel_option (optional user build options, default empty) */
             kc->kernel_option[0] = '\0';
-            (void)GetJsonString(kernel, "kernel_option", kc->kernel_option, sizeof(kc->kernel_option));
+            (void)GetJsonString(kernel, "kernel_option", kc->kernel_option,
+                                sizeof(kc->kernel_option));
 
             /* Get kernel file and function */
-            if (GetJsonString(kernel, "kernel_file", kc->kernel_file, sizeof(kc->kernel_file)) != 0) {
+            if (GetJsonString(kernel, "kernel_file", kc->kernel_file, sizeof(kc->kernel_file)) !=
+                0) {
                 (void)fprintf(stderr, "Error: Kernel '%s' missing 'kernel_file'\n", kc->variant_id);
                 cJSON_Delete(root);
                 return -1;
@@ -617,7 +624,8 @@ int ParseConfig(const char* filename, Config* config) {
 
             if (GetJsonString(kernel, "kernel_function", kc->kernel_function,
                               sizeof(kc->kernel_function)) != 0) {
-                (void)fprintf(stderr, "Error: Kernel '%s' missing 'kernel_function'\n", kc->variant_id);
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'kernel_function'\n",
+                              kc->variant_id);
                 cJSON_Delete(root);
                 return -1;
             }
@@ -641,7 +649,8 @@ int ParseConfig(const char* filename, Config* config) {
                     }
                 }
             } else {
-                (void)fprintf(stderr, "Error: Kernel '%s' missing 'global_work_size'\n", kc->variant_id);
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'global_work_size'\n",
+                              kc->variant_id);
                 cJSON_Delete(root);
                 return -1;
             }
@@ -658,7 +667,8 @@ int ParseConfig(const char* filename, Config* config) {
                     }
                 }
             } else {
-                (void)fprintf(stderr, "Error: Kernel '%s' missing 'local_work_size'\n", kc->variant_id);
+                (void)fprintf(stderr, "Error: Kernel '%s' missing 'local_work_size'\n",
+                              kc->variant_id);
                 cJSON_Delete(root);
                 return -1;
             }
@@ -689,12 +699,14 @@ int ParseConfig(const char* filename, Config* config) {
             /* File-backed buffer: must have source_file, data_type, and num_elements */
             if (buf->source_file[0] != '\0') {
                 if (buf->data_type == DATA_TYPE_NONE) {
-                    (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'data_type' field\n",
+                    (void)fprintf(stderr,
+                                  "Error: File-backed buffer '%s' missing 'data_type' field\n",
                                   buf->name);
                     return -1;
                 }
                 if (buf->num_elements == 0) {
-                    (void)fprintf(stderr, "Error: File-backed buffer '%s' missing 'num_elements' field\n",
+                    (void)fprintf(stderr,
+                                  "Error: File-backed buffer '%s' missing 'num_elements' field\n",
                                   buf->name);
                     return -1;
                 }
@@ -710,9 +722,8 @@ int ParseConfig(const char* filename, Config* config) {
         }
     }
 
-    (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n",
-                 filename, config->num_kernels, config->custom_buffer_count,
-                 config->scalar_arg_count);
+    (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n", filename,
+                 config->num_kernels, config->custom_buffer_count, config->scalar_arg_count);
     return 0;
 }
 

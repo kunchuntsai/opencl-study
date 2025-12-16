@@ -70,7 +70,8 @@ int OpenclInit(OpenCLEnv* env);
  * @param[in] kernel_file Path to kernel source file (.cl)
  * @param[in] kernel_name Name of kernel function in source
  * @param[in] kernel_option User-specified build options (can be NULL or empty)
- * @param[in] host_type Host type for platform selection (HOST_TYPE_STANDARD or HOST_TYPE_CL_EXTENSION)
+ * @param[in] host_type Host type for platform selection (HOST_TYPE_STANDARD or
+ * HOST_TYPE_CL_EXTENSION)
  * @return OpenCL kernel object, or NULL on error
  */
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,

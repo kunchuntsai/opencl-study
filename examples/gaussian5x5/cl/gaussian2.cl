@@ -17,15 +17,15 @@
 
 // Pass 1: Horizontal convolution
 __kernel void gaussian5x5_horizontal(__global const uchar* input,
-                                    __global uchar* output,
-                                    __global uchar* tmp_buffer,
-                                    __private unsigned long tmp_buffer_size,
-                                    __global uchar* tmp_buffer2,
-                                    __private unsigned long tmp_buffer_size2,
-                                    int width,
-                                    int height,
-                                    __global const float* kernel_x,
-                                    __global const float* kernel_y) {
+                                     __global uchar* output,
+                                     __global uchar* tmp_buffer,
+                                     __private unsigned long tmp_buffer_size,
+                                     __global uchar* tmp_buffer2,
+                                     __private unsigned long tmp_buffer_size2,
+                                     int width,
+                                     int height,
+                                     __global const float* kernel_x,
+                                     __global const float* kernel_y) {
     int x = get_global_id(0);
     int y = get_global_id(1);
 

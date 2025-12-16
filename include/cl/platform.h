@@ -25,8 +25,8 @@
  * Platform Type Constants
  * Must match HostType enum in include/op_interface.h
  *============================================================*/
-#define PLATFORM_STANDARD       0
-#define PLATFORM_CL_EXTENSION   1
+#define PLATFORM_STANDARD 0
+#define PLATFORM_CL_EXTENSION 1
 
 /* Default to standard if host didn't pass -DHOST_TYPE=N */
 #ifndef HOST_TYPE
@@ -36,8 +36,8 @@
 /*============================================================
  * Platform Detection Macros
  *============================================================*/
-#define IS_STANDARD_PLATFORM    (HOST_TYPE == PLATFORM_STANDARD)
-#define IS_CL_EXTENSION         (HOST_TYPE == PLATFORM_CL_EXTENSION)
+#define IS_STANDARD_PLATFORM (HOST_TYPE == PLATFORM_STANDARD)
+#define IS_CL_EXTENSION (HOST_TYPE == PLATFORM_CL_EXTENSION)
 
 #if HOST_TYPE == PLATFORM_CL_EXTENSION
 /*============================================================
@@ -71,9 +71,7 @@
  * @param dst Destination buffer
  * @param count Number of bytes to copy
  */
-inline void util_mem_copy_uchar(__global const uchar* src,
-                                __global uchar* dst,
-                                int count) {
+inline void util_mem_copy_uchar(__global const uchar* src, __global uchar* dst, int count) {
     int gid = get_global_id(0);
     if (gid < count) {
         dst[gid] = src[gid];
@@ -92,12 +90,8 @@ inline void util_mem_copy_uchar(__global const uchar* src,
  * @param width Width of region to copy
  * @param height Height of region to copy
  */
-inline void util_mem_copy_2d(__global const uchar* src,
-                             __global uchar* dst,
-                             int src_stride,
-                             int dst_stride,
-                             int width,
-                             int height) {
+inline void util_mem_copy_2d(__global const uchar* src, __global uchar* dst, int src_stride,
+                             int dst_stride, int width, int height) {
     int gx = get_global_id(0);
     int gy = get_global_id(1);
     if (gx < width && gy < height) {
@@ -112,9 +106,7 @@ inline void util_mem_copy_2d(__global const uchar* src,
  * @param value Value to fill
  * @param count Number of elements to fill
  */
-inline void util_mem_set(__global uchar* dst,
-                         uchar value,
-                         int count) {
+inline void util_mem_set(__global uchar* dst, uchar value, int count) {
     int gid = get_global_id(0);
     if (gid < count) {
         dst[gid] = value;

@@ -28,28 +28,28 @@ __kernel void dilate3x3_optimized(__global const uchar* input,
     if (lx == 0 && gx > 0) {
         tile[ly + 1][0] = input[gy * width + (gx - 1)];
     } else if (lx == 0 && gx == 0) {
-        tile[ly + 1][0] = input[gy * width + gx]; // Replicate border
+        tile[ly + 1][0] = input[gy * width + gx];  // Replicate border
     }
 
     // Load right halo
     if (lx == get_local_size(0) - 1 && gx < width - 1) {
         tile[ly + 1][lx + 2] = input[gy * width + (gx + 1)];
     } else if (lx == get_local_size(0) - 1 && gx == width - 1) {
-        tile[ly + 1][lx + 2] = input[gy * width + gx]; // Replicate border
+        tile[ly + 1][lx + 2] = input[gy * width + gx];  // Replicate border
     }
 
     // Load top halo
     if (ly == 0 && gy > 0) {
         tile[0][lx + 1] = input[(gy - 1) * width + gx];
     } else if (ly == 0 && gy == 0) {
-        tile[0][lx + 1] = input[gy * width + gx]; // Replicate border
+        tile[0][lx + 1] = input[gy * width + gx];  // Replicate border
     }
 
     // Load bottom halo
     if (ly == get_local_size(1) - 1 && gy < height - 1) {
         tile[ly + 2][lx + 1] = input[(gy + 1) * width + gx];
     } else if (ly == get_local_size(1) - 1 && gy == height - 1) {
-        tile[ly + 2][lx + 1] = input[gy * width + gx]; // Replicate border
+        tile[ly + 2][lx + 1] = input[gy * width + gx];  // Replicate border
     }
 
     // Load corner halos (top-left)

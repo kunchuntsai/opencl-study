@@ -93,12 +93,12 @@ typedef enum {
 /** Kernel argument type */
 typedef enum {
     KERNEL_ARG_TYPE_NONE = 0,
-    KERNEL_ARG_TYPE_BUFFER_INPUT,   /**< Input buffer (cl_mem) */
-    KERNEL_ARG_TYPE_BUFFER_OUTPUT,  /**< Output buffer (cl_mem) */
-    KERNEL_ARG_TYPE_BUFFER_CUSTOM,  /**< Custom buffer (cl_mem) by name */
-    KERNEL_ARG_TYPE_SCALAR_INT,     /**< Integer scalar (int) */
-    KERNEL_ARG_TYPE_SCALAR_FLOAT,   /**< Float scalar (float) */
-    KERNEL_ARG_TYPE_SCALAR_SIZE,    /**< Size_t scalar (size_t) */
+    KERNEL_ARG_TYPE_BUFFER_INPUT,  /**< Input buffer (cl_mem) */
+    KERNEL_ARG_TYPE_BUFFER_OUTPUT, /**< Output buffer (cl_mem) */
+    KERNEL_ARG_TYPE_BUFFER_CUSTOM, /**< Custom buffer (cl_mem) by name */
+    KERNEL_ARG_TYPE_SCALAR_INT,    /**< Integer scalar (int) */
+    KERNEL_ARG_TYPE_SCALAR_FLOAT,  /**< Float scalar (float) */
+    KERNEL_ARG_TYPE_SCALAR_SIZE,   /**< Size_t scalar (size_t) */
 } KernelArgType;
 
 /**
@@ -108,10 +108,11 @@ typedef enum {
  * Arguments can be buffers (input, output, or custom) or scalars.
  */
 typedef struct {
-    KernelArgType arg_type;      /**< Type of argument (buffer or scalar) */
-    char source_name[64];        /**< Source name for the argument value:
-                                      - For buffers: "input", "output", or custom buffer name
-                                      - For scalars: OpParams field name (e.g., "src_width", "dst_height") */
+    KernelArgType arg_type; /**< Type of argument (buffer or scalar) */
+    char source_name[64];   /**< Source name for the argument value:
+                                 - For buffers: "input", "output", or custom buffer name
+                                 - For scalars: OpParams field name (e.g., "src_width", "dst_height")
+                             */
 } KernelArgDescriptor;
 
 /**
@@ -128,12 +129,13 @@ typedef struct {
     size_t global_work_size[3]; /**< Global work size for each dimension */
     size_t local_work_size[3];  /**< Local work group size for each dimension */
     HostType host_type;         /**< Host API type (standard or cl_extension) */
-    char kernel_option[256];    /**< User-specified kernel build options (e.g., "-cl-fast-relaxed-math").
-                                     System appends platform defines: -DHOST_TYPE=N -Iinclude/cl */
+    char kernel_option[256];    /**< User-specified kernel build options (e.g.,
+                                   "-cl-fast-relaxed-math").    System appends platform defines:
+                                   -DHOST_TYPE=N -Iinclude/cl */
     int kernel_variant;         /**< Kernel signature variant auto-derived from variant_id
                                    (v0->0, v1->1, etc.) */
     KernelArgDescriptor kernel_args[MAX_KERNEL_ARGS]; /**< Array of kernel argument descriptors */
-    int kernel_arg_count;       /**< Number of kernel arguments configured */
+    int kernel_arg_count;                             /**< Number of kernel arguments configured */
 } KernelConfig;
 
 /**
@@ -180,8 +182,8 @@ typedef struct {
  * value = 1.5
  */
 typedef struct {
-    char name[64];    /**< Argument name (from [scalar.NAME] section) */
-    ScalarType type;  /**< Value type (int, float, or size_t) */
+    char name[64];   /**< Argument name (from [scalar.NAME] section) */
+    ScalarType type; /**< Value type (int, float, or size_t) */
     union {
         int int_value;     /**< Integer value */
         float float_value; /**< Float value */
@@ -200,8 +202,8 @@ typedef struct {
  * - GOLDEN_SOURCE_FILE: Load from pre-computed golden.bin file
  */
 typedef enum {
-    GOLDEN_SOURCE_C_REF = 0,  /**< Generate golden from C reference (default) */
-    GOLDEN_SOURCE_FILE        /**< Load golden from file (skip c_ref) */
+    GOLDEN_SOURCE_C_REF = 0, /**< Generate golden from C reference (default) */
+    GOLDEN_SOURCE_FILE       /**< Load golden from file (skip c_ref) */
 } GoldenSourceType;
 
 /**
@@ -216,10 +218,11 @@ typedef enum {
  * - If golden_source = file: Load golden from golden_file path (skip c_ref execution)
  */
 typedef struct {
-    float tolerance;             /**< Max per-pixel difference allowed (e.g., 0 for exact, 1 for ±1) */
-    float error_rate_threshold;  /**< Max fraction of pixels that can exceed tolerance (e.g., 0.001 = 0.1%) */
-    GoldenSourceType golden_source;  /**< Source of golden sample (c_ref or file) */
-    char golden_file[256];           /**< Path to golden.bin file (when golden_source = file) */
+    float tolerance; /**< Max per-pixel difference allowed (e.g., 0 for exact, 1 for ±1) */
+    float error_rate_threshold; /**< Max fraction of pixels that can exceed tolerance (e.g., 0.001 =
+                                   0.1%) */
+    GoldenSourceType golden_source; /**< Source of golden sample (c_ref or file) */
+    char golden_file[256];          /**< Path to golden.bin file (when golden_source = file) */
 } VerificationConfig;
 
 /**
