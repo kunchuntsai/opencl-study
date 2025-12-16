@@ -297,7 +297,7 @@ int OpenclInit(OpenCLEnv* env) {
 }
 
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
-                            const char* kernel_name) {
+                            const char* kernel_name, const char* kernel_option, HostType host_type) {
     cl_int err;
     size_t source_length;
     cl_program program = NULL;
@@ -306,6 +306,7 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
     const char* source_ptr;
     int used_cache = 0;
     char cache_name[256];
+    char build_options[512];
 
     if ((env == NULL) || (algorithm_id == NULL) || (kernel_file == NULL) || (kernel_name == NULL)) {
         return NULL;
@@ -330,6 +331,17 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
         }
     }
 
+    /* Construct build options: "<user_options> -DHOST_TYPE=N -Iinclude/cl" */
+    {
+        const char* user_opts = (kernel_option != NULL) ? kernel_option : "";
+        int host_type_val = (host_type == HOST_TYPE_CL_EXTENSION) ? 1 : 0;
+
+        (void)snprintf(build_options, sizeof(build_options),
+                       "%s -DHOST_TYPE=%d -Iinclude/cl",
+                       user_opts, host_type_val);
+        (void)printf("Kernel build options: %s\n", build_options);
+    }
+
     /* If no cached binary or loading failed, compile from source */
     if (used_cache == 0) {
         /* Read kernel source from file */
@@ -346,8 +358,8 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
             return NULL;
         }
 
-        /* Build program */
-        err = clBuildProgram(program, 1U, &env->device, NULL, NULL, NULL);
+        /* Build program with options */
+        err = clBuildProgram(program, 1U, &env->device, build_options, NULL, NULL);
         if (err != CL_SUCCESS) {
             (void)fprintf(stderr, "Error: Failed to build program (error code: %d)\n", err);
 

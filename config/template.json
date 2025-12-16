@@ -71,6 +71,7 @@
     "kernels": {
         "v0": {
             "host_type": "standard",
+            "kernel_option": "",
             "kernel_file": "examples/algo/cl/algo_v0.cl",
             "kernel_function": "algo_kernel",
             "work_dim": 2,
@@ -91,6 +92,7 @@
         },
         "v1": {
             "host_type": "cl_extension",
+            "kernel_option": "-cl-fast-relaxed-math",
             "kernel_file": "examples/algo/cl/algo_v1.cl",
             "kernel_function": "algo_kernel_optimized",
             "work_dim": 2,
@@ -111,6 +113,7 @@
         },
         "v2": {
             "host_type": "standard",
+            "kernel_option": "-cl-mad-enable",
             "kernel_file": "examples/algo/cl/algo_v2.cl",
             "kernel_function": "algo_kernel_1d",
             "work_dim": 1,

@@ -61,14 +61,20 @@ int OpenclInit(OpenCLEnv* env);
  * - If cached binary exists, loads from cache
  * - Otherwise, compiles from source and saves to cache
  *
+ * Build options are constructed as: "<user_options> -DHOST_TYPE=N -Iinclude/cl"
+ * where N is 0 for standard, 1 for cl_extension. This enables platform.h
+ * to provide platform-specific implementations.
+ *
  * @param[in] env Initialized OpenCL environment
  * @param[in] algorithm_id Algorithm identifier for cache organization
  * @param[in] kernel_file Path to kernel source file (.cl)
  * @param[in] kernel_name Name of kernel function in source
+ * @param[in] kernel_option User-specified build options (can be NULL or empty)
+ * @param[in] host_type Host type for platform selection (HOST_TYPE_STANDARD or HOST_TYPE_CL_EXTENSION)
  * @return OpenCL kernel object, or NULL on error
  */
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
-                            const char* kernel_name);
+                            const char* kernel_name, const char* kernel_option, HostType host_type);
 
 /**
  * @brief Set kernel arguments for OpenCL kernel

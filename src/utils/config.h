@@ -128,6 +128,8 @@ typedef struct {
     size_t global_work_size[3]; /**< Global work size for each dimension */
     size_t local_work_size[3];  /**< Local work group size for each dimension */
     HostType host_type;         /**< Host API type (standard or cl_extension) */
+    char kernel_option[256];    /**< User-specified kernel build options (e.g., "-cl-fast-relaxed-math").
+                                     System appends platform defines: -DHOST_TYPE=N -Iinclude/cl */
     int kernel_variant;         /**< Kernel signature variant auto-derived from variant_id
                                    (v0->0, v1->1, etc.) */
     KernelArgDescriptor kernel_args[MAX_KERNEL_ARGS]; /**< Array of kernel argument descriptors */

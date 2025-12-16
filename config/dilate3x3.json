@@ -16,6 +16,7 @@
 
     "kernels": {
         "v0": {
+            "kernel_option": "",
             "kernel_file": "examples/dilate3x3/cl/dilate0.cl",
             "kernel_function": "dilate3x3",
             "work_dim": 2,
@@ -29,6 +30,8 @@
             ]
         },
         "v1": {
+            "host_type": "cl_extension",
+            "kernel_option": "",
             "kernel_file": "examples/dilate3x3/cl/dilate1.cl",
             "kernel_function": "dilate3x3_optimized",
             "work_dim": 2,

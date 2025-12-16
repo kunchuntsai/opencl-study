@@ -122,16 +122,16 @@ static size_t GetDataTypeSize(DataType type) {
 /* Parse host type from string */
 static HostType ParseHostType(const char* str) {
     if (str == NULL) {
-        return HOST_TYPE_STANDARD; /* Default to standard */
+        return HOST_TYPE_CL_EXTENSION; /* Default to cl_extension */
     }
 
-    if (strcmp(str, "cl_extension") == 0) {
-        return HOST_TYPE_CL_EXTENSION;
-    } else if (strcmp(str, "standard") == 0) {
+    if (strcmp(str, "standard") == 0) {
         return HOST_TYPE_STANDARD;
+    } else if (strcmp(str, "cl_extension") == 0) {
+        return HOST_TYPE_CL_EXTENSION;
     }
 
-    return HOST_TYPE_STANDARD; /* Default to standard */
+    return HOST_TYPE_CL_EXTENSION; /* Default to cl_extension */
 }
 
 /* Parse buffer type from string */
@@ -599,10 +599,14 @@ int ParseConfig(const char* filename, Config* config) {
             }
             kc->kernel_variant = variant_num;
 
-            /* Get host_type (default to standard) */
-            char host_type_str[32] = "standard";
+            /* Get host_type (default to cl_extension) */
+            char host_type_str[32] = "cl_extension";
             (void)GetJsonString(kernel, "host_type", host_type_str, sizeof(host_type_str));
             kc->host_type = ParseHostType(host_type_str);
+
+            /* Get kernel_option (optional user build options, default empty) */
+            kc->kernel_option[0] = '\0';
+            (void)GetJsonString(kernel, "kernel_option", kc->kernel_option, sizeof(kc->kernel_option));
 
             /* Get kernel file and function */
             if (GetJsonString(kernel, "kernel_file", kc->kernel_file, sizeof(kc->kernel_file)) != 0) {

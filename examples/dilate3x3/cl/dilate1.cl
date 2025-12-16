@@ -1,3 +1,12 @@
+/**
+ * Platform-aware header provides:
+ * - PLATFORM_STANDARD / PLATFORM_CL_EXTENSION constants
+ * - IS_STANDARD_PLATFORM / IS_CL_EXTENSION macros
+ * - Standard implementations (util_mem_copy_uchar, etc.) when HOST_TYPE=0
+ * - Empty definitions when HOST_TYPE=1 (custom runtime provides APIs)
+ */
+#include "platform.h"
+
 __kernel void dilate3x3_optimized(__global const uchar* input,
                                   __global uchar* output,
                                   int width,
