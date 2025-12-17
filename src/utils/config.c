@@ -332,10 +332,10 @@ static int GetJsonFloat(const cJSON* json, const char* key, float* value) {
 }
 
 /* Parse kernel arguments from JSON array
- * New format: {"key": ["data_type", "name"]}
+ * New format: {"key": ["data_type", "name"]} or {"key": ["data_type", "name", size]}
  * - i_buffer: Input buffer  (e.g., {"i_buffer": ["uchar", "src"]})
  * - o_buffer: Output buffer (e.g., {"o_buffer": ["uchar", "dst"]})
- * - buffer:   Custom buffer (e.g., {"buffer": ["float", "weights"]})
+ * - buffer:   Custom buffer (e.g., {"buffer": ["uchar", "tmp", 45000]})
  * - param:    Scalar param  (e.g., {"param": ["int", "src_width"]})
  */
 static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* args, int max_count) {
@@ -352,6 +352,7 @@ static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* arg
         cJSON* value_array = NULL;
         const char* matched_key = NULL;
         int i;
+        int array_size;
 
         if (count >= max_count) {
             (void)fprintf(stderr, "Error: Too many kernel arguments (max %d)\n", max_count);
@@ -378,9 +379,11 @@ static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* arg
             return -1;
         }
 
-        /* Value must be an array with 2 elements: [data_type, name] */
-        if (!cJSON_IsArray(value_array) || (cJSON_GetArraySize(value_array) != 2)) {
-            (void)fprintf(stderr, "Error: '%s' value must be array with 2 elements [type, name]\n",
+        /* Value must be an array with 2 or 3 elements: [data_type, name] or [data_type, name, size] */
+        array_size = cJSON_GetArraySize(value_array);
+        if (!cJSON_IsArray(value_array) || (array_size < 2) || (array_size > 3)) {
+            (void)fprintf(stderr,
+                          "Error: '%s' value must be array with 2-3 elements [type, name, size?]\n",
                           matched_key);
             return -1;
         }
@@ -389,7 +392,8 @@ static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* arg
         cJSON* name_item = cJSON_GetArrayItem(value_array, 1);
 
         if (!cJSON_IsString(data_type_item) || !cJSON_IsString(name_item)) {
-            (void)fprintf(stderr, "Error: '%s' array elements must be strings\n", matched_key);
+            (void)fprintf(stderr, "Error: '%s' array elements [0] and [1] must be strings\n",
+                          matched_key);
             return -1;
         }
 
@@ -418,6 +422,19 @@ static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* arg
         (void)strncpy(args[count].source_name, name_item->valuestring,
                       sizeof(args[count].source_name) - 1U);
         args[count].source_name[sizeof(args[count].source_name) - 1U] = '\0';
+
+        /* Parse optional buffer size (third element) */
+        args[count].buffer_size = 0;
+        if (array_size == 3) {
+            cJSON* size_item = cJSON_GetArrayItem(value_array, 2);
+            if (cJSON_IsNumber(size_item)) {
+                args[count].buffer_size = (size_t)size_item->valuedouble;
+            } else {
+                (void)fprintf(stderr, "Error: '%s' array element [2] must be a number (size)\n",
+                              matched_key);
+                return -1;
+            }
+        }
 
         count++;
     }

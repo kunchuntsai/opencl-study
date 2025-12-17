@@ -22,8 +22,10 @@ The following argument types are supported:
 |-----|--------|-------------|---------|
 | `i_buffer` | `{"i_buffer": ["type", "name"]}` | Input buffer | `{"i_buffer": ["uchar", "src"]}` |
 | `o_buffer` | `{"o_buffer": ["type", "name"]}` | Output buffer | `{"o_buffer": ["uchar", "dst"]}` |
-| `buffer` | `{"buffer": ["type", "name"]}` | Custom buffer reference | `{"buffer": ["float", "kernel_x"]}` |
+| `buffer` | `{"buffer": ["type", "name", size]}` | Custom buffer with size | `{"buffer": ["uchar", "tmp", 45000]}` |
 | `param` | `{"param": ["type", "name"]}` | Scalar parameter from OpParams | `{"param": ["int", "src_width"]}` |
+
+**Note**: The `buffer` type supports an optional third element for buffer size in bytes. This is useful for defining temporary buffers directly in the kernel_args.
 
 ### 2. Supported Data Types
 
@@ -150,8 +152,8 @@ __kernel void dilate3x3(__global const uchar* src,    // arg 0 (i_buffer)
                 {"o_buffer": ["uchar", "dst"]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
-                {"buffer": ["float", "kernel_x"]},
-                {"buffer": ["float", "kernel_y"]}
+                {"buffer": ["float", "kernel_x", 20]},
+                {"buffer": ["float", "kernel_y", 20]}
             ]
         },
         "v1": {
@@ -164,12 +166,11 @@ __kernel void dilate3x3(__global const uchar* src,    // arg 0 (i_buffer)
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
                 {"o_buffer": ["uchar", "dst"]},
-                {"buffer": ["uchar", "tmp_global"]},
-                {"param": ["size_t", "tmp_global_size"]},
+                {"buffer": ["uchar", "tmp_global", 400000]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
-                {"buffer": ["float", "kernel_x"]},
-                {"buffer": ["float", "kernel_y"]}
+                {"buffer": ["float", "kernel_x", 20]},
+                {"buffer": ["float", "kernel_y", 20]}
             ]
         },
         "v2": {
@@ -182,14 +183,12 @@ __kernel void dilate3x3(__global const uchar* src,    // arg 0 (i_buffer)
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
                 {"o_buffer": ["uchar", "dst"]},
-                {"buffer": ["uchar", "tmp_global"]},
-                {"param": ["size_t", "tmp_global_size"]},
-                {"buffer": ["uchar", "tmp_global2"]},
-                {"param": ["size_t", "tmp_global2_size"]},
+                {"buffer": ["uchar", "tmp_global", 400000]},
+                {"buffer": ["uchar", "tmp_global2", 512000]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
-                {"buffer": ["float", "kernel_x"]},
-                {"buffer": ["float", "kernel_y"]}
+                {"buffer": ["float", "kernel_x", 20]},
+                {"buffer": ["float", "kernel_y", 20]}
             ]
         }
     }
@@ -204,17 +203,16 @@ __kernel void gaussian5x5(__global const uchar* src,      // arg 0 (i_buffer)
                           __global uchar* dst,             // arg 1 (o_buffer)
                           int src_width,                   // arg 2 (param)
                           int src_height,                  // arg 3 (param)
-                          __global const float* kernel_x,  // arg 4 (buffer)
-                          __global const float* kernel_y)  // arg 5 (buffer)
+                          __global const float* kernel_x,  // arg 4 (buffer, 20 bytes)
+                          __global const float* kernel_y)  // arg 5 (buffer, 20 bytes)
 ```
 
 **Variant 1**:
 ```c
 __kernel void gaussian5x5_optimized(__global const uchar* src,      // arg 0 (i_buffer)
                                     __global uchar* dst,             // arg 1 (o_buffer)
-                                    __global uchar* tmp_buffer,      // arg 2 (buffer)
-                                    unsigned long tmp_size,          // arg 3 (param size_t)
-                                    int src_width,                   // arg 4 (param)
+                                    __global uchar* tmp_buffer,      // arg 2 (buffer, 400000 bytes)
+                                    int src_width,                   // arg 3 (param)
                                     int src_height,                  // arg 5 (param)
                                     __global const float* kernel_x,  // arg 6 (buffer)
                                     __global const float* kernel_y)  // arg 7 (buffer)
@@ -224,14 +222,12 @@ __kernel void gaussian5x5_optimized(__global const uchar* src,      // arg 0 (i_
 ```c
 __kernel void gaussian5x5_horizontal(__global const uchar* src,       // arg 0 (i_buffer)
                                      __global uchar* dst,              // arg 1 (o_buffer)
-                                     __global uchar* tmp_buffer,       // arg 2 (buffer)
-                                     unsigned long tmp_size,           // arg 3 (param size_t)
-                                     __global uchar* tmp_buffer2,      // arg 4 (buffer)
-                                     unsigned long tmp_size2,          // arg 5 (param size_t)
-                                     int src_width,                    // arg 6 (param)
-                                     int src_height,                   // arg 7 (param)
-                                     __global const float* kernel_x,   // arg 8 (buffer)
-                                     __global const float* kernel_y)   // arg 9 (buffer)
+                                     __global uchar* tmp_buffer,       // arg 2 (buffer, 400000 bytes)
+                                     __global uchar* tmp_buffer2,      // arg 3 (buffer, 512000 bytes)
+                                     int src_width,                    // arg 4 (param)
+                                     int src_height,                   // arg 5 (param)
+                                     __global const float* kernel_x,   // arg 6 (buffer, 20 bytes)
+                                     __global const float* kernel_y)   // arg 7 (buffer, 20 bytes)
 ```
 
 ## Available OpParams Fields
@@ -258,19 +254,24 @@ The following fields can be referenced in `param`:
 
 1. **Use descriptive buffer names**: Clear names improve readability:
    ```json
-   {"buffer": ["float", "horizontal_weights"]}
+   {"buffer": ["float", "horizontal_weights", 100]}
    ```
 
-2. **Match OpenCL kernel signatures exactly**: The order in `kernel_args` must match your kernel function parameters.
+2. **Specify buffer sizes inline**: Include buffer size directly in the kernel_args:
+   ```json
+   {"buffer": ["uchar", "tmp_buffer", 45000]}
+   ```
 
-3. **Test each variant**: Ensure all variants pass verification to confirm correct argument order.
+3. **Match OpenCL kernel signatures exactly**: The order in `kernel_args` must match your kernel function parameters.
 
-4. **Group related arguments**: Keep input buffers first, output next, then parameters:
+4. **Test each variant**: Ensure all variants pass verification to confirm correct argument order.
+
+5. **Group related arguments**: Keep input buffers first, output next, then parameters:
    ```json
    "kernel_args": [
        {"i_buffer": ["uchar", "src"]},
        {"o_buffer": ["uchar", "dst"]},
-       {"buffer": ["float", "weights"]},
+       {"buffer": ["float", "weights", 100]},
        {"param": ["int", "src_width"]},
        {"param": ["int", "src_height"]}
    ]
@@ -305,13 +306,13 @@ typedef struct {
     KernelArgType arg_type;  // Type of argument (buffer or scalar)
     DataType data_type;      // Data type (uchar, int, float, etc.)
     char source_name[64];    // Name of the argument
+    size_t buffer_size;      // Buffer size in bytes (0 if not specified)
 } KernelArgDescriptor;
 ```
 
 ## Limitations
 
 - Maximum 32 kernel arguments per variant (`MAX_KERNEL_ARGS`)
-- Buffer names must match those defined in `buffers` section
 - All arguments must be explicitly specified in `kernel_args`
 
 ## Migration from Old Format
@@ -327,7 +328,7 @@ typedef struct {
 ```json
 {"i_buffer": ["uchar", "src"]}
 {"param": ["int", "src_width"]}
-{"buffer": ["float", "kernel_x"]}
+{"buffer": ["float", "kernel_x", 20]}
 ```
 
-The new format is more explicit about data types and uses descriptive keys that clearly indicate the argument category.
+The new format is more explicit about data types and uses descriptive keys that clearly indicate the argument category. Buffer sizes can be specified directly as the third element.

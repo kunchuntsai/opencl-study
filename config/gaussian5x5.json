@@ -63,8 +63,8 @@
                 {"o_buffer": ["uchar", "dst"]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
-                {"buffer": ["float", "kernel_x"]},
-                {"buffer": ["float", "kernel_y"]}
+                {"buffer": ["float", "kernel_x", 20]},
+                {"buffer": ["float", "kernel_y", 20]}
             ]
         },
         "v1": {
@@ -77,12 +77,11 @@
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
                 {"o_buffer": ["uchar", "dst"]},
-                {"buffer": ["uchar", "tmp_global"]},
-                {"param": ["size_t", "tmp_global_size"]},
+                {"buffer": ["uchar", "tmp_global", 400000]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
-                {"buffer": ["float", "kernel_x"]},
-                {"buffer": ["float", "kernel_y"]}
+                {"buffer": ["float", "kernel_x", 20]},
+                {"buffer": ["float", "kernel_y", 20]}
             ]
         },
         "v2": {
@@ -95,14 +94,12 @@
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
                 {"o_buffer": ["uchar", "dst"]},
-                {"buffer": ["uchar", "tmp_global"]},
-                {"param": ["size_t", "tmp_global_size"]},
-                {"buffer": ["uchar", "tmp_global2"]},
-                {"param": ["size_t", "tmp_global2_size"]},
+                {"buffer": ["uchar", "tmp_global", 400000]},
+                {"buffer": ["uchar", "tmp_global2", 512000]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
-                {"buffer": ["float", "kernel_x"]},
-                {"buffer": ["float", "kernel_y"]}
+                {"buffer": ["float", "kernel_x", 20]},
+                {"buffer": ["float", "kernel_y", 20]}
             ]
         },
         "v3": {
