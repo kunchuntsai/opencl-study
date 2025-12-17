@@ -168,23 +168,37 @@ static ScalarType ParseScalarTypeStr(const char* str) {
     return SCALAR_TYPE_NONE;
 }
 
-/* Parse kernel argument type from string */
-static KernelArgType ParseKernelArgType(const char* str) {
-    if (str == NULL) {
+/* Parse kernel argument type from key name (new format) */
+static KernelArgType ParseKernelArgKey(const char* key) {
+    if (key == NULL) {
         return KERNEL_ARG_TYPE_NONE;
     }
 
-    if (strcmp(str, "input") == 0) {
+    if (strcmp(key, "i_buffer") == 0) {
         return KERNEL_ARG_TYPE_BUFFER_INPUT;
-    } else if (strcmp(str, "output") == 0) {
+    } else if (strcmp(key, "o_buffer") == 0) {
         return KERNEL_ARG_TYPE_BUFFER_OUTPUT;
-    } else if (strcmp(str, "buffer") == 0) {
+    } else if (strcmp(key, "buffer") == 0) {
         return KERNEL_ARG_TYPE_BUFFER_CUSTOM;
-    } else if (strcmp(str, "int") == 0) {
+    } else if (strcmp(key, "param") == 0) {
+        /* param type will be determined by data_type in array */
+        return KERNEL_ARG_TYPE_SCALAR_INT; /* placeholder, will be updated */
+    }
+
+    return KERNEL_ARG_TYPE_NONE;
+}
+
+/* Get scalar arg type from data type string */
+static KernelArgType GetScalarArgType(const char* data_type_str) {
+    if (data_type_str == NULL) {
+        return KERNEL_ARG_TYPE_NONE;
+    }
+
+    if (strcmp(data_type_str, "int") == 0) {
         return KERNEL_ARG_TYPE_SCALAR_INT;
-    } else if (strcmp(str, "float") == 0) {
+    } else if (strcmp(data_type_str, "float") == 0) {
         return KERNEL_ARG_TYPE_SCALAR_FLOAT;
-    } else if (strcmp(str, "size_t") == 0) {
+    } else if ((strcmp(data_type_str, "size_t") == 0) || (strcmp(data_type_str, "size") == 0)) {
         return KERNEL_ARG_TYPE_SCALAR_SIZE;
     }
 
@@ -317,16 +331,29 @@ static int GetJsonFloat(const cJSON* json, const char* key, float* value) {
     return -1;
 }
 
-/* Parse kernel arguments from JSON array */
+/* Parse kernel arguments from JSON array
+ * New format: {"key": ["data_type", "name"]} or {"key": ["data_type", "name", size]}
+ * - i_buffer: Input buffer  (e.g., {"i_buffer": ["uchar", "src"]})
+ * - o_buffer: Output buffer (e.g., {"o_buffer": ["uchar", "dst"]})
+ * - buffer:   Custom buffer (e.g., {"buffer": ["uchar", "tmp", 45000]})
+ * - param:    Scalar param  (e.g., {"param": ["int", "src_width"]})
+ */
 static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* args, int max_count) {
     const cJSON* arg;
     int count = 0;
+    const char* arg_keys[] = {"i_buffer", "o_buffer", "buffer", "param"};
+    int num_keys = 4;
 
     if ((args_array == NULL) || !cJSON_IsArray(args_array)) {
         return 0;
     }
 
     cJSON_ArrayForEach(arg, args_array) {
+        cJSON* value_array = NULL;
+        const char* matched_key = NULL;
+        int i;
+        int array_size;
+
         if (count >= max_count) {
             (void)fprintf(stderr, "Error: Too many kernel arguments (max %d)\n", max_count);
             return -1;
@@ -337,29 +364,77 @@ static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* arg
             return -1;
         }
 
-        /* Get type */
-        cJSON* type_item = cJSON_GetObjectItemCaseSensitive(arg, "type");
-        if ((type_item == NULL) || !cJSON_IsString(type_item)) {
-            (void)fprintf(stderr, "Error: Kernel argument missing 'type' field\n");
+        /* Find which key is present (i_buffer, o_buffer, buffer, or param) */
+        for (i = 0; i < num_keys; i++) {
+            value_array = cJSON_GetObjectItemCaseSensitive(arg, arg_keys[i]);
+            if (value_array != NULL) {
+                matched_key = arg_keys[i];
+                break;
+            }
+        }
+
+        if ((matched_key == NULL) || (value_array == NULL)) {
+            (void)fprintf(stderr,
+                          "Error: Kernel argument must have one of: i_buffer, o_buffer, buffer, param\n");
             return -1;
         }
 
-        args[count].arg_type = ParseKernelArgType(type_item->valuestring);
+        /* Value must be an array with 2 or 3 elements: [data_type, name] or [data_type, name, size] */
+        array_size = cJSON_GetArraySize(value_array);
+        if (!cJSON_IsArray(value_array) || (array_size < 2) || (array_size > 3)) {
+            (void)fprintf(stderr,
+                          "Error: '%s' value must be array with 2-3 elements [type, name, size?]\n",
+                          matched_key);
+            return -1;
+        }
+
+        cJSON* data_type_item = cJSON_GetArrayItem(value_array, 0);
+        cJSON* name_item = cJSON_GetArrayItem(value_array, 1);
+
+        if (!cJSON_IsString(data_type_item) || !cJSON_IsString(name_item)) {
+            (void)fprintf(stderr, "Error: '%s' array elements [0] and [1] must be strings\n",
+                          matched_key);
+            return -1;
+        }
+
+        /* Parse data type */
+        args[count].data_type = ParseDataType(data_type_item->valuestring);
+
+        /* Parse argument type from key */
+        args[count].arg_type = ParseKernelArgKey(matched_key);
+
+        /* For param, determine scalar type from data_type string */
+        if (strcmp(matched_key, "param") == 0) {
+            args[count].arg_type = GetScalarArgType(data_type_item->valuestring);
+            if (args[count].arg_type == KERNEL_ARG_TYPE_NONE) {
+                (void)fprintf(stderr, "Error: Invalid param type: %s\n",
+                              data_type_item->valuestring);
+                return -1;
+            }
+        }
+
         if (args[count].arg_type == KERNEL_ARG_TYPE_NONE) {
-            (void)fprintf(stderr, "Error: Invalid kernel arg type: %s\n", type_item->valuestring);
+            (void)fprintf(stderr, "Error: Invalid kernel arg key: %s\n", matched_key);
             return -1;
         }
 
-        /* Get source */
-        cJSON* source_item = cJSON_GetObjectItemCaseSensitive(arg, "source");
-        if ((source_item == NULL) || !cJSON_IsString(source_item)) {
-            (void)fprintf(stderr, "Error: Kernel argument missing 'source' field\n");
-            return -1;
-        }
-
-        (void)strncpy(args[count].source_name, source_item->valuestring,
+        /* Copy source name */
+        (void)strncpy(args[count].source_name, name_item->valuestring,
                       sizeof(args[count].source_name) - 1U);
         args[count].source_name[sizeof(args[count].source_name) - 1U] = '\0';
+
+        /* Parse optional buffer size (third element) */
+        args[count].buffer_size = 0;
+        if (array_size == 3) {
+            cJSON* size_item = cJSON_GetArrayItem(value_array, 2);
+            if (cJSON_IsNumber(size_item)) {
+                args[count].buffer_size = (size_t)size_item->valuedouble;
+            } else {
+                (void)fprintf(stderr, "Error: '%s' array element [2] must be a number (size)\n",
+                              matched_key);
+                return -1;
+            }
+        }
 
         count++;
     }

@@ -20,7 +20,11 @@
  *       "work_dim": 2,
  *       "global_work_size": [1920, 1080],
  *       "local_work_size": [16, 16],
- *       "kernel_args": [{"type": "input", "source": "input_image_id"}]
+ *       "kernel_args": [
+ *         {"i_buffer": ["uchar", "src"]},
+ *         {"o_buffer": ["uchar", "dst"]},
+ *         {"param": ["int", "src_width"]}
+ *       ]
  *     }
  *   }
  * }
@@ -104,15 +108,23 @@ typedef enum {
 /**
  * @brief Kernel argument descriptor
  *
- * Describes a single kernel argument with its type and data source.
+ * Describes a single kernel argument with its type, data type, and name.
  * Arguments can be buffers (input, output, or custom) or scalars.
+ *
+ * JSON format: {"key": ["data_type", "name"]} or {"key": ["data_type", "name", size]}
+ * - i_buffer: Input buffer  (e.g., {"i_buffer": ["uchar", "src"]})
+ * - o_buffer: Output buffer (e.g., {"o_buffer": ["uchar", "dst"]})
+ * - buffer:   Custom buffer (e.g., {"buffer": ["uchar", "tmp", 45000]})
+ * - param:    Scalar param  (e.g., {"param": ["int", "src_width"]})
  */
 typedef struct {
     KernelArgType arg_type; /**< Type of argument (buffer or scalar) */
+    DataType data_type;     /**< Data type of the argument (uchar, int, float, etc.) */
     char source_name[64];   /**< Source name for the argument value:
-                                 - For buffers: "input", "output", or custom buffer name
-                                 - For scalars: OpParams field name (e.g., "src_width", "dst_height")
+                                 - For buffers: buffer name (e.g., "src", "dst", "weights")
+                                 - For scalars: param name (e.g., "src_width", "dst_height")
                              */
+    size_t buffer_size;     /**< Buffer size in bytes (0 if not specified, for buffer types only) */
 } KernelArgDescriptor;
 
 /**
