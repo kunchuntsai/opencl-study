@@ -78,16 +78,16 @@
             "global_work_size": [1920, 1080],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"},
-                {"type": "int", "source": "src_channels"},
-                {"type": "int", "source": "src_stride"},
-                {"type": "int", "source": "dst_width"},
-                {"type": "int", "source": "dst_height"},
-                {"type": "int", "source": "dst_channels"},
-                {"type": "int", "source": "dst_stride"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"param": ["int", "src_channels"]},
+                {"param": ["int", "src_stride"]},
+                {"param": ["int", "dst_width"]},
+                {"param": ["int", "dst_height"]},
+                {"param": ["int", "dst_channels"]},
+                {"param": ["int", "dst_stride"]}
             ]
         },
         "v1": {
@@ -99,16 +99,16 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "buffer", "source": "empty_buffer"},
-                {"type": "size_t", "source": "empty_buffer.size"},
-                {"type": "buffer", "source": "file_float_buffer"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"},
-                {"type": "float", "source": "float_param"},
-                {"type": "int", "source": "int_param"},
-                {"type": "size_t", "source": "size_param"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"buffer": ["uchar", "empty_buffer"]},
+                {"param": ["size_t", "empty_buffer_size"]},
+                {"buffer": ["float", "file_float_buffer"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"param": ["float", "float_param"]},
+                {"param": ["int", "int_param"]},
+                {"param": ["size_t", "size_param"]}
             ]
         },
         "v2": {
@@ -120,9 +120,9 @@
             "global_work_size": [2073600],
             "local_work_size": [256],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "size_t", "source": "size_param"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["size_t", "size_param"]}
             ]
         }
     }

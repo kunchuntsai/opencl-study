@@ -23,10 +23,10 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]}
             ]
         },
         "v1": {
@@ -38,10 +38,10 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]}
             ]
         }
     }

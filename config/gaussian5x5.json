@@ -59,12 +59,12 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"},
-                {"type": "buffer", "source": "kernel_x"},
-                {"type": "buffer", "source": "kernel_y"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"buffer": ["float", "kernel_x"]},
+                {"buffer": ["float", "kernel_y"]}
             ]
         },
         "v1": {
@@ -75,14 +75,14 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "buffer", "source": "tmp_global"},
-                {"type": "size_t", "source": "tmp_global.size"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"},
-                {"type": "buffer", "source": "kernel_x"},
-                {"type": "buffer", "source": "kernel_y"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"buffer": ["uchar", "tmp_global"]},
+                {"param": ["size_t", "tmp_global_size"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"buffer": ["float", "kernel_x"]},
+                {"buffer": ["float", "kernel_y"]}
             ]
         },
         "v2": {
@@ -93,16 +93,16 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "buffer", "source": "tmp_global"},
-                {"type": "size_t", "source": "tmp_global.size"},
-                {"type": "buffer", "source": "tmp_global2"},
-                {"type": "size_t", "source": "tmp_global2.size"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"},
-                {"type": "buffer", "source": "kernel_x"},
-                {"type": "buffer", "source": "kernel_y"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"buffer": ["uchar", "tmp_global"]},
+                {"param": ["size_t", "tmp_global_size"]},
+                {"buffer": ["uchar", "tmp_global2"]},
+                {"param": ["size_t", "tmp_global2_size"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"buffer": ["float", "kernel_x"]},
+                {"buffer": ["float", "kernel_y"]}
             ]
         },
         "v3": {
@@ -113,13 +113,13 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"type": "input", "source": "input_image_id"},
-                {"type": "output", "source": "output"},
-                {"type": "int", "source": "src_width"},
-                {"type": "int", "source": "src_height"},
-                {"type": "float", "source": "sigma"},
-                {"type": "int", "source": "kernel_radius"},
-                {"type": "int", "source": "normalize"}
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"param": ["float", "sigma"]},
+                {"param": ["int", "kernel_radius"]},
+                {"param": ["int", "normalize"]}
             ]
         }
     }
