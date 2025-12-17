@@ -94,6 +94,12 @@ if(APPLE)
     target_compile_definitions(opencl_imgproc PUBLIC __APPLE__)
 endif()
 
+# Bake absolute paths for OpenCL kernel include directories
+# This ensures -I paths work regardless of where the executable is run from
+target_compile_definitions(opencl_imgproc PRIVATE
+    CL_INCLUDE_DIR="${CMAKE_SOURCE_DIR}/include/cl"
+)
+
 # ============================================================================
 # User Algorithm Examples
 # ============================================================================

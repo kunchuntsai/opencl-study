@@ -6,6 +6,11 @@
 #include <string.h>
 
 #include "cache_manager.h"
+
+/* Fallback for non-CMake builds - assumes running from project root */
+#ifndef CL_INCLUDE_DIR
+#define CL_INCLUDE_DIR "include/cl"
+#endif
 #include "cl_extension_api.h"
 #include "op_interface.h"
 #include "utils/config.h"
@@ -332,12 +337,12 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
         }
     }
 
-    /* Construct build options: "<user_options> -DHOST_TYPE=N -Iinclude/cl" */
+    /* Construct build options: "<user_options> -DHOST_TYPE=N -I<CL_INCLUDE_DIR>" */
     {
         const char* user_opts = (kernel_option != NULL) ? kernel_option : "";
         int host_type_val = (host_type == HOST_TYPE_CL_EXTENSION) ? 1 : 0;
 
-        (void)snprintf(build_options, sizeof(build_options), "%s -DHOST_TYPE=%d -Iinclude/cl",
+        (void)snprintf(build_options, sizeof(build_options), "%s -DHOST_TYPE=%d -I" CL_INCLUDE_DIR,
                        user_opts, host_type_val);
         (void)printf("Kernel build options: %s\n", build_options);
     }
