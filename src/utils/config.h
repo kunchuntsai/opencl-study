@@ -135,6 +135,7 @@ typedef struct {
  */
 typedef struct {
     char variant_id[32];        /**< Variant identifier (e.g., "v0", "v1") */
+    char description[128];      /**< Human-readable description (e.g., "standard OpenCL") */
     char kernel_file[256];      /**< Path to OpenCL kernel source file */
     char kernel_function[64];   /**< Kernel function name to execute */
     int work_dim;               /**< Work dimensions (1, 2, or 3) */

@@ -206,50 +206,71 @@ static int SelectAlgorithmAndVariant(const Config* config, int provided_variant_
     (void)printf("\n=== Algorithm: %s ===\n", algo->name);
     (void)printf("Available variants:\n");
     for (i = 0; i < *variant_count; i++) {
-        (void)printf("  %d - %s\n", i, variants[i]->variant_id);
+        /* Use kernel_variant (extracted from variant_id: v0->0, v1->1, etc.) for display */
+        int display_num = variants[i]->kernel_variant;
+        if (variants[i]->description[0] != '\0') {
+            (void)printf("  [%d] %s\n", display_num, variants[i]->description);
+        } else {
+            (void)printf("  [%d] %s\n", display_num, variants[i]->variant_id);
+        }
     }
     (void)printf("\n");
 
     /* Step 5: Select variant (from command line or interactive prompt) */
-    if (provided_variant_index >= 0) {
-        /* Variant index was provided via command line - validate it */
-        *selected_variant_index = provided_variant_index;
-        if ((*selected_variant_index < 0) || (*selected_variant_index >= *variant_count)) {
-            (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
-                          *selected_variant_index, *variant_count - 1);
-            return -1;
-        }
-    } else {
-        /* No variant index provided - prompt user interactively */
-        (void)printf("Select variant (0-%d, default: 0): ", *variant_count - 1);
-        if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
-            (void)fprintf(stderr, "Failed to read input\n");
-            return -1;
-        }
+    /* User enters variant number (from variant_id: v0->0, v1->1, etc.) */
+    {
+        int requested_variant = -1;
+        int found_index = -1;
 
-        /* Remove trailing newline if present */
-        newline_pos = strchr(input_buffer, '\n');
-        if (newline_pos != NULL) {
-            *newline_pos = '\0';
-        }
-
-        /* If empty input, use default variant 0 */
-        if (input_buffer[0] == '\0') {
-            *selected_variant_index = 0;
+        if (provided_variant_index >= 0) {
+            /* Variant number was provided via command line */
+            requested_variant = provided_variant_index;
         } else {
-            if (!SafeStrtol(input_buffer, &temp_index)) {
-                (void)fprintf(stderr, "Invalid variant selection\n");
+            /* No variant provided - prompt user interactively */
+            int first_num = variants[0]->kernel_variant;
+            int last_num = variants[*variant_count - 1]->kernel_variant;
+            (void)printf("Select variant (%d-%d, default: %d): ", first_num, last_num, first_num);
+            if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
+                (void)fprintf(stderr, "Failed to read input\n");
                 return -1;
             }
-            *selected_variant_index = (int)temp_index;
 
-            /* Validate range */
-            if ((*selected_variant_index < 0) || (*selected_variant_index >= *variant_count)) {
-                (void)fprintf(stderr, "Error: Invalid variant index: %d (available: 0-%d)\n",
-                              *selected_variant_index, *variant_count - 1);
-                return -1;
+            /* Remove trailing newline if present */
+            newline_pos = strchr(input_buffer, '\n');
+            if (newline_pos != NULL) {
+                *newline_pos = '\0';
+            }
+
+            /* If empty input, use first variant */
+            if (input_buffer[0] == '\0') {
+                requested_variant = first_num;
+            } else {
+                if (!SafeStrtol(input_buffer, &temp_index)) {
+                    (void)fprintf(stderr, "Invalid variant selection\n");
+                    return -1;
+                }
+                requested_variant = (int)temp_index;
             }
         }
+
+        /* Find variant by kernel_variant number */
+        for (i = 0; i < *variant_count; i++) {
+            if (variants[i]->kernel_variant == requested_variant) {
+                found_index = i;
+                break;
+            }
+        }
+
+        if (found_index < 0) {
+            (void)fprintf(stderr, "Error: Variant %d not found. Available: ", requested_variant);
+            for (i = 0; i < *variant_count; i++) {
+                (void)fprintf(stderr, "%d%s", variants[i]->kernel_variant,
+                              (i < *variant_count - 1) ? ", " : "\n");
+            }
+            return -1;
+        }
+
+        *selected_variant_index = found_index;
     }
 
     *selected_algo = algo;

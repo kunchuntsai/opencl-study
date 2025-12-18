@@ -14,17 +14,10 @@
         "src_stride": "1920 * 1"
     },
     "image_3": {
-        "input": "test_data/dilate3x3/input.bin",
+        "input": "test_data/relu/input.bin",
         "src_width": 1920,
         "src_height": 1080,
-        "src_channels": 3,
-        "src_stride": "1920 * 3"
-    },
-    "image_4": {
-        "input": "test_data/dilate3x3/input.bin",
-        "src_width": 1920,
-        "src_height": 1080,
-        "src_channels": 3,
-        "src_stride": "1920 * 3"
+        "src_channels": 1,
+        "src_stride": "1920 * 1"
     }
 }

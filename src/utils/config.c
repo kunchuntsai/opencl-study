@@ -679,6 +679,10 @@ int ParseConfig(const char* filename, Config* config) {
             }
             kc->kernel_variant = variant_num;
 
+            /* Get description (optional, defaults to empty) */
+            kc->description[0] = '\0';
+            (void)GetJsonString(kernel, "description", kc->description, sizeof(kc->description));
+
             /* Get host_type (default to cl_extension) */
             char host_type_str[32] = "cl_extension";
             (void)GetJsonString(kernel, "host_type", host_type_str, sizeof(host_type_str));

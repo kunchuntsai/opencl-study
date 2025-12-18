@@ -12,7 +12,7 @@
 # This will create:
 # - examples/<algo>/c_ref/<algo>_ref.c (C reference implementation)
 # - examples/<algo>/cl/<algo>0.cl (OpenCL kernel)
-# - config/<algo>.ini (Configuration file)
+# - config/<algo>.json (Configuration file)
 ################################################################################
 
 set -e  # Exit on error
@@ -48,12 +48,15 @@ fi
 ALGO_NAME_C=$(echo "$ALGO_NAME" | tr '-' '_')
 ALGO_NAME_UPPER=$(echo "$ALGO_NAME_C" | tr '[:lower:]' '[:upper:]')
 
+# Convert snake_case to PascalCase (e.g., dilate3x3 -> Dilate3x3)
+ALGO_NAME_PASCAL=$(echo "$ALGO_NAME_C" | awk -F'_' '{for(i=1;i<=NF;i++) printf "%s", toupper(substr($i,1,1)) substr($i,2)}')
+
 # Define paths
 C_REF_DIR="examples/${ALGO_NAME}/c_ref"
 CL_DIR="examples/${ALGO_NAME}/cl"
 C_REF_FILE="${C_REF_DIR}/${ALGO_NAME_C}_ref.c"
-CL_FILE="${CL_DIR}/${ALGO_NAME_C}_0.cl"
-CONFIG_FILE="config/${ALGO_NAME}.ini"
+CL_FILE="${CL_DIR}/${ALGO_NAME_C}0.cl"
+CONFIG_FILE="config/${ALGO_NAME}.json"
 
 # Check if files already exist
 HAS_ERRORS=0
@@ -93,15 +96,14 @@ mkdir -p "config"
 # Generate C reference implementation
 ################################################################################
 cat > "$C_REF_FILE" << EOF
-#include "utils/safe_ops.h"
+#include <stddef.h>
+
 #include "op_interface.h"
 #include "op_registry.h"
-#include "utils/verify.h"
-#include <stddef.h>
-#include <stdio.h>
+#include "utils/safe_ops.h"
 
 /**
- * @brief ${ALGO_NAME_UPPER} reference implementation
+ * @brief ${ALGO_NAME_PASCAL} reference implementation
  *
  * CPU implementation of ${ALGO_NAME} algorithm.
  * This serves as the ground truth for verifying GPU output.
@@ -113,7 +115,7 @@ cat > "$C_REF_FILE" << EOF
  *   - dst_width, dst_height: Destination dimensions
  *   - custom_buffers: Optional custom buffers (NULL if none)
  */
-void ${ALGO_NAME_C}_ref(const OpParams* params) {
+void ${ALGO_NAME_PASCAL}Ref(const OpParams* params) {
     int y;
     int x;
     int width;
@@ -121,6 +123,7 @@ void ${ALGO_NAME_C}_ref(const OpParams* params) {
     unsigned char* input;
     unsigned char* output;
     int total_pixels;
+    int output_index;
 
     if (params == NULL) {
         return;
@@ -137,7 +140,7 @@ void ${ALGO_NAME_C}_ref(const OpParams* params) {
     }
 
     /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-    if (!safe_mul_int(width, height, &total_pixels)) {
+    if (!SafeMulInt(width, height, &total_pixels)) {
         return; /* Overflow detected */
     }
 
@@ -145,106 +148,27 @@ void ${ALGO_NAME_C}_ref(const OpParams* params) {
     /* Example: Simple copy operation */
     for (y = 0; y < height; y++) {
         for (x = 0; x < width; x++) {
-            int index = y * width + x;
-            if (index < total_pixels) {
-                output[index] = input[index];
+            output_index = y * width + x;
+
+            /* MISRA-C:2023 Rule 18.1: Bounds check before write */
+            if (output_index < total_pixels) {
+                output[output_index] = input[output_index];
             }
         }
     }
 }
 
-/**
- * @brief Verify GPU result against reference
- *
- * Compares GPU output with reference implementation output.
- *
- * @param[in] params Operation parameters containing gpu_output and ref_output
- * @param[out] max_error Maximum absolute difference found
- * @return 1 if verification passed, 0 if failed
- */
-int ${ALGO_NAME_C}_verify(const OpParams* params, float* max_error) {
-    if (params == NULL) {
-        return 0;
-    }
-
-    /* For exact match verification (e.g., for morphological operations) */
-    /* Uncomment this if you need exact matching:
-    int result = verify_exact_match(params->gpu_output, params->ref_output,
-                                    params->dst_width, params->dst_height, 0);
-    if (max_error != NULL) {
-        *max_error = (result == 1) ? 0.0f : 1.0f;
-    }
-    return result;
-    */
-
-    /* For floating-point algorithms with tolerance */
-    /* Allow small differences due to rounding (adjust tolerance as needed) */
-    return verify_with_tolerance(params->gpu_output, params->ref_output,
-                                params->dst_width, params->dst_height,
-                                1.0f,      /* max_pixel_diff: 1 intensity level */
-                                0.001f,    /* max_error_ratio: 0.1% of pixels can differ */
-                                max_error);
-}
-
-/**
- * @brief Set kernel arguments
- *
- * Sets all kernel arguments in the order expected by the OpenCL kernel.
- * Must match the kernel signature exactly.
- *
- * @param[in] kernel OpenCL kernel handle
- * @param[in] input_buf Input buffer
- * @param[in] output_buf Output buffer
- * @param[in] params Operation parameters
- * @return 0 on success, -1 on error
- */
-int ${ALGO_NAME_C}_set_kernel_args(cl_kernel kernel,
-                                cl_mem input_buf,
-                                cl_mem output_buf,
-                                const OpParams* params) {
-    cl_uint arg_idx = 0U;
-
-    if ((kernel == NULL) || (params == NULL)) {
-        return -1;
-    }
-
-    /* Standard arguments: input, output, width, height */
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &input_buf) != CL_SUCCESS) {
-        return -1;
-    }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &output_buf) != CL_SUCCESS) {
-        return -1;
-    }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_width) != CL_SUCCESS) {
-        return -1;
-    }
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(int), &params->src_height) != CL_SUCCESS) {
-        return -1;
-    }
-
-    /* If your algorithm uses custom buffers, uncomment and modify this:
-    if (params->custom_buffers == NULL) {
-        (void)fprintf(stderr, "Error: ${ALGO_NAME_UPPER} requires custom buffers\\n");
-        return -1;
-    }
-    CustomBuffers* custom = params->custom_buffers;
-    if (custom->count < 1) {
-        (void)fprintf(stderr, "Error: ${ALGO_NAME_UPPER} requires at least 1 custom buffer\\n");
-        return -1;
-    }
-
-    // Set custom buffer arguments
-    if (clSetKernelArg(kernel, arg_idx++, sizeof(cl_mem), &custom->buffers[0].buffer) != CL_SUCCESS) {
-        return -1;
-    }
-    */
-
-    return 0;
-}
-
 /*
  * NOTE: Registration of this algorithm happens in auto_registry.c
- * See src/core/auto_registry.c (auto-generated from examples/).
+ * Auto-generated by scripts/generate_registry.sh which scans for *_ref.c files.
+ *
+ * Verification is configured via the [verification] section in config/${ALGO_NAME}.json:
+ *   - tolerance: Maximum allowed pixel difference
+ *   - error_rate_threshold: Maximum allowed error rate (0.0 - 1.0)
+ *   - golden_source: "c_ref" or "file"
+ *   - golden_file: Path to golden output file (if golden_source is "file")
+ *
+ * Kernel arguments are configured via kernel_args in config/${ALGO_NAME}.json.
  */
 EOF
 
@@ -255,22 +179,22 @@ echo -e "${GREEN}✓${NC} Created file: $C_REF_FILE"
 ################################################################################
 cat > "$CL_FILE" << EOF
 /**
- * @file ${ALGO_NAME_C}_v0.cl
- * @brief ${ALGO_NAME_UPPER} OpenCL kernel implementation
+ * @file ${ALGO_NAME_C}0.cl
+ * @brief ${ALGO_NAME_PASCAL} OpenCL kernel implementation
  *
  * TODO: Add algorithm description here
  *
- * Kernel arguments:
+ * Kernel arguments (must match kernel_args in config/${ALGO_NAME}.json):
  * @param input  Input image buffer
  * @param output Output image buffer
  * @param width  Image width in pixels
  * @param height Image height in pixels
  */
 
-__kernel void ${ALGO_NAME_C}_v0(__global const uchar* input,
-                         __global uchar* output,
-                         int width,
-                         int height) {
+__kernel void ${ALGO_NAME_C}(__global const uchar* input,
+                             __global uchar* output,
+                             int width,
+                             int height) {
     int x = get_global_id(0);
     int y = get_global_id(1);
 
@@ -288,46 +212,44 @@ EOF
 echo -e "${GREEN}✓${NC} Created file: $CL_FILE"
 
 ################################################################################
-# Generate configuration file
+# Generate configuration file (JSON format)
 ################################################################################
 cat > "$CONFIG_FILE" << EOF
-# ${ALGO_NAME_UPPER} Algorithm Configuration
-# TODO: Add algorithm description here
-# Note: op_id is auto-derived from filename (${ALGO_NAME}.ini -> op_id = ${ALGO_NAME})
+{
+    "input": {
+        "input_image_id": "${ALGO_NAME}_input"
+    },
 
-[image]
-input = test_data/${ALGO_NAME}/input.bin
-output = test_data/${ALGO_NAME}/output.bin
-src_width = 1920
-src_height = 1080
-dst_width = 1920
-dst_height = 1080
+    "output": {
+        "output_image_id": "${ALGO_NAME}_output"
+    },
 
-# Variant 0: Basic implementation using standard OpenCL API
-[kernel.v0]
-host_type = standard   # Options: "standard" (default) or "cl_extension"
-kernel_file = examples/${ALGO_NAME}/cl/${ALGO_NAME_C}_0.cl
-kernel_function = ${ALGO_NAME_C}_v0
-work_dim = 2
-global_work_size = 1920,1088
-local_work_size = 16,16
+    "verification": {
+        "tolerance": 0,
+        "error_rate_threshold": 0,
+        "golden_source": "c_ref",
+        "golden_file": "test_data/${ALGO_NAME}/golden.bin"
+    },
 
-# Optional: Add custom buffers if needed
-# Example: Custom buffer for algorithm-specific data
-# [buffer.custom_data]
-# type = READ_ONLY
-# data_type = float
-# num_elements = 100
-# source_file = test_data/${ALGO_NAME}/custom_data.bin
-
-# Optional: Add more kernel variants
-# [kernel.v1]
-# host_type = cl_extension
-# kernel_file = examples/${ALGO_NAME}/cl/${ALGO_NAME_C}1.cl
-# kernel_function = ${ALGO_NAME_C}_optimized
-# work_dim = 2
-# global_work_size = 1920,1088
-# local_work_size = 16,16
+    "kernels": {
+        "v0": {
+            "description": "standard OpenCL",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/${ALGO_NAME}/cl/${ALGO_NAME_C}0.cl",
+            "kernel_function": "${ALGO_NAME_C}",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]}
+            ]
+        }
+    }
+}
 EOF
 
 echo -e "${GREEN}✓${NC} Created file: $CONFIG_FILE"
@@ -340,13 +262,43 @@ echo "======================================================================"
 echo "Algorithm template created successfully!"
 echo "======================================================================"
 echo ""
-echo "Next steps:"
-echo "1. Implement the algorithm in: $C_REF_FILE"
-echo "2. Implement the OpenCL kernel in: $CL_FILE"
-echo "3. Configure parameters in: $CONFIG_FILE"
-echo "4. Create test data directory: test_data/${ALGO_NAME}/"
-echo "5. Generate test input: python3 scripts/generate_test_image.py"
-echo "6. Rebuild the project: ./scripts/build.sh"
-echo "7. Run your algorithm: ./build/opencl_host ${ALGO_NAME} 0"
+echo "Created files:"
+echo "  - $C_REF_FILE"
+echo "  - $CL_FILE"
+echo "  - $CONFIG_FILE"
 echo ""
+echo "Next steps:"
+echo ""
+echo -e "${YELLOW}1. Add input image entry to config/inputs.json:${NC}"
+cat << INPUTS_EXAMPLE
+   "${ALGO_NAME}_input": {
+       "input": "test_data/${ALGO_NAME}/input.bin",
+       "src_width": 1920,
+       "src_height": 1080,
+       "src_channels": 1,
+       "src_stride": "1920 * 1"
+   }
+INPUTS_EXAMPLE
+echo ""
+echo -e "${YELLOW}2. Add output image entry to config/outputs.json:${NC}"
+cat << OUTPUTS_EXAMPLE
+   "${ALGO_NAME}_output": {
+       "output": "test_data/${ALGO_NAME}/output.bin",
+       "dst_width": 1920,
+       "dst_height": 1080,
+       "dst_channels": 1,
+       "dst_stride": "1920 * 1"
+   }
+OUTPUTS_EXAMPLE
+echo ""
+echo "3. Implement the algorithm in: $C_REF_FILE"
+echo "4. Implement the OpenCL kernel in: $CL_FILE"
+echo "5. Configure kernel_args and verification in: $CONFIG_FILE"
+echo "6. Create test data directory: mkdir -p test_data/${ALGO_NAME}/"
+echo "7. Generate test input (or create your own input.bin)"
+echo "8. Regenerate registry: ./scripts/generate_registry.sh"
+echo "9. Rebuild the project: ./scripts/build.sh"
+echo "10. Run your algorithm: ./build/opencl_host ${ALGO_NAME} 0"
+echo ""
+echo "See config/template.json for a complete example with all options."
 echo "See docs/ADD_NEW_ALGO.md for detailed implementation guide."

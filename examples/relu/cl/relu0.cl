@@ -1,0 +1,29 @@
+/**
+ * @file relu0.cl
+ * @brief Relu OpenCL kernel implementation
+ *
+ * TODO: Add algorithm description here
+ *
+ * Kernel arguments (must match kernel_args in config/relu.json):
+ * @param input  Input image buffer
+ * @param output Output image buffer
+ * @param width  Image width in pixels
+ * @param height Image height in pixels
+ */
+
+__kernel void relu(__global const uchar* input,
+                             __global uchar* output,
+                             int width,
+                             int height) {
+    int x = get_global_id(0);
+    int y = get_global_id(1);
+
+    /* Boundary check */
+    if (x >= width || y >= height) return;
+
+    int index = y * width + x;
+
+    /* TODO: Implement your algorithm here */
+    /* Example: Simple copy operation */
+    output[index] = input[index];
+}

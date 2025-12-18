@@ -26,5 +26,12 @@
         "dst_height": 1080,
         "dst_channels": 3,
         "dst_stride": "1920 * 3"
+    },
+    "output_5": {
+        "output": "test_data/relu/output.bin",
+        "dst_width": 1920,
+        "dst_height": 1080,
+        "dst_channels": 1,
+        "dst_stride": "1920 * 1"
     }
 }
