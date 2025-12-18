@@ -7,7 +7,7 @@ A modular, plugin-like C framework for developing and benchmarking OpenCL image 
 - 🚀 **Rapid algorithm development**: Add new OpenCL algorithms with minimal boilerplate
 - ✅ **Automatic correctness verification**: Compare GPU results against CPU reference implementation
 - ⚡ **Performance benchmarking**: Built-in timing and speedup calculations
-- 🔧 **Flexible configuration**: Per-algorithm `.ini` files with support for multiple kernel variants
+- 🔧 **Flexible configuration**: Per-algorithm `.json` files with support for multiple kernel variants
 - 💾 **Smart caching**: Automatic caching of compiled kernels and golden samples
 - 🎯 **Clean architecture**: Modular design following Clean Architecture principles
 - 📦 **SDK-ready**: Library packaging for distribution to customers
@@ -88,7 +88,7 @@ Run an algorithm by name with a variant index:
 ```
 
 **What happens:**
-- Loads configuration from `config/dilate3x3.ini`
+- Loads configuration from `config/dilate3x3.json`
 - Runs C reference implementation (CPU)
 - Runs OpenCL kernel variant 0 (GPU)
 - Verifies GPU output matches CPU reference
@@ -118,8 +118,8 @@ Use the `create_new_algo` script to generate all required files automatically:
 ```
 
 This creates:
-- Configuration file: `config/myalgo.ini`
-- C reference: `examples/myalgo/c_ref/myalgo_ref.c` (with 3 required functions)
+- Configuration file: `config/myalgo.json`
+- C reference: `examples/myalgo/c_ref/myalgo_ref.c` (with 2 required functions)
 - OpenCL kernel: `examples/myalgo/cl/myalgo0.cl`
 - Test data directory: `test_data/myalgo/`
 
@@ -131,8 +131,8 @@ Then build and run:
 
 **Manual approach (three simple steps):**
 
-1. **Create a configuration file:** `config/myalgo.ini`
-2. **Implement C reference:** `examples/myalgo/c_ref/myalgo_ref.c` (3 required functions)
+1. **Create a configuration file:** `config/myalgo.json`
+2. **Implement C reference:** `examples/myalgo/c_ref/myalgo_ref.c` (2 required functions)
 3. **Write OpenCL kernel:** `examples/myalgo/cl/myalgo0.cl`
 
 Then build (registry auto-generated):
@@ -145,28 +145,45 @@ Then build (registry auto-generated):
 
 ## Configuration Guide
 
-Each algorithm has its own `.ini` configuration file in the `config/` directory.
+Each algorithm has its own `.json` configuration file in the `config/` directory.
 
 **Basic structure:**
-```ini
-[image]
-input = test_data/input.bin
-output = test_data/output.bin
-src_width = 1920
-src_height = 1080
-
-[kernel.v0]
-kernel_file = examples/myalgo/cl/myalgo0.cl
-kernel_function = myalgo
-work_dim = 2
-global_work_size = 1920,1088
-local_work_size = 16,16
+```json
+{
+    "input": {
+        "input_image_id": "image_1"
+    },
+    "output": {
+        "output_image_id": "output_1"
+    },
+    "verification": {
+        "tolerance": 0,
+        "error_rate_threshold": 0,
+        "golden_source": "c_ref"
+    },
+    "kernels": {
+        "v0": {
+            "kernel_file": "examples/myalgo/cl/myalgo0.cl",
+            "kernel_function": "myalgo",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]}
+            ]
+        }
+    }
+}
 ```
 
 **Key points:**
-- Algorithm ID auto-derived from filename (`myalgo.ini` → `myalgo`)
-- At least one kernel variant required (`[kernel.v0]`)
-- Custom buffers supported via `[buffer.*]` sections
+- Algorithm ID auto-derived from filename (`myalgo.json` → `myalgo`)
+- At least one kernel variant required (`kernels.v0`)
+- Custom buffers supported via `buffers` section
+- Kernel arguments fully config-driven via `kernel_args`
 
 **📖 Complete reference:** See **[docs/CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md)** for all configuration parameters, custom buffers, and advanced options.
 
@@ -196,8 +213,11 @@ local_work_size = 16,16
 ├── README.md                       # This file
 ├── CMakeLists.txt                  # CMake build configuration
 ├── config/
-│   ├── dilate3x3.ini               # Dilate algorithm config
-│   └── gaussian5x5.ini             # Gaussian algorithm config
+│   ├── inputs.json                 # Global input image definitions
+│   ├── outputs.json                # Global output image definitions
+│   ├── dilate3x3.json              # Dilate algorithm config
+│   ├── gaussian5x5.json            # Gaussian algorithm config
+│   └── template.json               # Template for new algorithms
 ├── docs/
 │   ├── ADD_NEW_ALGO.md             # Algorithm development guide
 │   ├── CONFIG_SYSTEM.md            # Configuration system guide
@@ -310,7 +330,7 @@ cmake --build . --target opencl_imgproc
 
 **With explicit config path:**
 ```bash
-./build/opencl_host config/dilate3x3.ini 0
+./build/opencl_host config/dilate3x3.json 0
 ```
 
 **Using run script:**
@@ -352,10 +372,11 @@ Start here if you're new to the framework:
   - Step-by-step examples
 
 - **[docs/CONFIG_SYSTEM.md](docs/CONFIG_SYSTEM.md)** - Configuration system reference
-  - Per-algorithm `.ini` file format
+  - Per-algorithm `.json` file format
   - Configuration parameters
-  - Custom buffers
+  - Custom buffers and scalars
   - Multiple kernel variants
+  - Config-driven kernel arguments
 
 ### 🏗️ Architecture & Design
 
