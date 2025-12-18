@@ -13,10 +13,8 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-# Output directories
+# Output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 # Find OpenCL
 if(APPLE)
@@ -38,71 +36,13 @@ set(CJSON_SOURCES "${CMAKE_SOURCE_DIR}/third_party/cjson/cJSON.c")
 set(CJSON_INCLUDE_DIR "${CMAKE_SOURCE_DIR}/third_party/cjson")
 
 # ============================================================================
-# Library: Core + Platform + Utils
+# Source Files
 # ============================================================================
 
-# Option to build shared or static library
-option(BUILD_SHARED_LIBS "Build shared library (.so/.dylib) instead of static (.a)" OFF)
-
-# Collect library source files
+# Collect all source files
 file(GLOB_RECURSE CORE_SOURCES "${CMAKE_SOURCE_DIR}/src/core/*.c")
 file(GLOB_RECURSE PLATFORM_SOURCES "${CMAKE_SOURCE_DIR}/src/platform/*.c")
 file(GLOB_RECURSE UTILS_SOURCES "${CMAKE_SOURCE_DIR}/src/utils/*.c")
-
-# Create library (type determined by BUILD_SHARED_LIBS)
-if(BUILD_SHARED_LIBS)
-    add_library(opencl_imgproc SHARED
-        ${CORE_SOURCES}
-        ${PLATFORM_SOURCES}
-        ${UTILS_SOURCES}
-        ${CJSON_SOURCES}
-    )
-    # Version information for shared library
-    set_target_properties(opencl_imgproc PROPERTIES
-        VERSION 1.0.0
-        SOVERSION 1
-    )
-else()
-    add_library(opencl_imgproc STATIC
-        ${CORE_SOURCES}
-        ${PLATFORM_SOURCES}
-        ${UTILS_SOURCES}
-        ${CJSON_SOURCES}
-    )
-endif()
-
-# Library public include directories (for consumers like examples/)
-target_include_directories(opencl_imgproc
-    PUBLIC
-        ${CMAKE_SOURCE_DIR}/include      # Public API: op_interface.h, op_registry.h, etc.
-        ${OpenCL_INCLUDE_DIRS}           # OpenCL headers (needed by op_interface.h)
-    PRIVATE
-        ${CMAKE_SOURCE_DIR}/src          # Internal: platform/, utils/, core/ (private)
-        ${CJSON_INCLUDE_DIR}             # cJSON headers (for config parsing)
-)
-
-# Link OpenCL to library
-target_link_libraries(opencl_imgproc
-    PUBLIC
-        ${OpenCL_LIBRARIES}
-    PRIVATE
-        m  # Math library (internal use)
-)
-
-# Platform-specific settings for library
-if(APPLE)
-    target_compile_definitions(opencl_imgproc PUBLIC __APPLE__)
-endif()
-
-# Bake absolute paths for OpenCL kernel include directories
-# This ensures -I paths work regardless of where the executable is run from
-target_compile_definitions(opencl_imgproc PRIVATE
-    CL_INCLUDE_DIR="${CMAKE_SOURCE_DIR}/include/cl"
-)
-
-# ============================================================================
-# User Algorithm Examples
-# ============================================================================
 
 # Find all algorithm directories in examples/ (those containing c_ref subdirectories)
 file(GLOB ALGO_DIRS LIST_DIRECTORIES true "${CMAKE_SOURCE_DIR}/examples/*")
@@ -121,28 +61,62 @@ endforeach()
 # Main Executable
 # ============================================================================
 
-# Main application source
-set(MAIN_SOURCES
-    ${CMAKE_SOURCE_DIR}/src/main.c
-)
-
-# Create executable
+# Create executable with all sources
 add_executable(opencl_host
-    ${MAIN_SOURCES}
-    ${ALGO_SOURCES}          # User algorithms
+    ${CMAKE_SOURCE_DIR}/src/main.c
+    ${CORE_SOURCES}
+    ${PLATFORM_SOURCES}
+    ${UTILS_SOURCES}
+    ${CJSON_SOURCES}
+    ${ALGO_SOURCES}
 )
 
-# Link against library
-target_link_libraries(opencl_host
-    PRIVATE
-        opencl_imgproc       # Framework library
-)
-
-# Main needs internal headers (platform/opencl_utils.h, utils/config.h)
+# Include directories
 target_include_directories(opencl_host
     PRIVATE
-        ${CMAKE_SOURCE_DIR}/src          # For main.c to access internal headers
+        ${CMAKE_SOURCE_DIR}/include      # Public API headers
+        ${CMAKE_SOURCE_DIR}/src          # Internal headers
+        ${CJSON_INCLUDE_DIR}             # cJSON headers
+        ${OpenCL_INCLUDE_DIRS}           # OpenCL headers
 )
+
+# Link libraries
+target_link_libraries(opencl_host
+    PRIVATE
+        ${OpenCL_LIBRARIES}
+        m  # Math library
+)
+
+# Platform-specific settings
+if(APPLE)
+    target_compile_definitions(opencl_host PRIVATE __APPLE__)
+endif()
+
+# Bake absolute paths for OpenCL kernel include directories
+target_compile_definitions(opencl_host PRIVATE
+    CL_INCLUDE_DIR="${CMAKE_SOURCE_DIR}/include/cl"
+)
+
+# ============================================================================
+# Copy OpenCL kernel headers to build directory (portable deployment)
+# ============================================================================
+
+# Copy include/cl/ to build/cl/ for self-contained deployment
+file(GLOB CL_HEADERS "${CMAKE_SOURCE_DIR}/include/cl/*.h")
+file(MAKE_DIRECTORY "${CMAKE_BINARY_DIR}/cl")
+foreach(HEADER ${CL_HEADERS})
+    get_filename_component(HEADER_NAME ${HEADER} NAME)
+    configure_file(${HEADER} "${CMAKE_BINARY_DIR}/cl/${HEADER_NAME}" COPYONLY)
+endforeach()
+
+# Custom target to ensure headers are copied on rebuild
+add_custom_target(copy_cl_headers ALL
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_SOURCE_DIR}/include/cl"
+        "${CMAKE_BINARY_DIR}/cl"
+    COMMENT "Copying OpenCL kernel headers to build directory"
+)
+add_dependencies(opencl_host copy_cl_headers)
 
 # ============================================================================
 # Configuration Summary
@@ -153,17 +127,11 @@ message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 message(STATUS "C Compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "OpenCL Libraries: ${OpenCL_LIBRARIES}")
 message(STATUS "")
-message(STATUS "Library Components:")
-message(STATUS "  Core sources: ${CORE_SOURCES}")
-message(STATUS "  Platform sources: ${PLATFORM_SOURCES}")
-message(STATUS "  Utils sources: ${UTILS_SOURCES}")
-message(STATUS "")
-message(STATUS "Public API (include/):")
-message(STATUS "  ${CMAKE_SOURCE_DIR}/include")
-message(STATUS "")
-message(STATUS "User Algorithms (examples/):")
-message(STATUS "  ${ALGO_SOURCES}")
+message(STATUS "Sources:")
+message(STATUS "  Core: ${CORE_SOURCES}")
+message(STATUS "  Platform: ${PLATFORM_SOURCES}")
+message(STATUS "  Utils: ${UTILS_SOURCES}")
+message(STATUS "  Algorithms: ${ALGO_SOURCES}")
 message(STATUS "")
 message(STATUS "Output:")
-message(STATUS "  Library: ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/libopencl_imgproc.a")
 message(STATUS "  Executable: ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/opencl_host")
