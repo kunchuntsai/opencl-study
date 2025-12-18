@@ -136,7 +136,7 @@ int main(int argc, char** argv) {
      * CRITICAL: The -I option tells OpenCL compiler where to find utils.h
      * We use "." (current directory) since utils.h is in the same directory as kernel.cl
      */
-    snprintf(build_options, sizeof(build_options), "-I. -cl-std=CL1.2");
+    snprintf(build_options, sizeof(build_options), "-Iinclude");
 
     printf("Build options: %s\n", build_options);
     printf("Building kernel...\n\n");

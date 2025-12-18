@@ -8,31 +8,30 @@ A minimal example demonstrating how to include header files in OpenCL kernels.
 |------|-------------|
 | `host.c` | Host program that compiles and runs the kernel |
 | `kernel.cl` | OpenCL kernel that includes `utils.h` |
-| `utils.h` | Kernel header with print utility functions |
-| `CL/cl.h` | Minimal OpenCL header stub (for offline builds) |
+| `include/utils.h` | Kernel header with print utility macros |
 
 ## Build
 
 ```bash
-make
+./build.sh
 ```
 
 ## Run
 
 ```bash
-./simple_print_test
+./run.sh
 ```
 
 ## How Kernel Include Works
 
-The key is passing `-I.` to `clBuildProgram()`:
+The key is passing `-Iinclude` to `clBuildProgram()`:
 
 ```c
 // In host.c
-clBuildProgram(program, 1, &device, "-I. -cl-std=CL1.2", NULL, NULL);
+clBuildProgram(program, 1, &device, "-Iinclude", NULL, NULL);
 ```
 
-This tells the OpenCL compiler to look in the current directory for `#include` files, allowing:
+This tells the OpenCL compiler to look in the `include/` directory for `#include` files:
 
 ```c
 // In kernel.cl
@@ -41,6 +40,5 @@ This tells the OpenCL compiler to look in the current directory for `#include` f
 
 ## Requirements
 
-For full OpenCL runtime:
 - **Ubuntu/Debian:** `sudo apt-get install opencl-headers ocl-icd-opencl-dev`
 - **macOS:** OpenCL included in system
