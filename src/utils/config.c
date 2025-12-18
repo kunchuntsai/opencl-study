@@ -337,12 +337,13 @@ static int GetJsonFloat(const cJSON* json, const char* key, float* value) {
  * - o_buffer: Output buffer (e.g., {"o_buffer": ["uchar", "dst"]})
  * - buffer:   Custom buffer (e.g., {"buffer": ["uchar", "tmp", 45000]})
  * - param:    Scalar param  (e.g., {"param": ["int", "src_width"]})
+ * - struct:   Packed struct (e.g., {"struct": ["field1", "field2", ...]})
  */
 static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* args, int max_count) {
     const cJSON* arg;
     int count = 0;
-    const char* arg_keys[] = {"i_buffer", "o_buffer", "buffer", "param"};
-    int num_keys = 4;
+    const char* arg_keys[] = {"i_buffer", "o_buffer", "buffer", "param", "struct"};
+    int num_keys = 5;
 
     if ((args_array == NULL) || !cJSON_IsArray(args_array)) {
         return 0;
@@ -375,8 +376,51 @@ static int ParseKernelArgsJson(const cJSON* args_array, KernelArgDescriptor* arg
 
         if ((matched_key == NULL) || (value_array == NULL)) {
             (void)fprintf(stderr,
-                          "Error: Kernel argument must have one of: i_buffer, o_buffer, buffer, param\n");
+                          "Error: Kernel argument must have one of: i_buffer, o_buffer, buffer, param, struct\n");
             return -1;
+        }
+
+        /* Initialize struct fields */
+        args[count].struct_field_count = 0;
+
+        /* Handle struct specially - it's an array of field names */
+        if (strcmp(matched_key, "struct") == 0) {
+            int field_count;
+            int j;
+
+            if (!cJSON_IsArray(value_array)) {
+                (void)fprintf(stderr, "Error: 'struct' value must be an array of field names\n");
+                return -1;
+            }
+
+            field_count = cJSON_GetArraySize(value_array);
+            if (field_count < 1) {
+                (void)fprintf(stderr, "Error: 'struct' must have at least one field\n");
+                return -1;
+            }
+            if (field_count > MAX_STRUCT_FIELDS) {
+                (void)fprintf(stderr, "Error: 'struct' has too many fields (max %d)\n",
+                              MAX_STRUCT_FIELDS);
+                return -1;
+            }
+
+            args[count].arg_type = KERNEL_ARG_TYPE_STRUCT;
+            args[count].struct_field_count = field_count;
+
+            /* Copy field names */
+            for (j = 0; j < field_count; j++) {
+                cJSON* field = cJSON_GetArrayItem(value_array, j);
+                if (!cJSON_IsString(field)) {
+                    (void)fprintf(stderr, "Error: 'struct' field %d must be a string\n", j);
+                    return -1;
+                }
+                (void)strncpy(args[count].struct_fields[j], field->valuestring,
+                              sizeof(args[count].struct_fields[j]) - 1U);
+                args[count].struct_fields[j][sizeof(args[count].struct_fields[j]) - 1U] = '\0';
+            }
+
+            count++;
+            continue; /* Skip the rest of the loop for struct */
         }
 
         /* Value must be an array with 2 or 3 elements: [data_type, name] or [data_type, name, size] */

@@ -14,8 +14,17 @@
         "golden_file": "test_data/relu/golden.bin"
     },
 
+    "scalars": {
+        "relu_v1": {"type": "int", "value": 1},
+        "relu_v1b": {"type": "int", "value": 2},
+        "relu_v2": {"type": "float", "value": 0.5},
+        "relu_v3": {"type": "float", "value": 1.0},
+        "relu_v4": {"type": "int", "value": 3}
+    },
+
     "kernels": {
         "v0": {
+            "description": "standard with struct params",
             "host_type": "standard",
             "kernel_option": "",
             "kernel_file": "examples/relu/cl/relu0.cl",
@@ -27,7 +36,8 @@
                 {"i_buffer": ["uchar", "src"]},
                 {"o_buffer": ["uchar", "dst"]},
                 {"param": ["int", "src_width"]},
-                {"param": ["int", "src_height"]}
+                {"param": ["int", "src_height"]},
+                {"struct": ["relu_v1", "relu_v1b", "relu_v2", "relu_v3", "relu_v4"]}
             ]
         }
     }

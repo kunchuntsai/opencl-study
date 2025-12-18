@@ -661,6 +661,83 @@ int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
                 break;
             }
 
+            case KERNEL_ARG_TYPE_STRUCT: {
+                /* Pack struct from scalar fields */
+                unsigned char struct_buffer[256]; /* Max struct size */
+                size_t struct_size = 0;
+                int field_idx;
+
+                if (params->custom_scalars == NULL) {
+                    (void)fprintf(stderr, "Error: Struct arg requires scalars section in config\n");
+                    return -1;
+                }
+
+                /* Pack each field into the struct buffer */
+                for (field_idx = 0; field_idx < arg_desc->struct_field_count; field_idx++) {
+                    const char* field_name = arg_desc->struct_fields[field_idx];
+                    int scalar_idx;
+                    int found = 0;
+
+                    /* Find the scalar by name */
+                    for (scalar_idx = 0; scalar_idx < params->custom_scalars->count; scalar_idx++) {
+                        if (strcmp(params->custom_scalars->scalars[scalar_idx].name, field_name) == 0) {
+                            const ScalarValue* sv = &params->custom_scalars->scalars[scalar_idx];
+
+                            /* Pack based on type */
+                            switch (sv->type) {
+                                case SCALAR_TYPE_INT:
+                                    if (struct_size + sizeof(int) > sizeof(struct_buffer)) {
+                                        (void)fprintf(stderr, "Error: Struct too large\n");
+                                        return -1;
+                                    }
+                                    (void)memcpy(struct_buffer + struct_size, &sv->value.int_value,
+                                                 sizeof(int));
+                                    struct_size += sizeof(int);
+                                    break;
+                                case SCALAR_TYPE_FLOAT:
+                                    if (struct_size + sizeof(float) > sizeof(struct_buffer)) {
+                                        (void)fprintf(stderr, "Error: Struct too large\n");
+                                        return -1;
+                                    }
+                                    (void)memcpy(struct_buffer + struct_size, &sv->value.float_value,
+                                                 sizeof(float));
+                                    struct_size += sizeof(float);
+                                    break;
+                                case SCALAR_TYPE_SIZE:
+                                    if (struct_size + sizeof(size_t) > sizeof(struct_buffer)) {
+                                        (void)fprintf(stderr, "Error: Struct too large\n");
+                                        return -1;
+                                    }
+                                    (void)memcpy(struct_buffer + struct_size, &sv->value.size_value,
+                                                 sizeof(size_t));
+                                    struct_size += sizeof(size_t);
+                                    break;
+                                default:
+                                    (void)fprintf(stderr, "Error: Unknown scalar type for field '%s'\n",
+                                                  field_name);
+                                    return -1;
+                            }
+                            found = 1;
+                            break;
+                        }
+                    }
+
+                    if (!found) {
+                        (void)fprintf(stderr, "Error: Struct field '%s' not found in scalars\n",
+                                      field_name);
+                        return -1;
+                    }
+                }
+
+                /* Set the packed struct as kernel argument */
+                if (clSetKernelArg(kernel, arg_idx++, struct_size, struct_buffer) != CL_SUCCESS) {
+                    (void)fprintf(stderr, "Error: Failed to set struct arg at %d (size %zu)\n",
+                                  arg_idx - 1, struct_size);
+                    return -1;
+                }
+                break;
+            }
+
             default:
                 (void)fprintf(stderr, "Error: Unknown kernel arg type %d\n", arg_desc->arg_type);
                 return -1;

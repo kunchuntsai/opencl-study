@@ -162,6 +162,7 @@ Define kernel variants with section name `v<N>` where `<N>` is the variant numbe
 ```json
 "kernels": {
     "v0": {
+        "description": "standard OpenCL",
         "host_type": "standard",
         "kernel_option": "",
         "kernel_file": "examples/algo/cl/algo.cl",
@@ -176,6 +177,7 @@ Define kernel variants with section name `v<N>` where `<N>` is the variant numbe
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `description` | string | No | Human-readable description shown in variant menu |
 | `kernel_file` | string | Yes | Path to OpenCL kernel source file |
 | `kernel_function` | string | Yes | Kernel function name |
 | `work_dim` | int | Yes | Work dimensions (1, 2, or 3) |
@@ -184,6 +186,8 @@ Define kernel variants with section name `v<N>` where `<N>` is the variant numbe
 | `host_type` | string | No | `standard` (default) or `cl_extension` |
 | `kernel_option` | string | No | Compiler options (e.g., `-cl-fast-relaxed-math`) |
 | `kernel_args` | array | Yes | Kernel argument definitions |
+
+The variant number in `v<N>` determines the selection index (e.g., `v0` → select with `0`, `v1` → select with `1`).
 
 ### Kernel Arguments (kernel_args)
 
@@ -195,10 +199,12 @@ The new format uses descriptive keys with arrays:
 | `o_buffer` | `["type", "name"]` | Output buffer | `{"o_buffer": ["uchar", "dst"]}` |
 | `buffer` | `["type", "name", size]` | Custom buffer with size | `{"buffer": ["uchar", "tmp", 45000]}` |
 | `param` | `["type", "name"]` | Scalar parameter | `{"param": ["int", "src_width"]}` |
+| `struct` | `["field1", "field2", ...]` | Packed struct from scalars | `{"struct": ["f1", "f2", "f3"]}` |
 
 **Supported data types:**
 - Buffers: `uchar`, `float`, `int`, `short`
 - Params: `int`, `float`, `size_t`
+- Struct fields: References scalars defined in `scalars` section
 
 **Example kernel_args:**
 ```json
@@ -212,6 +218,54 @@ The new format uses descriptive keys with arrays:
     {"param": ["float", "sigma"]}
 ]
 ```
+
+### Struct Arguments
+
+For kernels that take a struct parameter, define the fields in the `scalars` section and reference them with `struct`:
+
+**OpenCL kernel:**
+```c
+struct my_params {
+    int param1;
+    float param2;
+    int param3;
+};
+
+__kernel void my_kernel(..., struct my_params params) { ... }
+```
+
+**JSON config:**
+```json
+"scalars": {
+    "param1": {"type": "int", "value": 10},
+    "param2": {"type": "float", "value": 0.5},
+    "param3": {"type": "int", "value": 20}
+},
+"kernel_args": [
+    {"i_buffer": ["uchar", "src"]},
+    {"o_buffer": ["uchar", "dst"]},
+    {"struct": ["param1", "param2", "param3"]}
+]
+```
+
+**Important:** The order of fields in `{"struct": [...]}` must match the struct definition in your `.cl` file exactly. The framework packs the scalars into a contiguous buffer matching the kernel's expected layout.
+
+### Available OpParams Fields
+
+The following built-in fields can be referenced in `param`:
+
+**Integer fields** (`{"param": ["int", "field_name"]}`):
+- `src_width` - Source image width
+- `src_height` - Source image height
+- `src_stride` - Source image stride (bytes per row)
+- `src_channels` - Source image channels
+- `dst_width` - Destination image width
+- `dst_height` - Destination image height
+- `dst_stride` - Destination image stride
+- `dst_channels` - Destination image channels
+
+**Float/Size fields**:
+- Custom values defined in `scalars` section using `{"param": ["float", "name"]}` or `{"param": ["size_t", "name"]}`
 
 ## Complete Example: Gaussian 5x5
 
@@ -309,5 +363,4 @@ The new format uses descriptive keys with arrays:
 - **Config path resolution:** `ResolveConfigPath()` in `src/utils/config.c` resolves algorithm names to `config/<name>.json`
 - **op_id extraction:** `ExtractOpIdFromPath()` derives the op_id from the config filename
 - **Kernel args parsing:** `ParseKernelArgsJson()` parses the new format with buffer sizes
-
-See also: [CONFIG_KERNEL_ARG.md](CONFIG_KERNEL_ARG.md) for detailed kernel argument documentation.
+- **Struct packing:** `OpenclSetKernelArgs()` packs struct fields from scalars

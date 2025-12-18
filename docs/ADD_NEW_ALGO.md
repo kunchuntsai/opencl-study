@@ -5,13 +5,12 @@ Quick guide on the mandatory configuration and API requirements for adding algor
 ## Table of Contents
 
 - [Three Required Components](#three-required-components)
+- [Quick Start with Script](#quick-start-with-script)
 - [1. Configuration File (`config/<algo>.json`)](#1-configuration-file-configalgojson)
   - [Basic Structure](#basic-structure)
   - [Configuration Parameters](#configuration-parameters)
   - [Custom Buffers](#custom-buffers)
-- [2. Mandatory C API Functions](#2-mandatory-c-api-functions)
-  - [Function 1: Reference Implementation](#function-1-reference-implementation)
-  - [Function 2: Verification Function](#function-2-verification-function)
+- [2. Mandatory C API Function](#2-mandatory-c-api-function)
 - [3. Auto-Registration System](#3-auto-registration-system)
   - [How It Works](#how-it-works)
   - [After Adding Your Algorithm](#after-adding-your-algorithm)
@@ -26,8 +25,25 @@ Quick guide on the mandatory configuration and API requirements for adding algor
 To add a new algorithm (e.g., `erode3x3`):
 
 1. **Configuration file:** `config/erode3x3.json`
-2. **C reference file:** `examples/erode3x3/c_ref/erode3x3_ref.c` with two mandatory functions
-3. **OpenCL kernel:** `examples/erode3x3/cl/erode0.cl`
+2. **C reference file:** `examples/erode3x3/c_ref/erode3x3_ref.c` with reference function
+3. **OpenCL kernel:** `examples/erode3x3/cl/erode3x30.cl`
+
+---
+
+## Quick Start with Script
+
+Use the helper script to create all boilerplate:
+
+```bash
+./scripts/create_new_algo.sh erode3x3
+```
+
+This creates:
+- `config/erode3x3.json` - JSON configuration
+- `examples/erode3x3/c_ref/erode3x3_ref.c` - C reference implementation
+- `examples/erode3x3/cl/erode3x30.cl` - OpenCL kernel template
+
+Then add input/output entries to `config/inputs.json` and `config/outputs.json`.
 
 ---
 
@@ -109,10 +125,11 @@ References images defined in `config/inputs.json` and `config/outputs.json`:
 
 #### Kernels Section (At least v0 required)
 
-**Note:** The variant number in `"v0"`, `"v1"`, etc. is automatically used as the `kernel_variant` value in `params->kernel_variant`. No need to specify it manually!
+**Note:** The variant number in `"v0"`, `"v1"`, etc. determines the selection index (e.g., `v0` → select with `0`, `v1` → select with `1`).
 
 | Parameter | Type | Required | Description |
 |-----------|------|----------|-------------|
+| `description` | string | No | Human-readable description shown in variant menu |
 | `kernel_file` | string | Yes | Path to .cl file |
 | `kernel_function` | string | Yes | Kernel function name |
 | `work_dim` | int | Yes | Work dimensions (1, 2, or 3) |
@@ -130,10 +147,12 @@ References images defined in `config/inputs.json` and `config/outputs.json`:
 | `o_buffer` | `["type", "name"]` | Output buffer | `{"o_buffer": ["uchar", "dst"]}` |
 | `buffer` | `["type", "name", size]` | Custom buffer with size | `{"buffer": ["uchar", "tmp", 45000]}` |
 | `param` | `["type", "name"]` | Scalar parameter | `{"param": ["int", "src_width"]}` |
+| `struct` | `["field1", "field2", ...]` | Packed struct from scalars | `{"struct": ["f1", "f2"]}` |
 
 **Supported data types:**
 - Buffers: `uchar`, `float`, `int`, `short`
 - Params: `int`, `float`, `size_t`
+- Struct fields: References scalars defined in `scalars` section
 
 ### Custom Buffers
 
@@ -194,14 +213,16 @@ Supported types: `int`, `float`, `size_t`
 
 ---
 
-## 2. Mandatory C API Functions
+## 2. Mandatory C API Function
 
-Every algorithm must implement these two functions in `examples/<algo>/c_ref/<algo>_ref.c`:
+Every algorithm must implement one function in `examples/<algo>/c_ref/<algo>_ref.c`:
 
-### Function 1: Reference Implementation
+### Reference Implementation
 ```c
-void <algo>_ref(const OpParams* params);
+void <AlgoName>Ref(const OpParams* params);
 ```
+
+**Note:** Function name uses PascalCase (e.g., `Erode3x3Ref`, `Gaussian5x5Ref`).
 
 **Purpose:** CPU implementation serving as ground truth for verification
 
@@ -210,46 +231,18 @@ void <algo>_ref(const OpParams* params);
 - `params->output` - Output image buffer
 - `params->src_width`, `params->src_height` - Source dimensions
 - `params->dst_width`, `params->dst_height` - Destination dimensions
-- `params->border_mode`, `params->border_value` - Border handling
 - `params->custom_buffers` - Custom buffer collection (NULL if none)
+- `params->custom_scalars` - Custom scalar values (NULL if none)
 
 **Must:**
 - Validate `params != NULL`
 - Implement the algorithm correctly (this is the golden reference!)
 - Write results to `params->output`
 
----
-
-### Function 2: Verification Function
-```c
-int <algo>_verify(const OpParams* params, float* max_error);
-```
-
-**Purpose:** Compare GPU output against CPU reference
-
-**Returns:**
-- `1` if verification passed
-- `0` if verification failed
-
-**Parameters:**
-- `params->ref_output` - CPU reference output
-- `params->gpu_output` - GPU kernel output
-- `params->dst_width`, `params->dst_height` - Output dimensions
-- `max_error` - (output) Maximum error found
-
-**Use provided helpers:**
-```c
-// For operations requiring exact match (morphology, etc.)
-return verify_exact_match(params->gpu_output, params->ref_output,
-                         params->dst_width, params->dst_height, max_error);
-
-// For operations with rounding tolerance (filters, etc.)
-return verify_with_tolerance(params->gpu_output, params->ref_output,
-                            params->dst_width, params->dst_height,
-                            1.0f,    // max pixel difference
-                            0.001f,  // max fraction of pixels that can differ
-                            max_error);
-```
+**Verification** is handled automatically based on the `verification` section in your JSON config:
+- `tolerance` - Max per-pixel difference allowed
+- `error_rate_threshold` - Max fraction of pixels that can exceed tolerance
+- `golden_source` - Use `"c_ref"` to use reference function, or `"file"` to use a golden file
 
 ---
 
@@ -291,23 +284,27 @@ Simply regenerate the registry:
 | File | Purpose |
 |------|---------|
 | `config/<algo>.json` | Algorithm configuration (JSON format) |
-| `examples/<algo>/c_ref/<algo>_ref.c` | Two required functions |
+| `examples/<algo>/c_ref/<algo>_ref.c` | Reference implementation function |
 | `examples/<algo>/cl/<algo>0.cl` | OpenCL kernel variant 0 |
 
-### Mandatory Functions
+### Mandatory Function
 
 | Function | Signature | Purpose |
 |----------|-----------|---------|
-| `<algo>_ref` | `void(const OpParams*)` | CPU reference implementation |
-| `<algo>_verify` | `int(const OpParams*, float*)` | Verify GPU vs CPU |
+| `<AlgoName>Ref` | `void(const OpParams*)` | CPU reference implementation |
 
-**Note:** Kernel arguments are now fully config-driven via `kernel_args` in JSON. No custom `set_kernel_args` function required!
+**Notes:**
+- Function name uses PascalCase (e.g., `Erode3x3Ref`)
+- Verification is config-driven via `tolerance` and `error_rate_threshold` in JSON
+- Kernel arguments are config-driven via `kernel_args` in JSON
 
 ### Configuration Checklist
 
-- [ ] Created `config/<algo>.json` with `input`, `output`, and `kernels` sections
-- [ ] Created `examples/<algo>/c_ref/<algo>_ref.c` with two required functions
+- [ ] Created `config/<algo>.json` with `input`, `output`, `verification`, and `kernels` sections
+- [ ] Created `examples/<algo>/c_ref/<algo>_ref.c` with `<AlgoName>Ref()` function
 - [ ] Created `examples/<algo>/cl/<algo>0.cl` kernel file
+- [ ] Added input entry to `config/inputs.json`
+- [ ] Added output entry to `config/outputs.json`
 - [ ] Kernel signature matches `kernel_args` order exactly
 - [ ] Algorithm filename matches `.json` filename (e.g., `erode3x3_ref.c` ↔ `erode3x3.json`)
 - [ ] Run `./scripts/generate_registry.sh` to auto-register
@@ -363,6 +360,5 @@ test_data/erode3x3/
 ## Related Documentation
 
 - **[CONFIG_SYSTEM.md](CONFIG_SYSTEM.md)** - Configuration file format (JSON)
-- **[CONFIG_KERNEL_ARG.md](CONFIG_KERNEL_ARG.md)** - Kernel argument configuration
 - **[../ARCHITECTURE.md](../ARCHITECTURE.md)** - System architecture
 - **[../README.md](../README.md)** - Main project documentation

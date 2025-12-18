@@ -11,10 +11,20 @@
  * @param height Image height in pixels
  */
 
+struct relu_params {
+    int relu_v1;
+    int relu_v1b;
+    float relu_v2;
+    float relu_v3;
+    int relu_v4;
+};
+
 __kernel void relu(__global const uchar* input,
                              __global uchar* output,
                              int width,
-                             int height) {
+                             int height,
+                             struct relu_params params
+                            ) {
     int x = get_global_id(0);
     int y = get_global_id(1);
 

@@ -26,6 +26,18 @@
         "size_param": {
             "type": "size_t",
             "value": "1920 * 1080 * 4"
+        },
+        "struct_field1": {
+            "type": "int",
+            "value": 10
+        },
+        "struct_field2": {
+            "type": "float",
+            "value": 0.5
+        },
+        "struct_field3": {
+            "type": "int",
+            "value": 20
         }
     },
 
@@ -70,6 +82,7 @@
 
     "kernels": {
         "v0": {
+            "description": "standard OpenCL",
             "host_type": "standard",
             "kernel_option": "",
             "kernel_file": "examples/algo/cl/algo_v0.cl",
@@ -91,6 +104,7 @@
             ]
         },
         "v1": {
+            "description": "CL extension with custom buffers",
             "host_type": "cl_extension",
             "kernel_option": "-cl-fast-relaxed-math",
             "kernel_file": "examples/algo/cl/algo_v1.cl",
@@ -111,6 +125,7 @@
             ]
         },
         "v2": {
+            "description": "1D workgroup with struct params",
             "host_type": "standard",
             "kernel_option": "-cl-mad-enable",
             "kernel_file": "examples/algo/cl/algo_v2.cl",
@@ -121,7 +136,8 @@
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
                 {"o_buffer": ["uchar", "dst"]},
-                {"param": ["size_t", "size_param"]}
+                {"param": ["size_t", "size_param"]},
+                {"struct": ["struct_field1", "struct_field2", "struct_field3"]}
             ]
         }
     }

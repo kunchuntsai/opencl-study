@@ -94,6 +94,9 @@ typedef enum {
 /** Maximum number of kernel arguments */
 #define MAX_KERNEL_ARGS 32
 
+/** Maximum number of fields in a struct argument */
+#define MAX_STRUCT_FIELDS 16
+
 /** Kernel argument type */
 typedef enum {
     KERNEL_ARG_TYPE_NONE = 0,
@@ -103,19 +106,22 @@ typedef enum {
     KERNEL_ARG_TYPE_SCALAR_INT,    /**< Integer scalar (int) */
     KERNEL_ARG_TYPE_SCALAR_FLOAT,  /**< Float scalar (float) */
     KERNEL_ARG_TYPE_SCALAR_SIZE,   /**< Size_t scalar (size_t) */
+    KERNEL_ARG_TYPE_STRUCT,        /**< Struct packed from scalars */
 } KernelArgType;
 
 /**
  * @brief Kernel argument descriptor
  *
  * Describes a single kernel argument with its type, data type, and name.
- * Arguments can be buffers (input, output, or custom) or scalars.
+ * Arguments can be buffers (input, output, or custom), scalars, or structs.
  *
  * JSON format: {"key": ["data_type", "name"]} or {"key": ["data_type", "name", size]}
  * - i_buffer: Input buffer  (e.g., {"i_buffer": ["uchar", "src"]})
  * - o_buffer: Output buffer (e.g., {"o_buffer": ["uchar", "dst"]})
  * - buffer:   Custom buffer (e.g., {"buffer": ["uchar", "tmp", 45000]})
  * - param:    Scalar param  (e.g., {"param": ["int", "src_width"]})
+ * - struct:   Packed struct (e.g., {"struct": ["field1", "field2", ...]})
+ *             Fields reference scalars defined in the "scalars" section
  */
 typedef struct {
     KernelArgType arg_type; /**< Type of argument (buffer or scalar) */
@@ -125,6 +131,10 @@ typedef struct {
                                  - For scalars: param name (e.g., "src_width", "dst_height")
                              */
     size_t buffer_size;     /**< Buffer size in bytes (0 if not specified, for buffer types only) */
+
+    /* Struct fields (for KERNEL_ARG_TYPE_STRUCT only) */
+    char struct_fields[MAX_STRUCT_FIELDS][64]; /**< Array of scalar names to pack into struct */
+    int struct_field_count;                    /**< Number of fields in struct */
 } KernelArgDescriptor;
 
 /**
