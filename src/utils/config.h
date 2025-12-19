@@ -97,6 +97,9 @@ typedef enum {
 /** Maximum number of fields in a struct argument */
 #define MAX_STRUCT_FIELDS 16
 
+/** Maximum number of embedded headers per kernel */
+#define MAX_EMBEDDED_HEADERS 8
+
 /** Kernel argument type */
 typedef enum {
     KERNEL_ARG_TYPE_NONE = 0,
@@ -159,6 +162,10 @@ typedef struct {
                                    (v0->0, v1->1, etc.) */
     KernelArgDescriptor kernel_args[MAX_KERNEL_ARGS]; /**< Array of kernel argument descriptors */
     int kernel_arg_count;                             /**< Number of kernel arguments configured */
+
+    /* Embedded headers for compilers that don't support -I include paths */
+    char embedded_headers[MAX_EMBEDDED_HEADERS][256]; /**< Array of header file paths to prepend */
+    int embedded_header_count;                        /**< Number of embedded headers */
 } KernelConfig;
 
 /**

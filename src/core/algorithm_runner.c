@@ -325,7 +325,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     /* Step 3: Build OpenCL kernel */
     (void)printf("\n=== Building OpenCL Kernel ===\n");
     kernel = OpenclBuildKernel(env, algo->id, kernel_cfg->kernel_file, kernel_cfg->kernel_function,
-                               kernel_cfg->kernel_option, kernel_cfg->host_type);
+                               kernel_cfg->kernel_option, kernel_cfg->host_type,
+                               kernel_cfg->embedded_headers, kernel_cfg->embedded_header_count);
     if (kernel == NULL) {
         (void)fprintf(stderr, "Failed to build kernel\n");
         return;

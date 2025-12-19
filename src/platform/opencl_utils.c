@@ -134,8 +134,10 @@ static const size_t* OpParamsLookupSize(const OpParams* params, const char* fiel
 #define MAX_KERNEL_SOURCE_SIZE (1024 * 1024) /* 1MB max kernel source */
 #define MAX_BUILD_LOG_SIZE (16 * 1024)       /* 16KB max build log */
 #define MAX_DEVICE_NAME_SIZE 128
+#define MAX_HEADER_SOURCE_SIZE (256 * 1024)  /* 256KB max for embedded headers */
 
 static char kernel_source_buffer[MAX_KERNEL_SOURCE_SIZE];
+static char combined_source_buffer[MAX_KERNEL_SOURCE_SIZE + MAX_HEADER_SOURCE_SIZE];
 static char build_log_buffer[MAX_BUILD_LOG_SIZE];
 
 /* Helper function to extract cache name from kernel file path */
@@ -232,6 +234,112 @@ static int ReadKernelSource(const char* filename, char* buffer, size_t max_size,
     return 0;
 }
 
+/**
+ * @brief Read kernel source with embedded headers prepended
+ *
+ * For OpenCL compilers that don't support -I include paths, this function
+ * reads header files and prepends their content to the kernel source.
+ * The #include directives for these headers should be removed from the kernel
+ * or guarded with #ifndef to avoid double inclusion.
+ *
+ * For HOST_TYPE_STANDARD: Headers are concatenated with kernel source
+ * For HOST_TYPE_CL_EXTENSION: Same approach (could be extended to use
+ *                             clCompileProgram/clLinkProgram if needed)
+ *
+ * @param[in] kernel_file Path to the main kernel source file
+ * @param[in] embedded_headers Array of header file paths to prepend
+ * @param[in] header_count Number of embedded headers
+ * @param[out] buffer Output buffer for combined source
+ * @param[in] max_size Maximum buffer size
+ * @param[out] length Total length of combined source
+ * @param[in] host_type Host API type (for future extension)
+ * @return 0 on success, -1 on error
+ */
+static int ReadKernelSourceWithHeaders(const char* kernel_file,
+                                       const char embedded_headers[][256],
+                                       int header_count,
+                                       char* buffer,
+                                       size_t max_size,
+                                       size_t* length,
+                                       HostType host_type) {
+    size_t total_length = 0;
+    size_t header_length;
+    int i;
+
+    if ((kernel_file == NULL) || (buffer == NULL) || (length == NULL)) {
+        return -1;
+    }
+
+    /* Initialize buffer */
+    buffer[0] = '\0';
+
+    /* Read and concatenate embedded headers first */
+    if ((embedded_headers != NULL) && (header_count > 0)) {
+        (void)printf("Embedding %d header(s) into kernel source:\n", header_count);
+
+        for (i = 0; i < header_count; i++) {
+            if (embedded_headers[i][0] == '\0') {
+                continue; /* Skip empty entries */
+            }
+
+            (void)printf("  [%d] %s\n", i, embedded_headers[i]);
+
+            /* Read header into temporary location in kernel_source_buffer */
+            if (ReadKernelSource(embedded_headers[i], kernel_source_buffer,
+                                 MAX_KERNEL_SOURCE_SIZE, &header_length) != 0) {
+                (void)fprintf(stderr, "Error: Failed to read embedded header: %s\n",
+                              embedded_headers[i]);
+                return -1;
+            }
+
+            /* Check if we have room */
+            if ((total_length + header_length + 2U) >= max_size) {
+                (void)fprintf(stderr, "Error: Combined source exceeds buffer size\n");
+                return -1;
+            }
+
+            /* Append header content with newline separator */
+            (void)memcpy(buffer + total_length, kernel_source_buffer, header_length);
+            total_length += header_length;
+            buffer[total_length++] = '\n';
+            buffer[total_length] = '\0';
+        }
+
+        /* For HOST_TYPE_CL_EXTENSION, we could potentially use clCompileProgram
+         * with input headers for better error reporting. For now, both host types
+         * use the same concatenation approach. */
+        if (host_type == HOST_TYPE_CL_EXTENSION) {
+            (void)printf("Note: Using concatenated source for cl_extension host type\n");
+        }
+    }
+
+    /* Read main kernel source */
+    if (ReadKernelSource(kernel_file, kernel_source_buffer,
+                         MAX_KERNEL_SOURCE_SIZE, &header_length) != 0) {
+        return -1;
+    }
+
+    /* Check if we have room for kernel source */
+    if ((total_length + header_length + 1U) >= max_size) {
+        (void)fprintf(stderr, "Error: Combined source exceeds buffer size\n");
+        return -1;
+    }
+
+    /* Append kernel source */
+    (void)memcpy(buffer + total_length, kernel_source_buffer, header_length);
+    total_length += header_length;
+    buffer[total_length] = '\0';
+
+    *length = total_length;
+
+    if (header_count > 0) {
+        (void)printf("Combined source size: %zu bytes (%d headers + kernel)\n",
+                     total_length, header_count);
+    }
+
+    return 0;
+}
+
 int OpenclInit(OpenCLEnv* env) {
     cl_int err;
     cl_uint num_platforms;
@@ -303,7 +411,8 @@ int OpenclInit(OpenCLEnv* env) {
 
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
                             const char* kernel_name, const char* kernel_option,
-                            HostType host_type) {
+                            HostType host_type, const char embedded_headers[][256],
+                            int embedded_header_count) {
     cl_int err;
     size_t source_length;
     cl_program program = NULL;
@@ -313,10 +422,14 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
     int used_cache = 0;
     char cache_name[256];
     char build_options[512];
+    int use_embedded_headers;
 
     if ((env == NULL) || (algorithm_id == NULL) || (kernel_file == NULL) || (kernel_name == NULL)) {
         return NULL;
     }
+
+    /* Determine if we're using embedded headers */
+    use_embedded_headers = ((embedded_headers != NULL) && (embedded_header_count > 0)) ? 1 : 0;
 
     /* Extract cache name from kernel file (e.g., "dilate0" from
      * "src/dilate/cl/dilate0.cl") */
@@ -349,14 +462,26 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
 
     /* If no cached binary or loading failed, compile from source */
     if (used_cache == 0) {
-        /* Read kernel source from file */
-        if (ReadKernelSource(kernel_file, kernel_source_buffer, MAX_KERNEL_SOURCE_SIZE,
-                             &source_length) != 0) {
-            return NULL;
+        /* Read kernel source from file, with optional embedded headers */
+        if (use_embedded_headers != 0) {
+            /* Use combined source buffer for headers + kernel */
+            if (ReadKernelSourceWithHeaders(kernel_file, embedded_headers, embedded_header_count,
+                                            combined_source_buffer,
+                                            sizeof(combined_source_buffer),
+                                            &source_length, host_type) != 0) {
+                return NULL;
+            }
+            source_ptr = combined_source_buffer;
+        } else {
+            /* Standard path: read kernel source only */
+            if (ReadKernelSource(kernel_file, kernel_source_buffer, MAX_KERNEL_SOURCE_SIZE,
+                                 &source_length) != 0) {
+                return NULL;
+            }
+            source_ptr = kernel_source_buffer;
         }
 
         /* Create program */
-        source_ptr = kernel_source_buffer;
         program = clCreateProgramWithSource(env->context, 1U, &source_ptr, &source_length, &err);
         if (err != CL_SUCCESS) {
             (void)fprintf(stderr, "Error: Failed to create program (error code: %d)\n", err);
