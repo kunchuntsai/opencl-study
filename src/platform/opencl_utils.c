@@ -235,14 +235,10 @@ static int ReadKernelSource(const char* filename, char* buffer, size_t max_size,
 }
 
 /**
- * @brief Read kernel source with platform headers from include/cl/ embedded
+ * @brief Read kernel source with platform headers embedded
  *
- * For OpenCL compilers that don't support -I include paths, this function
- * reads headers from include/cl/ and prepends their content to the kernel source.
+ * Reads headers from include/cl/ and prepends them to the kernel source.
  * Currently embeds: platform.h
- *
- * The kernel should use include guards (#ifndef) in headers to handle both
- * -I include path mode and embedded mode.
  *
  * @param[in] kernel_file Path to the main kernel source file
  * @param[out] buffer Output buffer for combined source
@@ -251,69 +247,44 @@ static int ReadKernelSource(const char* filename, char* buffer, size_t max_size,
  * @param[in] host_type Host API type (for future extension)
  * @return 0 on success, -1 on error
  */
-static int ReadKernelSourceWithPlatformHeaders(const char* kernel_file,
-                                               char* buffer,
-                                               size_t max_size,
-                                               size_t* length,
-                                               HostType host_type) {
+static int EmbedHeaders(const char* kernel_file, char* buffer, size_t max_size,
+                        size_t* length, HostType host_type) {
     size_t total_length = 0;
     size_t header_length;
 
-    /*
-     * Headers from include/cl/ to embed into kernel source.
-     * These provide platform-specific implementations for kernels in examples/*/cl/
-     * Add additional headers here as needed.
-     */
-    static const char* const kPlatformHeaders[] = {
+    /* Headers from include/cl/ to embed into kernel source */
+    static const char* const kHeaders[] = {
         CL_INCLUDE_DIR "/platform.h",
-        /* Add more headers here as needed, e.g.:
-         * CL_INCLUDE_DIR "/types.h",
-         * CL_INCLUDE_DIR "/math_utils.h",
-         */
     };
-    static const int kPlatformHeaderCount = (int)(sizeof(kPlatformHeaders) / sizeof(kPlatformHeaders[0]));
+    static const int kHeaderCount = (int)(sizeof(kHeaders) / sizeof(kHeaders[0]));
     int i;
 
     if ((kernel_file == NULL) || (buffer == NULL) || (length == NULL)) {
         return -1;
     }
 
-    /* Initialize buffer */
     buffer[0] = '\0';
 
-    (void)printf("Embedding %d platform header(s) into kernel source:\n", kPlatformHeaderCount);
-
-    /* Read and concatenate platform headers first */
-    for (i = 0; i < kPlatformHeaderCount; i++) {
-        (void)printf("  [%d] %s\n", i, kPlatformHeaders[i]);
-
-        /* Read header into temporary location in kernel_source_buffer */
-        if (ReadKernelSource(kPlatformHeaders[i], kernel_source_buffer,
+    /* Read and concatenate headers first */
+    for (i = 0; i < kHeaderCount; i++) {
+        if (ReadKernelSource(kHeaders[i], kernel_source_buffer,
                              MAX_KERNEL_SOURCE_SIZE, &header_length) != 0) {
-            (void)fprintf(stderr, "Error: Failed to read platform header: %s\n",
-                          kPlatformHeaders[i]);
+            (void)fprintf(stderr, "Error: Failed to read header: %s\n", kHeaders[i]);
             return -1;
         }
 
-        /* Check if we have room */
         if ((total_length + header_length + 2U) >= max_size) {
             (void)fprintf(stderr, "Error: Combined source exceeds buffer size\n");
             return -1;
         }
 
-        /* Append header content with newline separator */
         (void)memcpy(buffer + total_length, kernel_source_buffer, header_length);
         total_length += header_length;
         buffer[total_length++] = '\n';
         buffer[total_length] = '\0';
     }
 
-    /* For HOST_TYPE_CL_EXTENSION, we could potentially use clCompileProgram
-     * with input headers for better error reporting. For now, both host types
-     * use the same concatenation approach. */
-    if (host_type == HOST_TYPE_CL_EXTENSION) {
-        (void)printf("Note: Using concatenated source for cl_extension host type\n");
-    }
+    (void)(host_type); /* Reserved for future use */
 
     /* Read main kernel source */
     if (ReadKernelSource(kernel_file, kernel_source_buffer,
@@ -321,21 +292,16 @@ static int ReadKernelSourceWithPlatformHeaders(const char* kernel_file,
         return -1;
     }
 
-    /* Check if we have room for kernel source */
     if ((total_length + header_length + 1U) >= max_size) {
         (void)fprintf(stderr, "Error: Combined source exceeds buffer size\n");
         return -1;
     }
 
-    /* Append kernel source */
     (void)memcpy(buffer + total_length, kernel_source_buffer, header_length);
     total_length += header_length;
     buffer[total_length] = '\0';
 
     *length = total_length;
-    (void)printf("Combined source size: %zu bytes (%d headers + kernel)\n",
-                 total_length, kPlatformHeaderCount);
-
     return 0;
 }
 
@@ -456,12 +422,12 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
 
     /* If no cached binary or loading failed, compile from source */
     if (used_cache == 0) {
-        /* Read kernel source from file */
-        if (ReadKernelSource(kernel_file, kernel_source_buffer, MAX_KERNEL_SOURCE_SIZE,
-                             &source_length) != 0) {
+        /* Read kernel source with embedded platform headers */
+        if (EmbedHeaders(kernel_file, combined_source_buffer, sizeof(combined_source_buffer),
+                         &source_length, host_type) != 0) {
             return NULL;
         }
-        source_ptr = kernel_source_buffer;
+        source_ptr = combined_source_buffer;
 
         /* Create program */
         program = clCreateProgramWithSource(env->context, 1U, &source_ptr, &source_length, &err);
