@@ -61,11 +61,13 @@ int OpenclInit(OpenCLEnv* env);
  * - If cached binary exists, loads from cache
  * - Otherwise, compiles from source and saves to cache
  *
- * Build options are constructed as: "<user_options> -DHOST_TYPE=N -I<CL_INCLUDE_DIR>"
- * where N is 0 for standard, 1 for cl_extension. CL_INCLUDE_DIR is an absolute
- * path defined by CMake at compile time, ensuring include paths work regardless
- * of where the executable is run from. This enables platform.h to provide
- * platform-specific implementations.
+ * Headers are embedded based on #include directives in the kernel:
+ * - Scans kernel for #include "xxx.h" directives
+ * - Embeds matching headers from include/cl/
+ * - Comments out the #include lines before compilation
+ *
+ * Build options are constructed as: "<user_options> -DHOST_TYPE=N"
+ * where N is 0 for standard, 1 for cl_extension.
  *
  * @param[in] env Initialized OpenCL environment
  * @param[in] algorithm_id Algorithm identifier for cache organization
