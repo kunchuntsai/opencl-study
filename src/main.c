@@ -228,8 +228,15 @@ static int SelectAlgorithmAndVariant(const Config* config, int provided_variant_
         } else {
             /* No variant provided - prompt user interactively */
             int first_num = variants[0]->kernel_variant;
-            int last_num = variants[*variant_count - 1]->kernel_variant;
-            (void)printf("Select variant (%d-%d, default: %d): ", first_num, last_num, first_num);
+
+            /* Show available variant numbers (handles non-consecutive versions like v1, v10, v20) */
+            (void)printf("Select variant (");
+            for (i = 0; i < *variant_count; i++) {
+                (void)printf("%d%s", variants[i]->kernel_variant,
+                             (i < *variant_count - 1) ? ", " : "");
+            }
+            (void)printf("; default: %d): ", first_num);
+
             if (fgets(input_buffer, sizeof(input_buffer), stdin) == NULL) {
                 (void)fprintf(stderr, "Failed to read input\n");
                 return -1;
