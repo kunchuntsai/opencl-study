@@ -286,13 +286,15 @@ static int EmbedHeaders(const char* kernel_file, char* buffer, size_t max_size,
         return -1;
     }
 
-    /* Step 2: Scan for #include "xxx.h" and collect header names */
+    /* Step 2: Scan for #include "xxx.h", check if exists in include/cl/, collect and comment out */
     src = kernel_source_buffer;
     while ((line_start = strstr(src, "#include")) != NULL) {
         char* quote_start;
         char* quote_end;
         char* line_begin;
         size_t name_len;
+        char temp_name[MAX_HEADER_NAME];
+        FILE* test_fp;
 
         /* Find the beginning of this line to check for comments */
         line_begin = line_start;
@@ -319,23 +321,43 @@ static int EmbedHeaders(const char* kernel_file, char* buffer, size_t max_size,
 
         quote_start = strchr(line_start, '"');
         if (quote_start == NULL) {
-            break;
+            src = line_start + 8;
+            continue;
         }
         quote_end = strchr(quote_start + 1, '"');
         if (quote_end == NULL) {
-            break;
+            src = line_start + 8;
+            continue;
         }
 
         name_len = (size_t)(quote_end - quote_start - 1);
-        if ((name_len > 0) && (name_len < MAX_HEADER_NAME) && (header_count < MAX_INCLUDES)) {
-            (void)strncpy(header_names[header_count], quote_start + 1, name_len);
-            header_names[header_count][name_len] = '\0';
-            header_count++;
+        if ((name_len == 0) || (name_len >= MAX_HEADER_NAME)) {
+            src = quote_end + 1;
+            continue;
         }
 
-        /* Comment out the #include line by replacing '#' with '/' and adding '/' */
-        *line_start = '/';
-        *(line_start + 1) = '/';
+        /* Extract header name */
+        (void)strncpy(temp_name, quote_start + 1, name_len);
+        temp_name[name_len] = '\0';
+
+        /* Check if header exists in include/cl/ */
+        (void)snprintf(header_path, sizeof(header_path), "%s/%s", CL_INCLUDE_DIR, temp_name);
+        test_fp = fopen(header_path, "r");
+        if (test_fp != NULL) {
+            /* Header exists - add to list and comment out the #include line */
+            (void)fclose(test_fp);
+
+            if (header_count < MAX_INCLUDES) {
+                (void)strncpy(header_names[header_count], temp_name, MAX_HEADER_NAME - 1);
+                header_names[header_count][MAX_HEADER_NAME - 1] = '\0';
+                header_count++;
+            }
+
+            /* Comment out the #include line */
+            *line_start = '/';
+            *(line_start + 1) = '/';
+        }
+        /* If header doesn't exist in include/cl/, leave #include as-is for runtime */
 
         src = quote_end + 1;
     }
@@ -355,7 +377,7 @@ static int EmbedHeaders(const char* kernel_file, char* buffer, size_t max_size,
         buffer[total_length] = '\0';
     }
 
-    /* Step 4: Append the kernel source (with #includes commented out) */
+    /* Step 4: Append the kernel source (with embedded #includes commented out) */
     if ((total_length + kernel_length + 1U) >= max_size) {
         (void)fprintf(stderr, "Error: Combined source exceeds buffer size\n");
         return -1;
