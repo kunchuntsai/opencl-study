@@ -67,13 +67,6 @@ int OpenclInit(OpenCLEnv* env);
  * of where the executable is run from. This enables platform.h to provide
  * platform-specific implementations.
  *
- * Embedded Headers:
- * For OpenCL compilers that don't support -I include paths, embedded_headers
- * allows prepending header file contents to the kernel source. The headers are
- * read and concatenated before the main kernel source. When using embedded
- * headers, ensure the kernel doesn't have conflicting #include directives, or
- * use include guards (#ifndef) in the headers.
- *
  * @param[in] env Initialized OpenCL environment
  * @param[in] algorithm_id Algorithm identifier for cache organization
  * @param[in] kernel_file Path to kernel source file (.cl)
@@ -81,13 +74,10 @@ int OpenclInit(OpenCLEnv* env);
  * @param[in] kernel_option User-specified build options (can be NULL or empty)
  * @param[in] host_type Host type for platform selection (HOST_TYPE_STANDARD or
  * HOST_TYPE_CL_EXTENSION)
- * @param[in] embedded_headers Array of header file paths to embed (can be NULL)
- * @param[in] embedded_header_count Number of embedded headers (0 if none)
  * @return OpenCL kernel object, or NULL on error
  */
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
-                            const char* kernel_name, const char* kernel_option, HostType host_type,
-                            const char embedded_headers[][256], int embedded_header_count);
+                            const char* kernel_name, const char* kernel_option, HostType host_type);
 
 /**
  * @brief Set kernel arguments for OpenCL kernel
