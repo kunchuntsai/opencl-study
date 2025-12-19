@@ -234,11 +234,24 @@ static int ReadKernelSource(const char* filename, char* buffer, size_t max_size,
     return 0;
 }
 
+#define MAX_INCLUDES 16
+#define MAX_HEADER_NAME 64
+
 /**
- * @brief Read kernel source with platform headers embedded
+ * @brief Read kernel source with headers embedded based on #include directives
  *
- * Reads headers from include/cl/ and prepends them to the kernel source.
- * Currently embeds: platform.h
+ * Scans the kernel source for #include "xxx.h" directives, embeds matching
+ * headers from include/cl/, and comments out the #include lines.
+ *
+ * Kernel developers use standard #include syntax:
+ *   #include "platform.h"
+ *   #include "types.h"
+ *
+ * This function will:
+ * 1. Read the kernel source
+ * 2. Find all #include "xxx.h" directives
+ * 3. Prepend the header contents from include/cl/
+ * 4. Comment out the #include lines in the kernel
  *
  * @param[in] kernel_file Path to the main kernel source file
  * @param[out] buffer Output buffer for combined source
@@ -250,55 +263,81 @@ static int ReadKernelSource(const char* filename, char* buffer, size_t max_size,
 static int EmbedHeaders(const char* kernel_file, char* buffer, size_t max_size,
                         size_t* length, HostType host_type) {
     size_t total_length = 0;
+    size_t kernel_length;
     size_t header_length;
-
-    /* Headers from include/cl/ to embed into kernel source */
-    static const char* const kHeaders[] = {
-        CL_INCLUDE_DIR "/platform.h",
-    };
-    static const int kHeaderCount = (int)(sizeof(kHeaders) / sizeof(kHeaders[0]));
+    char header_names[MAX_INCLUDES][MAX_HEADER_NAME];
+    int header_count = 0;
+    char* src;
+    char* line_start;
+    char header_path[512];
     int i;
 
     if ((kernel_file == NULL) || (buffer == NULL) || (length == NULL)) {
         return -1;
     }
 
+    (void)(host_type); /* Reserved for future use */
+
     buffer[0] = '\0';
 
-    /* Read and concatenate headers first */
-    for (i = 0; i < kHeaderCount; i++) {
-        if (ReadKernelSource(kHeaders[i], kernel_source_buffer,
-                             MAX_KERNEL_SOURCE_SIZE, &header_length) != 0) {
-            (void)fprintf(stderr, "Error: Failed to read header: %s\n", kHeaders[i]);
+    /* Step 1: Read kernel source into kernel_source_buffer */
+    if (ReadKernelSource(kernel_file, kernel_source_buffer,
+                         MAX_KERNEL_SOURCE_SIZE, &kernel_length) != 0) {
+        return -1;
+    }
+
+    /* Step 2: Scan for #include "xxx.h" and collect header names */
+    src = kernel_source_buffer;
+    while ((line_start = strstr(src, "#include")) != NULL) {
+        char* quote_start = strchr(line_start, '"');
+        char* quote_end;
+        size_t name_len;
+
+        if (quote_start == NULL) {
+            break;
+        }
+        quote_end = strchr(quote_start + 1, '"');
+        if (quote_end == NULL) {
+            break;
+        }
+
+        name_len = (size_t)(quote_end - quote_start - 1);
+        if ((name_len > 0) && (name_len < MAX_HEADER_NAME) && (header_count < MAX_INCLUDES)) {
+            (void)strncpy(header_names[header_count], quote_start + 1, name_len);
+            header_names[header_count][name_len] = '\0';
+            header_count++;
+        }
+
+        /* Comment out the #include line by replacing '#' with '/' and adding '/' */
+        *line_start = '/';
+        *(line_start + 1) = '/';
+
+        src = quote_end + 1;
+    }
+
+    /* Step 3: Prepend each header from include/cl/ */
+    for (i = 0; i < header_count; i++) {
+        (void)snprintf(header_path, sizeof(header_path), "%s/%s", CL_INCLUDE_DIR, header_names[i]);
+
+        if (ReadKernelSource(header_path, buffer + total_length,
+                             max_size - total_length, &header_length) != 0) {
+            (void)fprintf(stderr, "Error: Failed to read header: %s\n", header_path);
             return -1;
         }
 
-        if ((total_length + header_length + 2U) >= max_size) {
-            (void)fprintf(stderr, "Error: Combined source exceeds buffer size\n");
-            return -1;
-        }
-
-        (void)memcpy(buffer + total_length, kernel_source_buffer, header_length);
         total_length += header_length;
         buffer[total_length++] = '\n';
         buffer[total_length] = '\0';
     }
 
-    (void)(host_type); /* Reserved for future use */
-
-    /* Read main kernel source */
-    if (ReadKernelSource(kernel_file, kernel_source_buffer,
-                         MAX_KERNEL_SOURCE_SIZE, &header_length) != 0) {
-        return -1;
-    }
-
-    if ((total_length + header_length + 1U) >= max_size) {
+    /* Step 4: Append the kernel source (with #includes commented out) */
+    if ((total_length + kernel_length + 1U) >= max_size) {
         (void)fprintf(stderr, "Error: Combined source exceeds buffer size\n");
         return -1;
     }
 
-    (void)memcpy(buffer + total_length, kernel_source_buffer, header_length);
-    total_length += header_length;
+    (void)memcpy(buffer + total_length, kernel_source_buffer, kernel_length);
+    total_length += kernel_length;
     buffer[total_length] = '\0';
 
     *length = total_length;
@@ -410,12 +449,12 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
         }
     }
 
-    /* Construct build options: "<user_options> -DHOST_TYPE=N -I<CL_INCLUDE_DIR>" */
+    /* Construct build options: "<user_options> -DHOST_TYPE=N" */
     {
         const char* user_opts = (kernel_option != NULL) ? kernel_option : "";
         int host_type_val = (host_type == HOST_TYPE_CL_EXTENSION) ? 1 : 0;
 
-        (void)snprintf(build_options, sizeof(build_options), "%s -DHOST_TYPE=%d -I" CL_INCLUDE_DIR,
+        (void)snprintf(build_options, sizeof(build_options), "%s -DHOST_TYPE=%d",
                        user_opts, host_type_val);
         (void)printf("Kernel build options: %s\n", build_options);
     }
