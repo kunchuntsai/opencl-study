@@ -84,21 +84,6 @@ static int ExtractVariantNumber(const char* variant_id) {
     return (int)temp_long;
 }
 
-/* Comparison function for sorting kernel configs by variant number */
-/* Used by qsort to sort kernels in ascending order by kernel_variant */
-static int CompareKernelVariants(const void* a, const void* b) {
-    const KernelConfig* ka = (const KernelConfig*)a;
-    const KernelConfig* kb = (const KernelConfig*)b;
-
-    if (ka->kernel_variant < kb->kernel_variant) {
-        return -1;
-    }
-    if (ka->kernel_variant > kb->kernel_variant) {
-        return 1;
-    }
-    return 0;
-}
-
 /* Parse data type from string */
 static DataType ParseDataType(const char* str) {
     if (str == NULL) {
@@ -823,13 +808,6 @@ int ParseConfig(const char* filename, Config* config) {
             }
 
             config->num_kernels++;
-        }
-
-        /* Sort kernels by variant number for consistent ordering */
-        /* This ensures versions like v1, v10, v2, v20 are sorted as v1, v2, v10, v20 */
-        if (config->num_kernels > 1) {
-            qsort(config->kernels, (size_t)config->num_kernels, sizeof(KernelConfig),
-                  CompareKernelVariants);
         }
     }
 
