@@ -289,10 +289,35 @@ static int EmbedHeaders(const char* kernel_file, char* buffer, size_t max_size,
     /* Step 2: Scan for #include "xxx.h" and collect header names */
     src = kernel_source_buffer;
     while ((line_start = strstr(src, "#include")) != NULL) {
-        char* quote_start = strchr(line_start, '"');
+        char* quote_start;
         char* quote_end;
+        char* line_begin;
         size_t name_len;
 
+        /* Find the beginning of this line to check for comments */
+        line_begin = line_start;
+        while ((line_begin > kernel_source_buffer) && (*(line_begin - 1) != '\n')) {
+            line_begin--;
+        }
+
+        /* Check if line is commented out (// before #include) */
+        {
+            char* comment_check = line_begin;
+            int is_commented = 0;
+            while (comment_check < line_start) {
+                if ((comment_check[0] == '/') && (comment_check[1] == '/')) {
+                    is_commented = 1;
+                    break;
+                }
+                comment_check++;
+            }
+            if (is_commented != 0) {
+                src = line_start + 8; /* skip past "#include" */
+                continue;
+            }
+        }
+
+        quote_start = strchr(line_start, '"');
         if (quote_start == NULL) {
             break;
         }
