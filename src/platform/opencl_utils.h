@@ -54,6 +54,9 @@ typedef struct {
  */
 int OpenclInit(OpenCLEnv* env);
 
+/* Forward declaration for KernelConfig */
+struct KernelConfig;
+
 /**
  * @brief Build OpenCL kernel from source file with caching
  *
@@ -70,28 +73,36 @@ int OpenclInit(OpenCLEnv* env);
  * Build options are constructed as: "<user_options> -DHOST_TYPE=N"
  * where N is 0 for standard, 1 for cl_extension.
  *
+ * Kernel parameters extracted from KernelConfig:
+ * - kernel_file: Path to kernel source file (.cl)
+ * - kernel_function: Name of kernel function in source
+ * - kernel_option: User-specified build options
+ * - host_type: Host type for platform selection
+ *
  * @param[in] env Initialized OpenCL environment
  * @param[in] algorithm_id Algorithm identifier for cache organization
- * @param[in] kernel_file Path to kernel source file (.cl)
- * @param[in] kernel_name Name of kernel function in source
- * @param[in] kernel_option User-specified build options (can be NULL or empty)
- * @param[in] host_type Host type for platform selection (HOST_TYPE_STANDARD or
- * HOST_TYPE_CL_EXTENSION)
+ * @param[in] kernel_cfg Kernel configuration containing file, function, options, and host type
  * @return OpenCL kernel object, or NULL on error
  */
-cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
-                            const char* kernel_name, const char* kernel_option, HostType host_type);
+cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id,
+                            const struct KernelConfig* kernel_cfg);
 
 /* OpenclSetKernelArgs is declared in kernel_args.h */
 
 /**
  * @brief Execute OpenCL kernel with timing
  *
- * Sets kernel arguments using kernel_config, enqueues kernel execution, and
+ * Sets kernel arguments using kernel_cfg, enqueues kernel execution, and
  * measures GPU time. All buffers and arguments are configured via .ini files.
  *
  * Uses either standard OpenCL API or custom CL extension API based on
  * the host_type configuration in the kernel config.
+ *
+ * Kernel execution parameters extracted from KernelConfig:
+ * - global_work_size: Global work dimensions
+ * - local_work_size: Local work group size
+ * - work_dim: Number of work dimensions (1, 2, or 3)
+ * - host_type: Host API type (standard or cl_extension)
  *
  * @param[in] env Initialized OpenCL environment
  * @param[in] kernel Compiled kernel object
@@ -99,18 +110,13 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
  * @param[in] input_buf Input buffer containing image data
  * @param[out] output_buf Output buffer for processed image
  * @param[in] params Operation parameters (dimensions, algo-specific data)
- * @param[in] global_work_size Global work dimensions (array of size work_dim)
- * @param[in] local_work_size Local work group size (NULL for automatic)
- * @param[in] work_dim Number of work dimensions (1, 2, or 3)
- * @param[in] kernel_config Kernel configuration with argument descriptors (required)
- * @param[in] host_type Host API type (standard or cl_extension)
+ * @param[in] kernel_cfg Kernel configuration with work sizes and argument descriptors (required)
  * @param[out] gpu_time_ms Execution time in milliseconds
  * @return 0 on success, -1 on error
  */
 int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
-                    cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
-                    const size_t* local_work_size, int work_dim, const KernelConfig* kernel_config,
-                    HostType host_type, double* gpu_time_ms);
+                    cl_mem output_buf, const OpParams* params,
+                    const struct KernelConfig* kernel_cfg, double* gpu_time_ms);
 
 /**
  * @brief Create OpenCL buffer with error checking

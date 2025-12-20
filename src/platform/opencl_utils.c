@@ -401,9 +401,8 @@ int OpenclInit(OpenCLEnv* env) {
  * Kernel Building
  * ============================================================================ */
 
-cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
-                            const char* kernel_name, const char* kernel_option,
-                            HostType host_type) {
+cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id,
+                            const KernelConfig* kernel_cfg) {
     cl_int err;
     size_t source_length;
     cl_program program = NULL;
@@ -413,10 +412,20 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
     int used_cache = 0;
     char cache_name[256];
     char build_options[512];
+    const char* kernel_file;
+    const char* kernel_name;
+    const char* kernel_option;
+    HostType host_type;
 
-    if ((env == NULL) || (algorithm_id == NULL) || (kernel_file == NULL) || (kernel_name == NULL)) {
+    if ((env == NULL) || (algorithm_id == NULL) || (kernel_cfg == NULL)) {
         return NULL;
     }
+
+    /* Extract parameters from KernelConfig */
+    kernel_file = kernel_cfg->kernel_file;
+    kernel_name = kernel_cfg->kernel_function;
+    kernel_option = kernel_cfg->kernel_option;
+    host_type = kernel_cfg->host_type;
 
     /* Extract cache name from kernel file (e.g., "dilate0" from
      * "src/dilate/cl/dilate0.cl") */
@@ -541,25 +550,34 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char
  * ============================================================================ */
 
 int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
-                    cl_mem output_buf, const OpParams* params, const size_t* global_work_size,
-                    const size_t* local_work_size, int work_dim, const KernelConfig* kernel_config,
-                    HostType host_type, double* gpu_time_ms) {
+                    cl_mem output_buf, const OpParams* params, const KernelConfig* kernel_cfg,
+                    double* gpu_time_ms) {
     cl_int err;
     cl_event event;
     cl_ulong time_start;
     cl_ulong time_end;
+    const size_t* global_work_size;
+    const size_t* local_work_size;
+    int work_dim;
+    HostType host_type;
 
     if ((env == NULL) || (kernel == NULL) || (params == NULL) || (gpu_time_ms == NULL)) {
         return -1;
     }
 
-    /* Set kernel arguments using kernel_config */
-    if (kernel_config == NULL) {
-        (void)fprintf(stderr, "Error: kernel_config is required for setting kernel arguments\n");
+    /* Set kernel arguments using kernel_cfg */
+    if (kernel_cfg == NULL) {
+        (void)fprintf(stderr, "Error: kernel_cfg is required for setting kernel arguments\n");
         return -1;
     }
 
-    if (OpenclSetKernelArgs(kernel, input_buf, output_buf, params, kernel_config) != 0) {
+    /* Extract parameters from KernelConfig */
+    global_work_size = kernel_cfg->global_work_size;
+    local_work_size = kernel_cfg->local_work_size;
+    work_dim = kernel_cfg->work_dim;
+    host_type = kernel_cfg->host_type;
+
+    if (OpenclSetKernelArgs(kernel, input_buf, output_buf, params, kernel_cfg) != 0) {
         (void)fprintf(stderr, "Failed to set kernel arguments from config\n");
         return -1;
     }
