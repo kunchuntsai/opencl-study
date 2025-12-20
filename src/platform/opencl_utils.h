@@ -25,6 +25,7 @@
 
 /* Include op_interface for Algorithm and OpParams */
 #include "cl_extension_api.h"
+#include "kernel_args.h"
 #include "op_interface.h"
 
 /**
@@ -81,22 +82,7 @@ int OpenclInit(OpenCLEnv* env);
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id, const char* kernel_file,
                             const char* kernel_name, const char* kernel_option, HostType host_type);
 
-/**
- * @brief Set kernel arguments for OpenCL kernel
- *
- * Sets kernel arguments for an OpenCL kernel using configuration from kernel_config.
- * If kernel_config has kernel_args configured, uses that; otherwise falls back to
- * default behavior (input, output, width, height).
- *
- * @param[in] kernel OpenCL kernel to set arguments for
- * @param[in] input_buf Input buffer containing image data
- * @param[in] output_buf Output buffer for processed image
- * @param[in] params Operation parameters (dimensions, algo-specific data)
- * @param[in] kernel_config Kernel configuration with argument descriptors
- * @return 0 on success, -1 on error
- */
-int OpenclSetKernelArgs(cl_kernel kernel, cl_mem input_buf, cl_mem output_buf,
-                        const OpParams* params, const KernelConfig* kernel_config);
+/* OpenclSetKernelArgs is declared in kernel_args.h */
 
 /**
  * @brief Execute OpenCL kernel with timing
