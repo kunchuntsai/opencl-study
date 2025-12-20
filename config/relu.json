@@ -39,6 +39,58 @@
                 {"param": ["int", "src_height"]},
                 {"struct": ["relu_v1", "relu_v1b", "relu_v2", "relu_v3", "relu_v4"]}
             ]
+        },
+        "v1": {
+            "description": "CL extension with custom buffers",
+            "host_type": "cl_extension",
+            "kernel_option": "",
+            "kernel_file": "examples/relu/cl/relu1.cl",
+            "kernel_function": "relu_optimized",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"buffer": ["uchar", "tmp_global", 400000]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"struct": ["relu_v1", "relu_v1b", "relu_v2", "relu_v3", "relu_v4"]}
+            ]
+        },  
+        "v6": {
+            "description": "single workgroup",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/relu/cl/relu2.cl",
+            "kernel_function": "relu_single_workgroup",
+            "work_dim": 1,
+            "global_work_size": [2073600],
+            "local_work_size": [256],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"struct": ["relu_v1", "relu_v1b", "relu_v2", "relu_v3", "relu_v4"]}
+            ]
+        },
+        "v3": {
+            "description": "custom sigma/radius params",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/relu/cl/relu3.cl",
+            "kernel_function": "relu_custom",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"o_buffer": ["uchar", "dst"]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"struct": ["relu_v1", "relu_v1b", "relu_v2", "relu_v3", "relu_v4"]}
+            ]
         }
     }
 }

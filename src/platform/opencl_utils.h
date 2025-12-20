@@ -54,7 +54,7 @@ typedef struct {
  */
 int OpenclInit(OpenCLEnv* env);
 
-/* Forward declaration for KernelConfig */
+/* Forward declaration for KernelConfig - defined in utils/config.h */
 struct KernelConfig;
 
 /**

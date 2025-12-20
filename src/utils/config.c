@@ -58,7 +58,8 @@ static char* ReadFileToString(const char* filename) {
 }
 
 /* Extract numeric variant number from variant_id */
-/* Format: "v0" -> 0, "v1" -> 1, "v2" -> 2, etc. */
+/* Format: "v0" -> 0, "v1" -> 1, "v1f" -> 1, "v10" -> 10, etc. */
+/* Supports alphanumeric suffixes - extracts leading digits only */
 /* Returns -1 on error, variant number on success */
 static int ExtractVariantNumber(const char* variant_id) {
     long temp_long;
@@ -73,12 +74,13 @@ static int ExtractVariantNumber(const char* variant_id) {
         return -1;
     }
 
-    /* Skip 'v' prefix and parse the number */
+    /* Skip 'v' prefix and parse the leading digits */
     temp_long = strtol(variant_id + 1, &endptr, 10);
 
-    /* Validate conversion */
-    if ((endptr == (variant_id + 1)) || (*endptr != '\0') || (temp_long < 0) || (temp_long > 99)) {
-        return -1; /* Invalid format or number out of range */
+    /* Validate conversion - require at least one digit was parsed */
+    /* Allow trailing alpha chars (e.g., "1f", "2f") for alphanumeric variants */
+    if ((endptr == (variant_id + 1)) || (temp_long < 0) || (temp_long > 99)) {
+        return -1; /* No digits parsed or number out of range */
     }
 
     return (int)temp_long;
@@ -712,11 +714,11 @@ int ParseConfig(const char* filename, Config* config) {
             (void)strncpy(kc->variant_id, kernel->string, sizeof(kc->variant_id) - 1U);
             kc->variant_id[sizeof(kc->variant_id) - 1U] = '\0';
 
-            /* Extract variant number */
+            /* Extract variant number (leading digits from variant_id) */
             int variant_num = ExtractVariantNumber(kc->variant_id);
             if (variant_num < 0) {
                 (void)fprintf(stderr,
-                              "Error: Invalid variant_id format: %s (expected v0, v1, v2, ...)\n",
+                              "Error: Invalid variant_id format: %s (expected v0, v1, v1f, ...)\n",
                               kc->variant_id);
                 cJSON_Delete(root);
                 return -1;

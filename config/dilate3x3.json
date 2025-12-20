@@ -16,6 +16,7 @@
 
     "kernels": {
         "v0": {
+            "description": "standard with struct params",
             "kernel_option": "",
             "kernel_file": "examples/dilate3x3/cl/dilate0.cl",
             "kernel_function": "dilate3x3",
@@ -30,6 +31,7 @@
             ]
         },
         "v1": {
+            "description": "CL extension with custom buffers",
             "host_type": "cl_extension",
             "kernel_option": "",
             "kernel_file": "examples/dilate3x3/cl/dilate1.cl",

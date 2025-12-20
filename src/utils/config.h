@@ -143,7 +143,7 @@ typedef struct {
  * Contains all parameters needed to execute an OpenCL kernel variant,
  * including work group dimensions and kernel source location.
  */
-typedef struct {
+typedef struct KernelConfig {
     char variant_id[32];        /**< Variant identifier (e.g., "v0", "v1") */
     char description[128];      /**< Human-readable description (e.g., "standard OpenCL") */
     char kernel_file[256];      /**< Path to OpenCL kernel source file */
