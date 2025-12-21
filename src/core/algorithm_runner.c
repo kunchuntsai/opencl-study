@@ -24,56 +24,57 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                   OpenCLEnv* env, unsigned char* gpu_output_buffer,
                   unsigned char* ref_output_buffer) {
     cl_int err;
-    unsigned char* input;
-    int img_size;
-    cl_kernel kernel;
+    unsigned char* input = NULL;
+    int img_size = 0;
+    cl_kernel kernel = NULL;
     cl_mem input_buf = NULL;
     cl_mem output_buf = NULL;
     CustomBuffers custom_buffers = {0};
     CustomScalars custom_scalars = {0};
     clock_t ref_start;
     clock_t ref_end;
-    double ref_time;
-    double gpu_time;
-    float max_error;
-    int passed;
+    double ref_time = 0.0;
+    double gpu_time = 0.0;
+    float max_error = 0.0f;
+    int passed = 0;
     int write_result;
-    size_t img_size_t;
+    size_t img_size_t = 0;
     int run_result;
     int i;
     OpParams op_params = {0}; /* Common params reused throughout */
+    int status = 0; /* 0 = success, non-zero = error stage */
 
     if ((algo == NULL) || (kernel_cfg == NULL) || (config == NULL) || (env == NULL)) {
         (void)fprintf(stderr, "Error: NULL parameter in RunAlgorithm\n");
-        return;
+        status = -1;
     }
 
-    if ((gpu_output_buffer == NULL) || (ref_output_buffer == NULL)) {
+    if ((status == 0) && ((gpu_output_buffer == NULL) || (ref_output_buffer == NULL))) {
         (void)fprintf(stderr, "Error: NULL output buffers in RunAlgorithm\n");
-        return;
+        status = -1;
     }
 
     /* Load input image from config/inputs.ini */
-    if (config->input_image_count == 0) {
+    if ((status == 0) && (config->input_image_count == 0)) {
         (void)fprintf(stderr, "Error: No input images configured in config/inputs.ini\n");
-        return;
+        status = -2;
     }
 
     /* Find the specified input image by input_image_id */
-    {
+    if (status == 0) {
         const InputImageConfig* img_cfg = NULL;
         int selected_index = 0;
-        int i;
+        int j;
 
         /* If input_image_id is specified, find matching image */
         if (config->input_image_id[0] != '\0') {
-            for (i = 0; i < config->input_image_count; i++) {
+            for (j = 0; j < config->input_image_count; j++) {
                 /* Extract image_N from section name for comparison */
                 char image_name[64];
-                (void)snprintf(image_name, sizeof(image_name), "image_%d", i + 1);
+                (void)snprintf(image_name, sizeof(image_name), "image_%d", j + 1);
                 if (strcmp(config->input_image_id, image_name) == 0) {
-                    img_cfg = &config->input_images[i];
-                    selected_index = i + 1;
+                    img_cfg = &config->input_images[j];
+                    selected_index = j + 1;
                     break;
                 }
             }
@@ -82,7 +83,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                               config->input_image_id);
                 (void)fprintf(stderr, "Available images: image_1 to image_%d\n",
                               config->input_image_count);
-                return;
+                status = -2;
             }
         } else {
             /* Default to first image if not specified */
@@ -90,50 +91,54 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             selected_index = 1;
         }
 
-        (void)printf("\n=== Loading Input Images ===\n");
-        (void)printf("Using input image %d of %d: %s (%dx%d)\n", selected_index,
-                     config->input_image_count, img_cfg->input_path, img_cfg->src_width,
-                     img_cfg->src_height);
+        if (status == 0) {
+            (void)printf("\n=== Loading Input Images ===\n");
+            (void)printf("Using input image %d of %d: %s (%dx%d)\n", selected_index,
+                         config->input_image_count, img_cfg->input_path, img_cfg->src_width,
+                         img_cfg->src_height);
 
-        input = ReadImage(img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
-        if (input == NULL) {
-            (void)fprintf(stderr, "Failed to load input image: %s\n", img_cfg->input_path);
-            return;
+            input = ReadImage(img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
+            if (input == NULL) {
+                (void)fprintf(stderr, "Failed to load input image: %s\n", img_cfg->input_path);
+                status = -2;
+            }
         }
 
         /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-        if (!SafeMulInt(img_cfg->src_width, img_cfg->src_height, &img_size)) {
+        if ((status == 0) && !SafeMulInt(img_cfg->src_width, img_cfg->src_height, &img_size)) {
             (void)fprintf(stderr, "Image size overflow\n");
-            return;
+            status = -2;
         }
 
         /* Initialize common OpParams fields */
-        op_params.src_width = img_cfg->src_width;
-        op_params.src_height = img_cfg->src_height;
-        op_params.src_stride = img_cfg->src_stride;
+        if (status == 0) {
+            op_params.src_width = img_cfg->src_width;
+            op_params.src_height = img_cfg->src_height;
+            op_params.src_stride = img_cfg->src_stride;
+        }
     }
 
     /* Resolve output image configuration from config/outputs.ini */
-    if (config->output_image_count == 0) {
+    if ((status == 0) && (config->output_image_count == 0)) {
         (void)fprintf(stderr, "Error: No output images configured in config/outputs.ini\n");
-        return;
+        status = -3;
     }
 
     /* Find the specified output image by output_image_id */
-    {
+    if (status == 0) {
         const OutputImageConfig* out_cfg = NULL;
         int selected_index = 0;
-        int i;
+        int j;
 
         /* If output_image_id is specified, find matching output */
         if (config->output_image_id[0] != '\0') {
-            for (i = 0; i < config->output_image_count; i++) {
+            for (j = 0; j < config->output_image_count; j++) {
                 /* Extract output_N from section name for comparison */
                 char output_name[64];
-                (void)snprintf(output_name, sizeof(output_name), "output_%d", i + 1);
+                (void)snprintf(output_name, sizeof(output_name), "output_%d", j + 1);
                 if (strcmp(config->output_image_id, output_name) == 0) {
-                    out_cfg = &config->output_images[i];
-                    selected_index = i + 1;
+                    out_cfg = &config->output_images[j];
+                    selected_index = j + 1;
                     break;
                 }
             }
@@ -142,7 +147,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                               config->output_image_id);
                 (void)fprintf(stderr, "Available outputs: output_1 to output_%d\n",
                               config->output_image_count);
-                return;
+                status = -3;
             }
         } else {
             /* Default to first output if not specified */
@@ -150,31 +155,35 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             selected_index = 1;
         }
 
-        (void)printf("\n=== Output Configuration ===\n");
-        (void)printf("Using output image %d of %d: %s (%dx%d)\n", selected_index,
-                     config->output_image_count, out_cfg->output_path, out_cfg->dst_width,
-                     out_cfg->dst_height);
+        if (status == 0) {
+            (void)printf("\n=== Output Configuration ===\n");
+            (void)printf("Using output image %d of %d: %s (%dx%d)\n", selected_index,
+                         config->output_image_count, out_cfg->output_path, out_cfg->dst_width,
+                         out_cfg->dst_height);
 
-        /* Set output parameters from output image config */
-        op_params.dst_width = out_cfg->dst_width;
-        op_params.dst_height = out_cfg->dst_height;
-        op_params.dst_stride = out_cfg->dst_stride;
+            /* Set output parameters from output image config */
+            op_params.dst_width = out_cfg->dst_width;
+            op_params.dst_height = out_cfg->dst_height;
+            op_params.dst_stride = out_cfg->dst_stride;
+        }
     }
 
     /* Check if image fits in static buffers */
-    if (img_size > MAX_IMAGE_SIZE) {
+    if ((status == 0) && (img_size > MAX_IMAGE_SIZE)) {
         (void)fprintf(stderr, "Image too large for static buffers\n");
-        return;
+        status = -4;
     }
 
-    op_params.border_mode = BORDER_CLAMP;
+    if (status == 0) {
+        op_params.border_mode = BORDER_CLAMP;
+    }
 
     /* Step 0: Load custom buffer data from files (needed by both C ref and GPU)
      */
-    if (config->custom_buffer_count > 0) {
+    if ((status == 0) && (config->custom_buffer_count > 0)) {
         (void)printf("\n=== Loading Custom Buffer Data ===\n");
 
-        for (i = 0; i < config->custom_buffer_count; i++) {
+        for (i = 0; (i < config->custom_buffer_count) && (status == 0); i++) {
             const CustomBufferConfig* buf_cfg = &config->custom_buffers[i];
             RuntimeBuffer* runtime_buf = &custom_buffers.buffers[i];
 
@@ -193,34 +202,38 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                 if (temp_data == NULL) {
                     (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
                     custom_buffers.count = i; /* Track how many were loaded before failure */
-                    goto cleanup_early;
+                    status = -5;
+                } else {
+                    /* Allocate dynamic memory and copy data (since ReadImage returns
+                     * static buffer) */
+                    runtime_buf->host_data = (unsigned char*)malloc(buf_cfg->size_bytes);
+                    if (runtime_buf->host_data == NULL) {
+                        (void)fprintf(stderr, "Failed to allocate memory for %s\n", buf_cfg->name);
+                        custom_buffers.count = i;
+                        status = -5;
+                    } else {
+                        (void)memcpy(runtime_buf->host_data, temp_data, buf_cfg->size_bytes);
+                        (void)printf("Loaded '%s' from %s (%zu bytes)\n", buf_cfg->name,
+                                     buf_cfg->source_file, buf_cfg->size_bytes);
+                    }
                 }
-
-                /* Allocate dynamic memory and copy data (since ReadImage returns
-                 * static buffer) */
-                runtime_buf->host_data = (unsigned char*)malloc(buf_cfg->size_bytes);
-                if (runtime_buf->host_data == NULL) {
-                    (void)fprintf(stderr, "Failed to allocate memory for %s\n", buf_cfg->name);
-                    custom_buffers.count = i;
-                    goto cleanup_early;
-                }
-                (void)memcpy(runtime_buf->host_data, temp_data, buf_cfg->size_bytes);
-
-                (void)printf("Loaded '%s' from %s (%zu bytes)\n", buf_cfg->name,
-                             buf_cfg->source_file, buf_cfg->size_bytes);
             } else {
                 runtime_buf->host_data = NULL;
             }
 
-            custom_buffers.count++;
+            if (status == 0) {
+                custom_buffers.count++;
+            }
         }
 
         /* Make custom buffer data available to reference implementation */
-        op_params.custom_buffers = &custom_buffers;
+        if (status == 0) {
+            op_params.custom_buffers = &custom_buffers;
+        }
     }
 
     /* Step 0b: Populate custom scalars from config */
-    if (config->scalar_arg_count > 0) {
+    if ((status == 0) && (config->scalar_arg_count > 0)) {
         (void)printf("\n=== Loading Custom Scalars ===\n");
 
         for (i = 0; i < config->scalar_arg_count; i++) {
@@ -263,26 +276,28 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     }
 
     /* Step 1: Get golden/reference output (either from C ref or from file) */
-    if (config->verification.golden_source == GOLDEN_SOURCE_FILE) {
+    if ((status == 0) && (config->verification.golden_source == GOLDEN_SOURCE_FILE)) {
         /* Load golden directly from file (skip c_ref execution) */
         int load_result;
 
         (void)printf("\n=== Loading Golden Sample from File ===\n");
         if (config->verification.golden_file[0] == '\0') {
             (void)fprintf(stderr, "Error: golden_source=file but golden_file not specified\n");
-            goto cleanup_early;
+            status = -6;
         }
 
-        load_result = CacheLoadGoldenFromFile(config->verification.golden_file, ref_output_buffer,
-                                              (size_t)img_size);
-        if (load_result != 0) {
-            (void)fprintf(stderr, "Failed to load golden file: %s\n",
-                          config->verification.golden_file);
-            goto cleanup_early;
+        if (status == 0) {
+            load_result = CacheLoadGoldenFromFile(config->verification.golden_file, ref_output_buffer,
+                                                  (size_t)img_size);
+            if (load_result != 0) {
+                (void)fprintf(stderr, "Failed to load golden file: %s\n",
+                              config->verification.golden_file);
+                status = -6;
+            }
         }
 
         ref_time = 0.0; /* No c_ref execution time */
-    } else {
+    } else if (status == 0) {
         /* Default: Run C reference implementation to generate golden */
         (void)printf("\n=== C Reference Implementation ===\n");
         ref_start = clock();
@@ -323,36 +338,39 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     }
 
     /* Step 3: Build OpenCL kernel */
-    (void)printf("\n=== Building OpenCL Kernel ===\n");
-    kernel = OpenclBuildKernel(env, algo->id, kernel_cfg);
-    if (kernel == NULL) {
-        (void)fprintf(stderr, "Failed to build kernel\n");
-        return;
+    if (status == 0) {
+        (void)printf("\n=== Building OpenCL Kernel ===\n");
+        kernel = OpenclBuildKernel(env, algo->id, kernel_cfg);
+        if (kernel == NULL) {
+            (void)fprintf(stderr, "Failed to build kernel\n");
+            status = -7;
+        }
     }
 
     /* Step 4: Create STANDARD OpenCL buffers (input, output) */
-    img_size_t = (size_t)img_size;
-    input_buf = OpenclCreateBuffer(env->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
-                                   img_size_t, input, "input");
-    if (input_buf == NULL) {
-        OpenclReleaseKernel(kernel);
-        return;
+    if (status == 0) {
+        img_size_t = (size_t)img_size;
+        input_buf = OpenclCreateBuffer(env->context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR,
+                                       img_size_t, input, "input");
+        if (input_buf == NULL) {
+            status = -8;
+        }
     }
 
-    output_buf = OpenclCreateBuffer(env->context, CL_MEM_WRITE_ONLY, img_size_t, NULL, "output");
-    if (output_buf == NULL) {
-        OpenclReleaseMemObject(input_buf, "input buffer");
-        OpenclReleaseKernel(kernel);
-        return;
+    if (status == 0) {
+        output_buf = OpenclCreateBuffer(env->context, CL_MEM_WRITE_ONLY, img_size_t, NULL, "output");
+        if (output_buf == NULL) {
+            status = -8;
+        }
     }
 
     /* Step 4b: Create OpenCL buffers from already-loaded custom buffer data */
-    if (config->custom_buffer_count > 0) {
+    if ((status == 0) && (config->custom_buffer_count > 0)) {
         cl_mem_flags mem_flags;
 
         (void)printf("\n=== Creating Custom GPU Buffers ===\n");
 
-        for (i = 0; i < config->custom_buffer_count; i++) {
+        for (i = 0; (i < config->custom_buffer_count) && (status == 0); i++) {
             const CustomBufferConfig* buf_cfg = &config->custom_buffers[i];
             RuntimeBuffer* runtime_buf = &custom_buffers.buffers[i];
 
@@ -384,81 +402,89 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
 
             if (runtime_buf->buffer == NULL) {
                 (void)fprintf(stderr, "Failed to create GPU buffer '%s'\n", buf_cfg->name);
-                goto cleanup;
+                status = -9;
             }
         }
     }
 
     /* Step 5: Run OpenCL kernel (algorithm handles argument setting) */
-    (void)printf("\n=== Running OpenCL Kernel ===\n");
+    if (status == 0) {
+        (void)printf("\n=== Running OpenCL Kernel ===\n");
 
-    /* Note: op_params.custom_buffers already set earlier if custom buffers exist
-     */
-    /* Set host type and kernel variant for this kernel */
-    op_params.host_type = kernel_cfg->host_type;
-    op_params.kernel_variant = kernel_cfg->kernel_variant;
+        /* Note: op_params.custom_buffers already set earlier if custom buffers exist
+         */
+        /* Set host type and kernel variant for this kernel */
+        op_params.host_type = kernel_cfg->host_type;
+        op_params.kernel_variant = kernel_cfg->kernel_variant;
 
-    run_result = OpenclRunKernel(env, kernel, algo, input_buf, output_buf, &op_params, kernel_cfg,
-                                 &gpu_time);
-    if (run_result != 0) {
-        (void)fprintf(stderr, "Failed to run kernel\n");
-        goto cleanup;
+        run_result = OpenclRunKernel(env, kernel, algo, input_buf, output_buf, &op_params, kernel_cfg,
+                                     &gpu_time);
+        if (run_result != 0) {
+            (void)fprintf(stderr, "Failed to run kernel\n");
+            status = -10;
+        }
     }
 
-    (void)printf("GPU kernel time: %.3f ms\n", gpu_time);
+    if (status == 0) {
+        (void)printf("GPU kernel time: %.3f ms\n", gpu_time);
+    }
 
     /* Step 6: Read back results */
-    err = clEnqueueReadBuffer(env->queue, output_buf, CL_TRUE, 0U, img_size_t, gpu_output_buffer,
-                              0U, NULL, NULL);
-    if (err != CL_SUCCESS) {
-        (void)fprintf(stderr, "Failed to read output buffer (error code: %d)\n", err);
-        goto cleanup;
+    if (status == 0) {
+        err = clEnqueueReadBuffer(env->queue, output_buf, CL_TRUE, 0U, img_size_t, gpu_output_buffer,
+                                  0U, NULL, NULL);
+        if (err != CL_SUCCESS) {
+            (void)fprintf(stderr, "Failed to read output buffer (error code: %d)\n", err);
+            status = -11;
+        }
     }
 
     /* Step 7: Verify GPU results against C reference using config-driven tolerance */
-    op_params.gpu_output = gpu_output_buffer;
-    op_params.ref_output = ref_output_buffer;
-    passed = VerifyWithTolerance(gpu_output_buffer, ref_output_buffer, op_params.dst_width,
-                                 op_params.dst_height, config->verification.tolerance,
-                                 config->verification.error_rate_threshold, &max_error);
+    if (status == 0) {
+        op_params.gpu_output = gpu_output_buffer;
+        op_params.ref_output = ref_output_buffer;
+        passed = VerifyWithTolerance(gpu_output_buffer, ref_output_buffer, op_params.dst_width,
+                                     op_params.dst_height, config->verification.tolerance,
+                                     config->verification.error_rate_threshold, &max_error);
 
-    /* Display results */
-    (void)printf("\n=== Results ===\n");
-    if (config->verification.golden_source == GOLDEN_SOURCE_FILE) {
-        (void)printf("Golden source:    file (%s)\n", config->verification.golden_file);
-    } else {
-        (void)printf("C Reference time: %.3f ms\n", ref_time);
-        (void)printf("Speedup:          %.2fx\n", ref_time / gpu_time);
-    }
-    (void)printf("OpenCL GPU time:  %.3f ms\n", gpu_time);
-    (void)printf("Verification:     %s\n", (passed != 0) ? "PASSED" : "FAILED");
-    (void)printf("Max error:        %.2f\n", (double)max_error);
+        /* Display results */
+        (void)printf("\n=== Results ===\n");
+        if (config->verification.golden_source == GOLDEN_SOURCE_FILE) {
+            (void)printf("Golden source:    file (%s)\n", config->verification.golden_file);
+        } else {
+            (void)printf("C Reference time: %.3f ms\n", ref_time);
+            (void)printf("Speedup:          %.2fx\n", ref_time / gpu_time);
+        }
+        (void)printf("OpenCL GPU time:  %.3f ms\n", gpu_time);
+        (void)printf("Verification:     %s\n", (passed != 0) ? "PASSED" : "FAILED");
+        (void)printf("Max error:        %.2f\n", (double)max_error);
 
-    /* Save output to timestamped run directory */
-    {
-        char output_path[512];
-        const char* run_dir = CacheGetRunDir();
-        if (run_dir != NULL) {
-            (void)snprintf(output_path, sizeof(output_path), "%s/out.bin", run_dir);
-            write_result = WriteImage(output_path, gpu_output_buffer, op_params.src_width,
-                                      op_params.src_height);
-            if (write_result == 0) {
-                (void)printf("Output saved to: %s\n", output_path);
-            } else {
-                (void)fprintf(stderr, "Failed to save output image\n");
+        /* Save output to timestamped run directory */
+        {
+            char output_path[512];
+            const char* run_dir = CacheGetRunDir();
+            if (run_dir != NULL) {
+                (void)snprintf(output_path, sizeof(output_path), "%s/out.bin", run_dir);
+                write_result = WriteImage(output_path, gpu_output_buffer, op_params.src_width,
+                                          op_params.src_height);
+                if (write_result == 0) {
+                    (void)printf("Output saved to: %s\n", output_path);
+                } else {
+                    (void)fprintf(stderr, "Failed to save output image\n");
+                }
             }
         }
     }
 
-cleanup:
-    /* Cleanup custom buffers */
+    /* Cleanup - always runs with NULL checks */
+    /* Cleanup custom buffers (both OpenCL buffers and host data) */
     for (i = 0; i < custom_buffers.count; i++) {
-        /* Release OpenCL buffer */
+        /* Release OpenCL buffer if created */
         if (custom_buffers.buffers[i].buffer != NULL) {
             OpenclReleaseMemObject(custom_buffers.buffers[i].buffer,
-                                   config->custom_buffers[i].name);
+                                   custom_buffers.buffers[i].name);
         }
-        /* Free host data */
+        /* Free host data if allocated */
         if (custom_buffers.buffers[i].host_data != NULL) {
             free(custom_buffers.buffers[i].host_data);
             custom_buffers.buffers[i].host_data = NULL;
@@ -466,22 +492,17 @@ cleanup:
     }
 
     /* Cleanup standard buffers - MISRA-C:2023 Rule 22.1: Proper resource
-     * management */
-    OpenclReleaseMemObject(output_buf, "output buffer");
-    OpenclReleaseMemObject(input_buf, "input buffer");
-    OpenclReleaseKernel(kernel);
-
-    /* NOTE: input points to static buffer from ReadImage(), don't free it */
-    return;
-
-cleanup_early:
-    /* Early cleanup before OpenCL resources were created */
-    /* Free any custom buffer host data that was loaded */
-    for (i = 0; i < custom_buffers.count; i++) {
-        if (custom_buffers.buffers[i].host_data != NULL) {
-            free(custom_buffers.buffers[i].host_data);
-            custom_buffers.buffers[i].host_data = NULL;
-        }
+     * management. NULL checks are performed inside these functions. */
+    if (output_buf != NULL) {
+        OpenclReleaseMemObject(output_buf, "output buffer");
     }
+    if (input_buf != NULL) {
+        OpenclReleaseMemObject(input_buf, "input buffer");
+    }
+    if (kernel != NULL) {
+        OpenclReleaseKernel(kernel);
+    }
+
     /* NOTE: input points to static buffer from ReadImage(), don't free it */
+    /* Single return point */
 }
