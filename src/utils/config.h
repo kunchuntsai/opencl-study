@@ -39,16 +39,11 @@
 
 #include <stddef.h>
 
-#include "op_interface.h" /* For MAX_CUSTOM_BUFFERS and CustomBuffers type */
+#include "op_interface.h" /* For types and limits.h constants */
 
-/** Maximum number of kernel configurations per algorithm */
-#define MAX_KERNEL_CONFIGS 32
-
-/** Maximum number of input images */
-#define MAX_INPUT_IMAGES 16
-
-/** Maximum number of output images */
-#define MAX_OUTPUT_IMAGES 16
+/* Note: MAX_KERNEL_CONFIGS, MAX_INPUT_IMAGES, MAX_OUTPUT_IMAGES,
+ * MAX_KERNEL_ARGS, MAX_STRUCT_FIELDS, MAX_CUSTOM_BUFFERS are
+ * defined in include/limits.h (included via op_interface.h) */
 
 /* Note: HostType and BufferType are defined in utils/op_interface.h */
 
@@ -90,12 +85,6 @@ typedef enum {
     DATA_TYPE_INT,   /**< 32-bit signed integer (4 bytes) */
     DATA_TYPE_SHORT  /**< 16-bit signed integer (2 bytes) */
 } DataType;
-
-/** Maximum number of kernel arguments */
-#define MAX_KERNEL_ARGS 32
-
-/** Maximum number of fields in a struct argument */
-#define MAX_STRUCT_FIELDS 16
 
 /** Kernel argument type */
 typedef enum {
@@ -214,8 +203,8 @@ typedef struct {
     } value;
 } ScalarArgConfig;
 
-/** Maximum number of scalar arguments */
-#define MAX_SCALAR_ARGS 128
+/* Backward compatibility alias */
+#define MAX_SCALAR_ARGS MAX_SCALARS
 
 /**
  * @brief Golden sample source type

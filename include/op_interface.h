@@ -23,11 +23,10 @@
 #include <CL/cl.h>
 #endif
 
-/** Maximum number of custom buffers per algorithm */
-#define MAX_CUSTOM_BUFFERS 8
+#include "limits.h"
 
-/** Maximum number of custom scalars per algorithm */
-#define MAX_CUSTOM_SCALARS 128
+/* Backward compatibility aliases */
+#define MAX_CUSTOM_SCALARS MAX_SCALARS
 
 /** Buffer type enumeration */
 typedef enum {
