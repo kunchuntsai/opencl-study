@@ -27,7 +27,7 @@
 #define MAX_CUSTOM_BUFFERS 8
 
 /** Maximum number of custom scalars per algorithm */
-#define MAX_CUSTOM_SCALARS 32
+#define MAX_CUSTOM_SCALARS 128
 
 /** Buffer type enumeration */
 typedef enum {
