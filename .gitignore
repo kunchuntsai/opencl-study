@@ -49,6 +49,9 @@ results/
 input.pgm
 output.pgm
 
+# Test reports (generated)
+tests/reports/
+
 # Test data directory - keep structure, ignore contents
 test_data/*.bin
 test_data/*.raw

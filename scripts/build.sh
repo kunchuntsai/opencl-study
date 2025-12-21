@@ -4,6 +4,7 @@
 # Usage:
 #   ./scripts/build.sh          - Build the project (incremental)
 #   ./scripts/build.sh --clean  - Clean all build artifacts and cache, then build
+#   ./scripts/build.sh --test   - Build and run tests
 #   ./scripts/build.sh --help   - Show this help message
 
 set -e  # Exit on error
@@ -21,17 +22,27 @@ show_help() {
     echo "  ./scripts/build.sh          - Build the project (incremental)"
     echo "  ./scripts/build.sh --lib    - Build ONLY the library (.so) [for SDK workflow]"
     echo "  ./scripts/build.sh --clean  - Clean all build artifacts and cache, then build"
+    echo "  ./scripts/build.sh --test   - Build and run all tests"
+    echo "  ./scripts/build.sh --test smoke     - Build and run smoke tests only"
+    echo "  ./scripts/build.sh --test regression - Build and run full regression tests"
     echo "  ./scripts/build.sh --help   - Show this help message"
     echo ""
     echo "SDK Workflow:"
     echo "  1. ./scripts/build.sh --lib    # Build library once (core/platform/utils)"
     echo "  2. ./scripts/build.sh          # Build executable (when adding/modifying examples)"
     echo ""
+    echo "Testing:"
+    echo "  ./scripts/build.sh --test           # Run all tests after build"
+    echo "  ./tests/run_tests.sh                # Run tests independently"
+    echo "  ./tests/run_tests.sh --json         # Generate JSON report"
+    echo "  ./tests/run_tests.sh --junit        # Generate JUnit XML for CI/CD"
+    echo ""
     echo "Build artifacts:"
     echo "  Library:    $BUILD_DIR/lib/libopencl_imgproc.so (or .a if static)"
     echo "  Executable: $BUILD_DIR/opencl_host"
     echo "  CMake:      $BUILD_DIR/"
     echo "  Output:     $OUT_DIR/{algorithm}_{variant}_{timestamp}/"
+    echo "  Reports:    $PROJECT_ROOT/tests/reports/"
 }
 
 clean_all() {
@@ -152,6 +163,27 @@ build_project() {
     fi
 }
 
+run_tests() {
+    local test_level="${1:-all}"
+
+    echo ""
+    echo "=== Running Tests (level: $test_level) ==="
+    echo ""
+
+    # Use the CI test script for proper test levels
+    "$PROJECT_ROOT/tests/ci_test.sh" "$test_level"
+    local result=$?
+
+    if [ $result -eq 0 ]; then
+        echo ""
+        echo "All tests passed!"
+    else
+        echo ""
+        echo "Some tests failed. See report for details."
+        exit 1
+    fi
+}
+
 # Main script logic
 case "${1:-}" in
     --lib)
@@ -160,6 +192,10 @@ case "${1:-}" in
     --clean)
         clean_all
         build_project
+        ;;
+    --test)
+        build_project
+        run_tests "${2:-all}"
         ;;
     --help|-h)
         show_help
