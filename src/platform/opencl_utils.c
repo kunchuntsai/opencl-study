@@ -402,7 +402,7 @@ int OpenclInit(OpenCLEnv* env) {
  * ============================================================================ */
 
 cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id,
-                            const KernelConfig* kernel_cfg) {
+                            const struct KernelConfig* kernel_cfg) {
     cl_int err;
     size_t source_length;
     cl_program program = NULL;
@@ -550,8 +550,8 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id,
  * ============================================================================ */
 
 int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_mem input_buf,
-                    cl_mem output_buf, const OpParams* params, const KernelConfig* kernel_cfg,
-                    double* gpu_time_ms) {
+                    cl_mem output_buf, const OpParams* params,
+                    const struct KernelConfig* kernel_cfg, double* gpu_time_ms) {
     cl_int err;
     cl_event event;
     cl_ulong time_start;

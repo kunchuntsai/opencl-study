@@ -33,7 +33,12 @@ __kernel void relu(__global const uchar* input,
 
     int index = y * width + x;
 
-    /* TODO: Implement your algorithm here */
-    /* Example: Simple copy operation */
-    output[index] = input[index];
+    /* ReLU with threshold from params */
+    uchar val = input[index];
+
+    if (val < (uchar)params.relu_v1) {
+        val = 0;
+    }
+
+    output[index] = val;
 }

@@ -51,8 +51,8 @@
     },
 
     "kernels": {
-        "v0": {
-            "description": "standard OpenCL",
+        "v1f": {
+            "description": "standard CL (float)",
             "host_type": "standard",
             "kernel_file": "examples/gaussian5x5/cl/gaussian0.cl",
             "kernel_function": "gaussian5x5",

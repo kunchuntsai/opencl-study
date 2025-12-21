@@ -87,9 +87,16 @@ void ListAlgorithms(void) {
                 get_variants_result =
                     GetOpVariants(&config, registered_algorithms[i]->id, variants, &variant_count);
                 if ((get_variants_result == 0) && (variant_count > 0)) {
-                    /* Display variants */
+                    /* Display variants: [selector] kernel_variant--description */
                     for (j = 0; j < variant_count; j++) {
-                        (void)printf("      [%d] %s\n", j, variants[j]->variant_id);
+                        /* Skip 'v' prefix in variant_id for display */
+                        const char* selector = variants[j]->variant_id + 1;
+                        if (variants[j]->description[0] != '\0') {
+                            (void)printf("      [%s] %d--%s\n", selector,
+                                         variants[j]->kernel_variant, variants[j]->description);
+                        } else {
+                            (void)printf("      [%s] %d\n", selector, variants[j]->kernel_variant);
+                        }
                     }
                 }
             }
