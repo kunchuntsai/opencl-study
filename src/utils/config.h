@@ -215,7 +215,7 @@ typedef struct {
 } ScalarArgConfig;
 
 /** Maximum number of scalar arguments */
-#define MAX_SCALAR_ARGS 32
+#define MAX_SCALAR_ARGS 128
 
 /**
  * @brief Golden sample source type
