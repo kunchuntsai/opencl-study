@@ -23,33 +23,12 @@
 #include <CL/cl.h>
 #endif
 
-#include "limits.h"
+#include "types.h" /* Shared types: ScalarValue, ImageDimensions, enums */
 
-/* Backward compatibility aliases */
-#define MAX_CUSTOM_SCALARS MAX_SCALARS
-
-/** Buffer type enumeration */
-typedef enum {
-    BUFFER_TYPE_NONE = 0,
-    BUFFER_TYPE_READ_ONLY,
-    BUFFER_TYPE_WRITE_ONLY,
-    BUFFER_TYPE_READ_WRITE
-} BufferType;
-
-/** Host type enumeration for OpenCL API selection */
-typedef enum {
-    HOST_TYPE_STANDARD = 0, /**< Standard OpenCL API (default) */
-    HOST_TYPE_CL_EXTENSION  /**< Custom CL extension API */
-} HostType;
-
-/** Border handling modes */
-typedef enum {
-    BORDER_CLAMP = 0,     /**< Clamp to edge (replicate edge pixels) */
-    BORDER_REPLICATE = 1, /**< Same as clamp */
-    BORDER_CONSTANT = 2,  /**< Use constant border value */
-    BORDER_REFLECT = 3,   /**< Reflect border pixels */
-    BORDER_WRAP = 4       /**< Wrap around (periodic) */
-} BorderMode;
+/* =============================================================================
+ * OpenCL-Specific Runtime Structures
+ * These contain cl_mem handles and cannot be shared with config parsing.
+ * ===========================================================================*/
 
 /**
  * @brief Runtime buffer structure
@@ -80,41 +59,9 @@ typedef struct {
     int count;                                 /**< Number of buffers */
 } CustomBuffers;
 
-/** Scalar value type enumeration */
-typedef enum {
-    SCALAR_TYPE_NONE = 0,
-    SCALAR_TYPE_INT,   /**< 32-bit signed integer */
-    SCALAR_TYPE_FLOAT, /**< 32-bit floating point */
-    SCALAR_TYPE_SIZE   /**< size_t (platform-dependent) */
-} ScalarType;
-
-/**
- * @brief Runtime scalar value structure
- *
- * Holds a named scalar value that can be passed to kernels.
- * Supports int, float, and size_t types.
- */
-typedef struct {
-    char name[64];   /**< Scalar name (from config) */
-    ScalarType type; /**< Value type */
-    union {
-        int int_value;     /**< Integer value */
-        float float_value; /**< Float value */
-        size_t size_value; /**< Size value */
-    } value;
-} ScalarValue;
-
-/**
- * @brief Collection of custom scalars for an algorithm
- *
- * Provides algorithm-specific scalar parameters without modifying OpParams.
- * Lookup functions check built-in OpParams fields first, then fall back
- * to custom scalars for extensibility.
- */
-typedef struct {
-    ScalarValue scalars[MAX_CUSTOM_SCALARS]; /**< Array of scalar values */
-    int count;                               /**< Number of scalars */
-} CustomScalars;
+/* =============================================================================
+ * Operation Parameters
+ * ===========================================================================*/
 
 /**
  * @brief Generic parameters for image processing operations
@@ -155,7 +102,7 @@ typedef struct {
     CustomBuffers* custom_buffers; /**< Pointer to custom buffer collection (NULL if none) */
 
     /* Custom scalars (for algorithm-specific parameters) */
-    CustomScalars* custom_scalars; /**< Pointer to custom scalar collection (NULL if none) */
+    ScalarCollection* custom_scalars; /**< Pointer to custom scalar collection (NULL if none) */
 
     /* Kernel variant information */
     HostType host_type; /**< Host API type for current kernel variant */

@@ -996,14 +996,14 @@ int ParseInputsConfig(const char* filename, Config* config) {
 
         /* Parse image properties */
         (void)GetJsonString(image, "input", img->input_path, sizeof(img->input_path));
-        (void)GetJsonInt(image, "src_width", &img->src_width);
-        (void)GetJsonInt(image, "src_height", &img->src_height);
-        (void)GetJsonInt(image, "src_channels", &img->src_channels);
+        (void)GetJsonInt(image, "src_width", &img->dims.width);
+        (void)GetJsonInt(image, "src_height", &img->dims.height);
+        (void)GetJsonInt(image, "src_channels", &img->dims.channels);
 
         /* src_stride can be a number or expression string */
         size_t stride_val;
         if (GetJsonSize(image, "src_stride", &stride_val) == 0) {
-            img->src_stride = (int)stride_val;
+            img->dims.stride = (int)stride_val;
         }
     }
 
@@ -1073,14 +1073,14 @@ int ParseOutputsConfig(const char* filename, Config* config) {
 
         /* Parse output properties */
         (void)GetJsonString(output, "output", img->output_path, sizeof(img->output_path));
-        (void)GetJsonInt(output, "dst_width", &img->dst_width);
-        (void)GetJsonInt(output, "dst_height", &img->dst_height);
-        (void)GetJsonInt(output, "dst_channels", &img->dst_channels);
+        (void)GetJsonInt(output, "dst_width", &img->dims.width);
+        (void)GetJsonInt(output, "dst_height", &img->dims.height);
+        (void)GetJsonInt(output, "dst_channels", &img->dims.channels);
 
         /* dst_stride can be a number or expression string */
         size_t stride_val;
         if (GetJsonSize(output, "dst_stride", &stride_val) == 0) {
-            img->dst_stride = (int)stride_val;
+            img->dims.stride = (int)stride_val;
         }
     }
 

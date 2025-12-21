@@ -92,25 +92,25 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
 
         (void)printf("\n=== Loading Input Images ===\n");
         (void)printf("Using input image %d of %d: %s (%dx%d)\n", selected_index,
-                     config->input_image_count, img_cfg->input_path, img_cfg->src_width,
-                     img_cfg->src_height);
+                     config->input_image_count, img_cfg->input_path, img_cfg->dims.width,
+                     img_cfg->dims.height);
 
-        input = ReadImage(img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
+        input = ReadImage(img_cfg->input_path, img_cfg->dims.width, img_cfg->dims.height);
         if (input == NULL) {
             (void)fprintf(stderr, "Failed to load input image: %s\n", img_cfg->input_path);
             return;
         }
 
         /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-        if (!SafeMulInt(img_cfg->src_width, img_cfg->src_height, &img_size)) {
+        if (!SafeMulInt(img_cfg->dims.width, img_cfg->dims.height, &img_size)) {
             (void)fprintf(stderr, "Image size overflow\n");
             return;
         }
 
         /* Initialize common OpParams fields */
-        op_params.src_width = img_cfg->src_width;
-        op_params.src_height = img_cfg->src_height;
-        op_params.src_stride = img_cfg->src_stride;
+        op_params.src_width = img_cfg->dims.width;
+        op_params.src_height = img_cfg->dims.height;
+        op_params.src_stride = img_cfg->dims.stride;
     }
 
     /* Resolve output image configuration from config/outputs.ini */
@@ -152,13 +152,13 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
 
         (void)printf("\n=== Output Configuration ===\n");
         (void)printf("Using output image %d of %d: %s (%dx%d)\n", selected_index,
-                     config->output_image_count, out_cfg->output_path, out_cfg->dst_width,
-                     out_cfg->dst_height);
+                     config->output_image_count, out_cfg->output_path, out_cfg->dims.width,
+                     out_cfg->dims.height);
 
         /* Set output parameters from output image config */
-        op_params.dst_width = out_cfg->dst_width;
-        op_params.dst_height = out_cfg->dst_height;
-        op_params.dst_stride = out_cfg->dst_stride;
+        op_params.dst_width = out_cfg->dims.width;
+        op_params.dst_height = out_cfg->dims.height;
+        op_params.dst_stride = out_cfg->dims.stride;
     }
 
     /* Check if image fits in static buffers */

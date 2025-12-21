@@ -39,43 +39,43 @@
 
 #include <stddef.h>
 
-#include "op_interface.h" /* For types and limits.h constants */
+#include "op_interface.h" /* For types.h (shared types) and OpenCL runtime types */
 
-/* Note: MAX_KERNEL_CONFIGS, MAX_INPUT_IMAGES, MAX_OUTPUT_IMAGES,
- * MAX_KERNEL_ARGS, MAX_STRUCT_FIELDS, MAX_CUSTOM_BUFFERS are
- * defined in include/limits.h (included via op_interface.h) */
+/* Note: Shared types from include/types.h (via op_interface.h):
+ * - ScalarValue, ScalarCollection, ImageDimensions
+ * - BufferType, ScalarType, HostType, BorderMode enums
+ * - MAX_SCALARS, MAX_CUSTOM_BUFFERS, MAX_KERNEL_CONFIGS, etc. from limits.h
+ */
 
-/* Note: HostType and BufferType are defined in utils/op_interface.h */
+/* =============================================================================
+ * Image Configuration Structures
+ * ===========================================================================*/
 
 /**
  * @brief Input image configuration
  *
  * Contains parameters for a single input image, including file path
- * and image dimensions.
+ * and image dimensions. Uses shared ImageDimensions struct.
  */
 typedef struct {
-    char input_path[256]; /**< Path to input image file */
-    int src_width;        /**< Source image width in pixels */
-    int src_height;       /**< Source image height in pixels */
-    int src_channels;     /**< Number of channels (e.g., 3 for RGB) */
-    int src_stride;       /**< Stride in bytes (may differ from width * channels) */
+    char input_path[256];  /**< Path to input image file */
+    ImageDimensions dims;  /**< Image dimensions (width, height, stride, channels) */
 } InputImageConfig;
 
 /**
  * @brief Output image configuration
  *
  * Contains parameters for a single output image, including file path
- * and image dimensions.
+ * and image dimensions. Uses shared ImageDimensions struct.
  */
 typedef struct {
     char output_path[256]; /**< Path to output image file */
-    int dst_width;         /**< Destination image width in pixels */
-    int dst_height;        /**< Destination image height in pixels */
-    int dst_channels;      /**< Number of channels (e.g., 3 for RGB) */
-    int dst_stride;        /**< Stride in bytes (may differ from width * channels) */
+    ImageDimensions dims;  /**< Image dimensions (width, height, stride, channels) */
 } OutputImageConfig;
 
-/* Note: MAX_CUSTOM_BUFFERS is defined in utils/op_interface.h */
+/* =============================================================================
+ * Buffer Element Data Types
+ * ===========================================================================*/
 
 /** Data type enumeration for buffer elements */
 typedef enum {
@@ -85,6 +85,10 @@ typedef enum {
     DATA_TYPE_INT,   /**< 32-bit signed integer (4 bytes) */
     DATA_TYPE_SHORT  /**< 16-bit signed integer (2 bytes) */
 } DataType;
+
+/* =============================================================================
+ * Kernel Argument Configuration
+ * ===========================================================================*/
 
 /** Kernel argument type */
 typedef enum {
@@ -150,6 +154,10 @@ typedef struct KernelConfig {
     int kernel_arg_count;                             /**< Number of kernel arguments configured */
 } KernelConfig;
 
+/* =============================================================================
+ * Custom Buffer Configuration
+ * ===========================================================================*/
+
 /**
  * @brief Custom buffer configuration
  *
@@ -178,33 +186,20 @@ typedef struct {
     size_t size_bytes; /**< Direct size specification (for empty buffers) */
 } CustomBufferConfig;
 
-/**
- * @brief Scalar argument configuration
- *
- * Describes a scalar argument to be passed to the kernel (e.g., filter_width,
- * filter_height). Supports int, float, and size_t types.
- *
- * Config file format:
- * [scalar.filter_width]
- * type = int
- * value = 5
- *
- * [scalar.sigma]
- * type = float
- * value = 1.5
- */
-typedef struct {
-    char name[64];   /**< Argument name (from [scalar.NAME] section) */
-    ScalarType type; /**< Value type (int, float, or size_t) */
-    union {
-        int int_value;     /**< Integer value */
-        float float_value; /**< Float value */
-        size_t size_value; /**< Size value */
-    } value;
-} ScalarArgConfig;
+/* =============================================================================
+ * Scalar Configuration - Uses shared ScalarValue from types.h
+ * ===========================================================================*/
+
+/* ScalarValue is defined in types.h and used directly for scalar configuration.
+ * This eliminates the previous ScalarArgConfig duplication. */
 
 /* Backward compatibility alias */
+#define ScalarArgConfig ScalarValue
 #define MAX_SCALAR_ARGS MAX_SCALARS
+
+/* =============================================================================
+ * Verification Configuration
+ * ===========================================================================*/
 
 /**
  * @brief Golden sample source type
@@ -237,6 +232,10 @@ typedef struct {
     char golden_file[256];          /**< Path to golden.bin file (when golden_source = file) */
 } VerificationConfig;
 
+/* =============================================================================
+ * Main Configuration Structure
+ * ===========================================================================*/
+
 /**
  * @brief Complete configuration parsed from config file
  *
@@ -264,13 +263,17 @@ typedef struct {
     CustomBufferConfig custom_buffers[MAX_CUSTOM_BUFFERS]; /**< Custom buffer configurations */
     int custom_buffer_count; /**< Number of custom buffers configured */
 
-    /* Scalar argument configuration */
-    ScalarArgConfig scalar_args[MAX_SCALAR_ARGS]; /**< Scalar argument configurations */
-    int scalar_arg_count;                         /**< Number of scalar arguments configured */
+    /* Scalar argument configuration - uses shared ScalarValue from types.h */
+    ScalarValue scalar_args[MAX_SCALARS]; /**< Scalar argument configurations */
+    int scalar_arg_count;                 /**< Number of scalar arguments configured */
 
     /* Verification configuration */
     VerificationConfig verification; /**< Verification settings (tolerance, error rate) */
 } Config;
+
+/* =============================================================================
+ * Function Declarations
+ * ===========================================================================*/
 
 /**
  * @brief Parse configuration file
