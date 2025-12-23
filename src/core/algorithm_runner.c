@@ -189,10 +189,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             runtime_buf->type = buf_cfg->type;
             runtime_buf->size_bytes = buf_cfg->size_bytes;
 
-            /* File-backed buffer: load data from file into host memory */
+            /* File-backed buffer: load data from file directly into buffer pool */
             if (buf_cfg->source_file[0] != '\0') {
-                unsigned char* temp_data;
-
                 /* Check if buffer fits in static pool slot */
                 if (buf_cfg->size_bytes > MAX_CUSTOM_BUFFER_SIZE) {
                     (void)fprintf(stderr, "Error: Custom buffer '%s' too large (%zu bytes, max %d)\n",
@@ -201,17 +199,14 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                     goto cleanup_early;
                 }
 
-                /* Use ReadImage to load into static buffer */
-                temp_data = ReadImage(buf_cfg->source_file, buf_cfg->size_bytes);
-                if (temp_data == NULL) {
+                /* Read directly into static buffer pool slot */
+                runtime_buf->host_data = custom_buffer_pool[i];
+                if (ReadImageToBuffer(buf_cfg->source_file, buf_cfg->size_bytes,
+                                      runtime_buf->host_data) != 0) {
                     (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
-                    custom_buffers.count = i; /* Track how many were loaded before failure */
+                    custom_buffers.count = i;
                     goto cleanup_early;
                 }
-
-                /* Copy data to static buffer pool slot (MISRA-C:2023 Rule 21.3) */
-                runtime_buf->host_data = custom_buffer_pool[i];
-                (void)memcpy(runtime_buf->host_data, temp_data, buf_cfg->size_bytes);
 
                 (void)printf("Loaded '%s' from %s (%zu bytes)\n", buf_cfg->name,
                              buf_cfg->source_file, buf_cfg->size_bytes);
