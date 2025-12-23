@@ -135,12 +135,14 @@ typedef struct {
     unsigned char* input; /**< Input image buffer */
     int src_width;        /**< Source width in pixels */
     int src_height;       /**< Source height in pixels */
+    int src_channels;     /**< Source number of channels (default 1) */
     int src_stride;       /**< Source stride in bytes (0 = packed, width * channels) */
 
     /* Output image */
     unsigned char* output; /**< Output image buffer (for reference_impl) */
     int dst_width;         /**< Destination width in pixels */
     int dst_height;        /**< Destination height in pixels */
+    int dst_channels;      /**< Destination number of channels (default 1) */
     int dst_stride;        /**< Destination stride in bytes (0 = packed, width *
                               channels) */
 
