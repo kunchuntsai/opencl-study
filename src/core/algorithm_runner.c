@@ -100,15 +100,15 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                      config->input_image_count, img_cfg->input_path, img_cfg->src_width,
                      img_cfg->src_height);
 
-        input = ReadImage(img_cfg->input_path, img_cfg->src_width, img_cfg->src_height);
-        if (input == NULL) {
-            (void)fprintf(stderr, "Failed to load input image: %s\n", img_cfg->input_path);
-            return;
-        }
-
         /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
         if (!SafeMulInt(img_cfg->src_width, img_cfg->src_height, &img_size)) {
             (void)fprintf(stderr, "Image size overflow\n");
+            return;
+        }
+
+        input = ReadImage(img_cfg->input_path, (size_t)img_size);
+        if (input == NULL) {
+            (void)fprintf(stderr, "Failed to load input image: %s\n", img_cfg->input_path);
             return;
         }
 
@@ -202,7 +202,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                 }
 
                 /* Use ReadImage to load into static buffer */
-                temp_data = ReadImage(buf_cfg->source_file, (int)buf_cfg->size_bytes, 1);
+                temp_data = ReadImage(buf_cfg->source_file, buf_cfg->size_bytes);
                 if (temp_data == NULL) {
                     (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
                     custom_buffers.count = i; /* Track how many were loaded before failure */
@@ -447,8 +447,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         const char* run_dir = CacheGetRunDir();
         if (run_dir != NULL) {
             (void)snprintf(output_path, sizeof(output_path), "%s/out.bin", run_dir);
-            write_result = WriteImage(output_path, gpu_output_buffer, op_params.src_width,
-                                      op_params.src_height);
+            write_result = WriteImage(output_path, gpu_output_buffer, img_size_t);
             if (write_result == 0) {
                 (void)printf("Output saved to: %s\n", output_path);
             } else {
