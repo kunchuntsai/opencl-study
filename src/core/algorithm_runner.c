@@ -96,14 +96,24 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         }
 
         (void)printf("\n=== Loading Input Images ===\n");
-        (void)printf("Using input image %d of %d: %s (%dx%d)\n", selected_index,
+        (void)printf("Using input image %d of %d: %s (%dx%dx%d)\n", selected_index,
                      config->input_image_count, img_cfg->input_path, img_cfg->src_width,
-                     img_cfg->src_height);
+                     img_cfg->src_height,
+                     (img_cfg->src_channels > 0) ? img_cfg->src_channels : 1);
 
         /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
-        if (!SafeMulInt(img_cfg->src_width, img_cfg->src_height, &img_size)) {
-            (void)fprintf(stderr, "Image size overflow\n");
-            return;
+        /* Calculate size as width * height * channels (default channels = 1) */
+        {
+            int channels = (img_cfg->src_channels > 0) ? img_cfg->src_channels : 1;
+            int temp_size;
+            if (!SafeMulInt(img_cfg->src_width, img_cfg->src_height, &temp_size)) {
+                (void)fprintf(stderr, "Image size overflow (width * height)\n");
+                return;
+            }
+            if (!SafeMulInt(temp_size, channels, &img_size)) {
+                (void)fprintf(stderr, "Image size overflow (with channels)\n");
+                return;
+            }
         }
 
         input = ReadImage(img_cfg->input_path, (size_t)img_size);
@@ -115,6 +125,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         /* Initialize common OpParams fields */
         op_params.src_width = img_cfg->src_width;
         op_params.src_height = img_cfg->src_height;
+        op_params.src_channels = (img_cfg->src_channels > 0) ? img_cfg->src_channels : 1;
         op_params.src_stride = img_cfg->src_stride;
     }
 
@@ -156,13 +167,15 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         }
 
         (void)printf("\n=== Output Configuration ===\n");
-        (void)printf("Using output image %d of %d: %s (%dx%d)\n", selected_index,
+        (void)printf("Using output image %d of %d: %s (%dx%dx%d)\n", selected_index,
                      config->output_image_count, out_cfg->output_path, out_cfg->dst_width,
-                     out_cfg->dst_height);
+                     out_cfg->dst_height,
+                     (out_cfg->dst_channels > 0) ? out_cfg->dst_channels : 1);
 
         /* Set output parameters from output image config */
         op_params.dst_width = out_cfg->dst_width;
         op_params.dst_height = out_cfg->dst_height;
+        op_params.dst_channels = (out_cfg->dst_channels > 0) ? out_cfg->dst_channels : 1;
         op_params.dst_stride = out_cfg->dst_stride;
     }
 
@@ -421,7 +434,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     op_params.gpu_output = gpu_output_buffer;
     op_params.ref_output = ref_output_buffer;
     passed = VerifyWithTolerance(gpu_output_buffer, ref_output_buffer, op_params.dst_width,
-                                 op_params.dst_height, config->verification.tolerance,
+                                 op_params.dst_height, op_params.dst_channels,
+                                 config->verification.tolerance,
                                  config->verification.error_rate_threshold, &max_error);
 
     /* Display results */

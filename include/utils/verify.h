@@ -19,11 +19,12 @@
  * @param[in] ref_output Reference implementation output
  * @param[in] width Image width in pixels
  * @param[in] height Image height in pixels
+ * @param[in] channels Number of channels (default 1)
  * @param[in] tolerance Maximum acceptable pixel difference
  * @return 1 if verification passed, 0 if failed
  */
 int VerifyExactMatch(unsigned char* gpu_output, unsigned char* ref_output, int width, int height,
-                     int tolerance);
+                     int channels, int tolerance);
 
 /**
  * @brief Verify pixel match with tolerance and error rate threshold
@@ -36,6 +37,7 @@ int VerifyExactMatch(unsigned char* gpu_output, unsigned char* ref_output, int w
  * @param[in] ref_output Reference implementation output
  * @param[in] width Image width in pixels
  * @param[in] height Image height in pixels
+ * @param[in] channels Number of channels (default 1)
  * @param[in] tolerance Maximum acceptable pixel difference
  * @param[in] error_rate_threshold Maximum acceptable fraction of differing
  * pixels
@@ -43,4 +45,4 @@ int VerifyExactMatch(unsigned char* gpu_output, unsigned char* ref_output, int w
  * @return 1 if verification passed (error rate below threshold), 0 if failed
  */
 int VerifyWithTolerance(unsigned char* gpu_output, unsigned char* ref_output, int width, int height,
-                        float tolerance, float error_rate_threshold, float* max_error);
+                        int channels, float tolerance, float error_rate_threshold, float* max_error);
