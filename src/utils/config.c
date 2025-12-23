@@ -15,11 +15,15 @@
 #define MAX_LINE_LENGTH 512
 #define MAX_BUFFER_LENGTH 256
 
+/* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
+/* Using static buffer with maximum size constraint for config files */
+#define MAX_CONFIG_FILE_SIZE (64 * 1024) /* 64KB max config file */
+static char config_file_buffer[MAX_CONFIG_FILE_SIZE];
+
 /* Helper function to read entire file into string */
 static char* ReadFileToString(const char* filename) {
     FILE* fp;
     long file_size;
-    char* buffer;
     size_t bytes_read;
 
     fp = fopen(filename, "rb");
@@ -42,19 +46,20 @@ static char* ReadFileToString(const char* filename) {
         return NULL;
     }
 
-    /* Allocate buffer */
-    buffer = (char*)malloc((size_t)file_size + 1U);
-    if (buffer == NULL) {
+    /* Check if file fits in static buffer */
+    if ((size_t)file_size >= MAX_CONFIG_FILE_SIZE) {
+        (void)fprintf(stderr, "Error: Config file too large (%ld bytes, max %d)\n",
+                      file_size, MAX_CONFIG_FILE_SIZE - 1);
         (void)fclose(fp);
         return NULL;
     }
 
-    /* Read file */
-    bytes_read = fread(buffer, 1U, (size_t)file_size, fp);
-    buffer[bytes_read] = '\0';
+    /* Read file into static buffer */
+    bytes_read = fread(config_file_buffer, 1U, (size_t)file_size, fp);
+    config_file_buffer[bytes_read] = '\0';
 
     (void)fclose(fp);
-    return buffer;
+    return config_file_buffer;
 }
 
 /* Extract numeric variant number from variant_id */
@@ -512,7 +517,7 @@ int ParseConfig(const char* filename, Config* config) {
 
     /* Parse JSON */
     root = cJSON_Parse(json_str);
-    free(json_str);
+    /* Note: json_str points to static buffer, no free needed */
 
     if (root == NULL) {
         const char* error_ptr = cJSON_GetErrorPtr();
@@ -955,7 +960,7 @@ int ParseInputsConfig(const char* filename, Config* config) {
 
     /* Parse JSON */
     root = cJSON_Parse(json_str);
-    free(json_str);
+    /* Note: json_str points to static buffer, no free needed */
 
     if (root == NULL) {
         const char* error_ptr = cJSON_GetErrorPtr();
@@ -1032,7 +1037,7 @@ int ParseOutputsConfig(const char* filename, Config* config) {
 
     /* Parse JSON */
     root = cJSON_Parse(json_str);
-    free(json_str);
+    /* Note: json_str points to static buffer, no free needed */
 
     if (root == NULL) {
         const char* error_ptr = cJSON_GetErrorPtr();

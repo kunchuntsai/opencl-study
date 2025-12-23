@@ -20,6 +20,11 @@
 /** Maximum image size (used for static buffer allocation) */
 #define MAX_IMAGE_SIZE (4096 * 4096)
 
+/* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
+/* Using static buffer pool for custom buffer host data */
+#define MAX_CUSTOM_BUFFER_SIZE (1024 * 1024) /* 1MB max per custom buffer */
+static unsigned char custom_buffer_pool[MAX_CUSTOM_BUFFERS][MAX_CUSTOM_BUFFER_SIZE];
+
 void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
                   OpenCLEnv* env, unsigned char* gpu_output_buffer,
                   unsigned char* ref_output_buffer) {
@@ -188,6 +193,14 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             if (buf_cfg->source_file[0] != '\0') {
                 unsigned char* temp_data;
 
+                /* Check if buffer fits in static pool slot */
+                if (buf_cfg->size_bytes > MAX_CUSTOM_BUFFER_SIZE) {
+                    (void)fprintf(stderr, "Error: Custom buffer '%s' too large (%zu bytes, max %d)\n",
+                                  buf_cfg->name, buf_cfg->size_bytes, MAX_CUSTOM_BUFFER_SIZE);
+                    custom_buffers.count = i;
+                    goto cleanup_early;
+                }
+
                 /* Use ReadImage to load into static buffer */
                 temp_data = ReadImage(buf_cfg->source_file, (int)buf_cfg->size_bytes, 1);
                 if (temp_data == NULL) {
@@ -196,14 +209,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                     goto cleanup_early;
                 }
 
-                /* Allocate dynamic memory and copy data (since ReadImage returns
-                 * static buffer) */
-                runtime_buf->host_data = (unsigned char*)malloc(buf_cfg->size_bytes);
-                if (runtime_buf->host_data == NULL) {
-                    (void)fprintf(stderr, "Failed to allocate memory for %s\n", buf_cfg->name);
-                    custom_buffers.count = i;
-                    goto cleanup_early;
-                }
+                /* Copy data to static buffer pool slot (MISRA-C:2023 Rule 21.3) */
+                runtime_buf->host_data = custom_buffer_pool[i];
                 (void)memcpy(runtime_buf->host_data, temp_data, buf_cfg->size_bytes);
 
                 (void)printf("Loaded '%s' from %s (%zu bytes)\n", buf_cfg->name,
@@ -458,11 +465,7 @@ cleanup:
             OpenclReleaseMemObject(custom_buffers.buffers[i].buffer,
                                    config->custom_buffers[i].name);
         }
-        /* Free host data */
-        if (custom_buffers.buffers[i].host_data != NULL) {
-            free(custom_buffers.buffers[i].host_data);
-            custom_buffers.buffers[i].host_data = NULL;
-        }
+        /* Note: host_data points to static buffer pool, no free needed */
     }
 
     /* Cleanup standard buffers - MISRA-C:2023 Rule 22.1: Proper resource
@@ -476,12 +479,6 @@ cleanup:
 
 cleanup_early:
     /* Early cleanup before OpenCL resources were created */
-    /* Free any custom buffer host data that was loaded */
-    for (i = 0; i < custom_buffers.count; i++) {
-        if (custom_buffers.buffers[i].host_data != NULL) {
-            free(custom_buffers.buffers[i].host_data);
-            custom_buffers.buffers[i].host_data = NULL;
-        }
-    }
+    /* Note: host_data points to static buffer pool, no free needed */
     /* NOTE: input points to static buffer from ReadImage(), don't free it */
 }
