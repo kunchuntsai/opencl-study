@@ -22,7 +22,7 @@
 
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 /* Using static buffer pool for custom buffer host data */
-#define MAX_CUSTOM_BUFFER_SIZE (1024 * 1024) /* 1MB max per custom buffer */
+#define MAX_CUSTOM_BUFFER_SIZE (2 * 1024 * 1024) /* 2MB max per custom buffer */
 static unsigned char custom_buffer_pool[MAX_CUSTOM_BUFFERS][MAX_CUSTOM_BUFFER_SIZE];
 
 void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
