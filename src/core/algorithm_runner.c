@@ -23,7 +23,36 @@
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 /* Using static buffer pool for custom buffer host data */
 #define MAX_CUSTOM_BUFFER_SIZE (2 * 1024 * 1024) /* 2MB max per custom buffer */
-static unsigned char custom_buffer_pool[MAX_CUSTOM_BUFFERS][MAX_CUSTOM_BUFFER_SIZE];
+
+/**
+ * @brief Get pointer to custom buffer slot in static pool
+ *
+ * Uses separate static buffers to avoid 2D array indexing issues
+ * with large arrays that may cause linker/loader problems.
+ */
+static unsigned char* GetCustomBufferSlot(int index) {
+    /* Use separate static buffers for each slot */
+    static unsigned char slot0[MAX_CUSTOM_BUFFER_SIZE];
+    static unsigned char slot1[MAX_CUSTOM_BUFFER_SIZE];
+    static unsigned char slot2[MAX_CUSTOM_BUFFER_SIZE];
+    static unsigned char slot3[MAX_CUSTOM_BUFFER_SIZE];
+    static unsigned char slot4[MAX_CUSTOM_BUFFER_SIZE];
+    static unsigned char slot5[MAX_CUSTOM_BUFFER_SIZE];
+    static unsigned char slot6[MAX_CUSTOM_BUFFER_SIZE];
+    static unsigned char slot7[MAX_CUSTOM_BUFFER_SIZE];
+
+    switch (index) {
+        case 0: return slot0;
+        case 1: return slot1;
+        case 2: return slot2;
+        case 3: return slot3;
+        case 4: return slot4;
+        case 5: return slot5;
+        case 6: return slot6;
+        case 7: return slot7;
+        default: return NULL;
+    }
+}
 
 void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const Config* config,
                   OpenCLEnv* env, unsigned char* gpu_output_buffer,
@@ -212,8 +241,15 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                     goto cleanup_early;
                 }
 
-                /* Read directly into static buffer pool slot */
-                runtime_buf->host_data = custom_buffer_pool[i];
+                /* Get buffer slot from static pool */
+                runtime_buf->host_data = GetCustomBufferSlot(i);
+                if (runtime_buf->host_data == NULL) {
+                    (void)fprintf(stderr, "Error: Invalid buffer slot index %d\n", i);
+                    custom_buffers.count = i;
+                    goto cleanup_early;
+                }
+
+                /* Read data into buffer pool slot */
                 if (ReadImageToBuffer(buf_cfg->source_file, buf_cfg->size_bytes,
                                       runtime_buf->host_data) != 0) {
                     (void)fprintf(stderr, "Failed to load %s\n", buf_cfg->source_file);
