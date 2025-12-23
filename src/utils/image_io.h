@@ -32,6 +32,19 @@
 unsigned char* ReadImage(const char* filename, size_t size);
 
 /**
+ * @brief Read raw binary data from file into user-provided buffer
+ *
+ * Reads a binary file into the specified buffer. The file must contain
+ * exactly the specified number of bytes.
+ *
+ * @param[in] filename Path to input file
+ * @param[in] size Number of bytes to read
+ * @param[out] buffer User-provided buffer to read into
+ * @return 0 on success, -1 on error
+ */
+int ReadImageToBuffer(const char* filename, size_t size, unsigned char* buffer);
+
+/**
  * @brief Write raw binary data to file
  *
  * Writes data as raw binary to file. Creates or overwrites the
