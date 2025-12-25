@@ -1,0 +1,192 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="9" refX="11" refY="4.5" orient="auto">
+      <polygon points="0 0, 12 4.5, 0 9" fill="#ffbb62"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="960" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="44" font-weight="bold" fill="#666666">Phase Inputs &amp; Outputs: Detailed View</text>
+
+  <!-- ============ PHASE 1 ============ -->
+  <rect x="60" y="90" width="860" height="420" rx="16" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="490" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#666666">Phase 1: Compilation (Linux)</text>
+
+  <!-- Phase 1 Inputs -->
+  <text x="250" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">INPUTS</text>
+
+  <!-- kernel.cl -->
+  <rect x="100" y="195" width="300" height="130" rx="10" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="250" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">kernel.cl</text>
+  <line x1="120" y1="238" x2="380" y2="238" stroke="#ffbb62" stroke-width="1"/>
+  <text x="130" y="260" font-family="monospace" font-size="13" fill="#666666">__kernel void foo(</text>
+  <text x="130" y="280" font-family="monospace" font-size="13" fill="#666666">  __global uchar* src,</text>
+  <text x="130" y="300" font-family="monospace" font-size="13" fill="#666666">  int width) {...}</text>
+
+  <!-- config.json -->
+  <rect x="440" y="195" width="340" height="130" rx="10" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="610" y="225" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">config.json</text>
+  <line x1="460" y1="238" x2="760" y2="238" stroke="#ffbb62" stroke-width="1"/>
+  <text x="465" y="260" font-family="monospace" font-size="13" fill="#666666">"kernel_function": "foo"</text>
+  <text x="465" y="280" font-family="monospace" font-size="13" fill="#666666">"global_work_size": [1920,1088]</text>
+  <text x="465" y="300" font-family="monospace" font-size="13" fill="#666666">"kernel_args": [...]</text>
+
+  <!-- Arrow -->
+  <line x1="490" y1="330" x2="490" y2="375" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="490" y="360" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Compile</text>
+
+  <!-- Phase 1 Outputs -->
+  <text x="250" y="415" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">OUTPUTS</text>
+
+  <!-- kernel.bin -->
+  <rect x="100" y="435" width="300" height="60" rx="10" fill="#ffbb62" stroke="#666666" stroke-width="2"/>
+  <text x="250" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">kernel.bin</text>
+  <text x="250" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Compiled kernel (~50KB-2MB)</text>
+
+  <!-- opencl_host (android) -->
+  <rect x="440" y="435" width="340" height="60" rx="10" fill="#ffbb62" stroke="#666666" stroke-width="2"/>
+  <text x="610" y="465" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">opencl_host (android)</text>
+  <text x="610" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Host executable (~200KB)</text>
+
+  <!-- ============ PHASE 2 ============ -->
+  <rect x="1000" y="90" width="860" height="420" rx="16" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="1430" y="130" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#666666">Phase 2: Execution (Linux or Android)</text>
+
+  <!-- Phase 2 Inputs -->
+  <text x="1180" y="175" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">INPUTS</text>
+
+  <!-- kernel.bin (from phase 1) -->
+  <rect x="1040" y="195" width="200" height="80" rx="10" fill="#ffbb62" stroke="#666666" stroke-width="2" stroke-dasharray="6,3"/>
+  <text x="1140" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">kernel.bin</text>
+  <text x="1140" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#8b7355">From Phase 1</text>
+
+  <!-- config.json -->
+  <rect x="1260" y="195" width="200" height="80" rx="10" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="1360" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">config.json</text>
+  <text x="1360" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666666">Configuration</text>
+
+  <!-- input.bin -->
+  <rect x="1480" y="195" width="200" height="80" rx="10" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="1580" y="230" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">input.bin</text>
+  <text x="1580" y="255" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666666">Runtime data</text>
+
+  <!-- Arrow -->
+  <line x1="1360" y1="280" x2="1360" y2="370" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="1360" y="340" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">opencl_host</text>
+
+  <!-- Phase 2 Output -->
+  <text x="1360" y="410" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">OUTPUT</text>
+
+  <rect x="1260" y="430" width="200" height="60" rx="10" fill="#ffbb62" stroke="#666666" stroke-width="2"/>
+  <text x="1360" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">result.out</text>
+  <text x="1360" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Processed output</text>
+
+  <!-- ============ Deployment Flow ============ -->
+  <rect x="60" y="530" width="1800" height="190" rx="16" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="960" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#666666">Deployment Workflow: Linux Development -> Linux or Android Execution</text>
+
+  <!-- Development (Linux) -->
+  <rect x="100" y="595" width="300" height="80" rx="12" fill="#fff" stroke="#ffbb62" stroke-width="3"/>
+  <text x="250" y="630" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Linux Dev Machine</text>
+  <text x="250" y="655" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Phase 1: Compilation</text>
+
+  <line x1="400" y1="635" x2="480" y2="635" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Binary Package -->
+  <rect x="500" y="595" width="280" height="80" rx="12" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="640" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">Binary Package</text>
+  <text x="640" y="650" text-anchor="middle" font-family="monospace" font-size="12" fill="#666666">kernel.bin + opencl_host</text>
+  <text x="640" y="668" text-anchor="middle" font-family="monospace" font-size="12" fill="#666666">+ config.json</text>
+
+  <!-- Fork arrows -->
+  <line x1="780" y1="620" x2="900" y2="600" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="780" y1="655" x2="900" y2="680" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Linux Execution -->
+  <rect x="920" y="570" width="280" height="60" rx="12" fill="#fff" stroke="#ffbb62" stroke-width="3"/>
+  <text x="1060" y="600" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">Linux Execution</text>
+  <text x="1060" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666666">Same opencl_host as compile</text>
+
+  <!-- Android Execution -->
+  <rect x="920" y="650" width="280" height="60" rx="12" fill="#fff" stroke="#ffbb62" stroke-width="3"/>
+  <text x="1060" y="680" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">Android Execution</text>
+  <text x="1060" y="700" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666666">Uses cross-compiled opencl_host</text>
+
+  <!-- Arrows to results -->
+  <line x1="1200" y1="600" x2="1280" y2="620" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="1200" y1="680" x2="1280" y2="660" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Results -->
+  <rect x="1300" y="605" width="200" height="70" rx="12" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="1400" y="640" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" font-weight="bold" fill="#666666">result.out</text>
+  <text x="1400" y="660" text-anchor="middle" font-family="Arial, sans-serif" font-size="12" fill="#666666">Processed output</text>
+
+  <!-- Multiple runs note -->
+  <rect x="1540" y="595" width="260" height="80" rx="10" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="1670" y="630" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">Run Many Times</text>
+  <text x="1670" y="655" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">No recompilation needed</text>
+  <text x="1670" y="672" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">~5ms per execution</text>
+
+  <!-- ============ Binary Format Details ============ -->
+  <rect x="60" y="740" width="580" height="300" rx="12" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="350" y="780" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">kernel.bin Structure</text>
+
+  <rect x="100" y="800" width="500" height="35" rx="6" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="350" y="825" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Header (magic, version, size, device hash)</text>
+
+  <rect x="100" y="845" width="500" height="35" rx="6" fill="#ffbb62" stroke="#666666" stroke-width="2"/>
+  <text x="350" y="870" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Device-specific binary blob (NOT portable)</text>
+
+  <rect x="100" y="890" width="500" height="35" rx="6" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="350" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Metadata (device name, OpenCL version)</text>
+
+  <rect x="100" y="945" width="500" height="40" rx="6" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="350" y="970" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#666666">Must recompile for different GPU vendor/model</text>
+
+  <text x="350" y="1020" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#8b7355">Generated via clGetProgramInfo(CL_PROGRAM_BINARIES)</text>
+
+  <!-- opencl_host executable structure -->
+  <rect x="680" y="740" width="580" height="300" rx="12" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="970" y="780" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">opencl_host Executable</text>
+
+  <rect x="720" y="800" width="500" height="35" rx="6" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="970" y="825" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">OpenCL runtime initialization</text>
+
+  <rect x="720" y="845" width="500" height="35" rx="6" fill="#ffbb62" stroke="#666666" stroke-width="2"/>
+  <text x="970" y="870" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Config parsing (reads config.json)</text>
+
+  <rect x="720" y="890" width="500" height="35" rx="6" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="970" y="915" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666666">Buffer creation &amp; kernel execution</text>
+
+  <rect x="720" y="945" width="500" height="40" rx="6" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="970" y="970" text-anchor="middle" font-family="Arial, sans-serif" font-size="13" font-weight="bold" fill="#666666">Cross-compiled for target platform (Linux/Android)</text>
+
+  <text x="970" y="1020" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#8b7355">Uses clCreateProgramWithBinary() for fast loading</text>
+
+  <!-- Production package note -->
+  <rect x="1300" y="740" width="560" height="300" rx="12" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="1580" y="780" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Production Package</text>
+
+  <text x="1340" y="820" font-family="Arial, sans-serif" font-size="18" fill="#666666">Deploy to target device:</text>
+
+  <rect x="1340" y="845" width="240" height="32" rx="6" fill="#fff" stroke="#666666" stroke-width="1"/>
+  <text x="1460" y="868" text-anchor="middle" font-family="monospace" font-size="14" fill="#666666">kernel.bin</text>
+  <text x="1620" y="868" font-family="Arial, sans-serif" font-size="13" fill="#666666">~100KB</text>
+
+  <rect x="1340" y="887" width="240" height="32" rx="6" fill="#fff" stroke="#666666" stroke-width="1"/>
+  <text x="1460" y="910" text-anchor="middle" font-family="monospace" font-size="14" fill="#666666">opencl_host</text>
+  <text x="1620" y="910" font-family="Arial, sans-serif" font-size="13" fill="#666666">~200KB</text>
+
+  <rect x="1340" y="929" width="240" height="32" rx="6" fill="#fff" stroke="#666666" stroke-width="1"/>
+  <text x="1460" y="952" text-anchor="middle" font-family="monospace" font-size="14" fill="#666666">config.json</text>
+  <text x="1620" y="952" font-family="Arial, sans-serif" font-size="13" fill="#666666">~2KB</text>
+
+  <rect x="1340" y="971" width="240" height="32" rx="6" fill="#fff" stroke="#666666" stroke-width="1"/>
+  <text x="1460" y="994" text-anchor="middle" font-family="monospace" font-size="14" fill="#666666">input.bin</text>
+  <text x="1620" y="994" font-family="Arial, sans-serif" font-size="13" fill="#666666">varies</text>
+
+  <text x="1580" y="1035" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">No source code (kernel.cl) needed!</text>
+</svg>

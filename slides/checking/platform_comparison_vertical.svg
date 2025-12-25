@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FA9D1B"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="540" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="480" y="25" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Standard OpenCL vs CL Extension</text>
+  <text x="480" y="43" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" fill="#666">Shared flow with branching only at kernel execution</text>
+
+  <!-- ============ SHARED STEPS (Top Section) ============ -->
+  <rect x="280" y="55" width="400" height="200" rx="8" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="480" y="75" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">Shared Steps (Both Paths)</text>
+
+  <!-- Step 1: OpenCL Init -->
+  <rect x="300" y="85" width="360" height="32" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="325" y="106" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FA9D1B">1</text>
+  <text x="380" y="100" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">OpenCL Init</text>
+  <text x="380" y="112" font-family="Consolas, monospace" font-size="7" fill="#666">clGetPlatformIDs, clGetDeviceIDs, clCreateContext</text>
+
+  <line x1="480" y1="117" x2="480" y2="125" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Build Program -->
+  <rect x="300" y="130" width="360" height="32" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="325" y="151" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FA9D1B">2</text>
+  <text x="380" y="145" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Build Program</text>
+  <text x="380" y="157" font-family="Consolas, monospace" font-size="7" fill="#666">clCreateProgramWithSource, clBuildProgram</text>
+
+  <line x1="480" y1="162" x2="480" y2="170" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: Create Buffers -->
+  <rect x="300" y="175" width="360" height="32" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="325" y="196" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FA9D1B">3</text>
+  <text x="380" y="190" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Create Buffers</text>
+  <text x="380" y="202" font-family="Consolas, monospace" font-size="7" fill="#666">clCreateBuffer, clEnqueueWriteBuffer</text>
+
+  <line x1="480" y1="207" x2="480" y2="215" stroke="#666" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: Set Kernel Arguments -->
+  <rect x="300" y="220" width="360" height="32" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="325" y="241" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FA9D1B">4</text>
+  <text x="380" y="235" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Set Kernel Arguments</text>
+  <text x="380" y="247" font-family="Consolas, monospace" font-size="7" fill="#666">clSetKernelArg</text>
+
+  <!-- Arrow to decision point -->
+  <line x1="480" y1="255" x2="480" y2="275" stroke="#333" stroke-width="2"/>
+
+  <!-- ============ Decision Diamond ============ -->
+  <polygon points="480,280 530,310 480,340 430,310" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="480" y="307" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#FFF">host_type?</text>
+  <text x="480" y="320" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#FFF">config.json</text>
+
+  <!-- ============ LEFT BRANCH: Standard OpenCL ============ -->
+  <line x1="430" y1="310" x2="250" y2="310" stroke="#333" stroke-width="2"/>
+  <line x1="250" y1="310" x2="250" y2="355" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="340" y="300" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">"standard"</text>
+
+  <!-- Standard Execute Box -->
+  <rect x="125" y="365" width="250" height="75" rx="8" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="250" y="388" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">5a. Standard Execution</text>
+
+  <rect x="145" y="398" width="210" height="25" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1"/>
+  <text x="250" y="415" text-anchor="middle" font-family="Consolas, monospace" font-size="9" fill="#666">clEnqueueNDRangeKernel()</text>
+
+  <!-- ============ RIGHT BRANCH: CL Extension ============ -->
+  <line x1="530" y1="310" x2="710" y2="310" stroke="#333" stroke-width="2"/>
+  <line x1="710" y1="310" x2="710" y2="355" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="620" y="300" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">"cl_extension"</text>
+
+  <!-- Extension Execute Box -->
+  <rect x="585" y="365" width="250" height="75" rx="8" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="710" y="385" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#FFF">5b. Extension Execution</text>
+
+  <rect x="605" y="394" width="210" height="42" rx="4" fill="#FFF" stroke="#333" stroke-width="1"/>
+  <text x="710" y="408" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#666">clBatchNDRangeKernelMTK()</text>
+  <text x="710" y="419" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#666">clFinalizeBatchMTK()</text>
+  <text x="710" y="430" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#666">clEnqueueBatchMTK()</text>
+
+  <!-- ============ Converge Back ============ -->
+  <line x1="250" y1="440" x2="250" y2="465" stroke="#333" stroke-width="2"/>
+  <line x1="250" y1="465" x2="480" y2="465" stroke="#333" stroke-width="2"/>
+  <line x1="710" y1="440" x2="710" y2="465" stroke="#333" stroke-width="2"/>
+  <line x1="710" y1="465" x2="480" y2="465" stroke="#333" stroke-width="2"/>
+  <line x1="480" y1="465" x2="480" y2="480" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- ============ SHARED: Step 6 Finalize ============ -->
+  <rect x="330" y="488" width="300" height="35" rx="6" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="355" y="510" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FA9D1B">6</text>
+  <text x="480" y="505" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Finalize &amp; Release (Shared)</text>
+  <text x="480" y="518" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clEnqueueReadBuffer, clReleaseMemObject</text>
+
+  <!-- ============ Legend Boxes ============ -->
+  <rect x="30" y="365" width="85" height="75" rx="5" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="1"/>
+  <text x="72" y="385" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="8" font-weight="bold" fill="#333">Key Insight</text>
+  <text x="72" y="400" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="7" fill="#666">Only Step 5</text>
+  <text x="72" y="412" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="7" fill="#666">differs!</text>
+  <text x="72" y="428" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="7" fill="#FA9D1B">Same kernel.cl</text>
+
+  <rect x="845" y="365" width="85" height="75" rx="5" fill="#FA9D1B" stroke="#333" stroke-width="1"/>
+  <text x="887" y="385" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="8" font-weight="bold" fill="#FFF">Config Switch</text>
+  <text x="887" y="402" text-anchor="middle" font-family="Consolas, monospace" font-size="6" fill="#FFF">host_type:</text>
+  <text x="887" y="416" text-anchor="middle" font-family="Consolas, monospace" font-size="6" fill="#FFF">"standard"</text>
+  <text x="887" y="430" text-anchor="middle" font-family="Consolas, monospace" font-size="6" fill="#FFF">"cl_extension"</text>
+</svg>

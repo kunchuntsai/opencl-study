@@ -1,0 +1,133 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FA9D1B"/>
+    </marker>
+    <marker id="arrow-dark" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#333"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="540" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="480" y="25" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Standard OpenCL vs CL Extension</text>
+  <text x="480" y="43" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" fill="#666">Shared flow with branching only at kernel execution</text>
+
+  <!-- ============ LEFT: SHARED STEPS 1-4 (Vertical stack) ============ -->
+  <rect x="20" y="60" width="200" height="310" rx="8" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="120" y="82" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Shared Steps</text>
+
+  <!-- Step 1 -->
+  <rect x="35" y="92" width="170" height="48" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <circle cx="55" cy="108" r="10" fill="#FA9D1B"/>
+  <text x="55" y="112" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#FFF">1</text>
+  <text x="120" y="106" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#333">OpenCL Init</text>
+  <text x="120" y="120" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clGetPlatformIDs, clCreateContext</text>
+
+  <line x1="120" y1="140" x2="120" y2="150" stroke="#FA9D1B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 2 -->
+  <rect x="35" y="155" width="170" height="48" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <circle cx="55" cy="171" r="10" fill="#FA9D1B"/>
+  <text x="55" y="175" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#FFF">2</text>
+  <text x="120" y="169" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#333">Build Program</text>
+  <text x="120" y="183" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clCreateProgram, clBuildProgram</text>
+
+  <line x1="120" y1="203" x2="120" y2="213" stroke="#FA9D1B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 3 -->
+  <rect x="35" y="218" width="170" height="48" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <circle cx="55" cy="234" r="10" fill="#FA9D1B"/>
+  <text x="55" y="238" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#FFF">3</text>
+  <text x="120" y="232" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#333">Create Buffers</text>
+  <text x="120" y="246" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clCreateBuffer, clEnqueueWrite</text>
+
+  <line x1="120" y1="266" x2="120" y2="276" stroke="#FA9D1B" stroke-width="1.5" marker-end="url(#arrow)"/>
+
+  <!-- Step 4 -->
+  <rect x="35" y="281" width="170" height="48" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <circle cx="55" cy="297" r="10" fill="#FA9D1B"/>
+  <text x="55" y="301" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#FFF">4</text>
+  <text x="120" y="295" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#333">Set Kernel Args</text>
+  <text x="120" y="309" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clSetKernelArg</text>
+
+  <!-- Timing -->
+  <text x="120" y="355" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="8" fill="#666">~100ms first | ~5ms cached</text>
+
+  <!-- Arrow from Steps to Decision -->
+  <line x1="220" y1="215" x2="295" y2="215" stroke="#333" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+  <!-- ============ MIDDLE: Decision Diamond ============ -->
+  <polygon points="305,215 355,175 405,215 355,255" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="355" y="212" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#FFF">host_type?</text>
+  <text x="355" y="226" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#FFF">config.json</text>
+
+  <!-- ============ UPPER BRANCH: Standard OpenCL ============ -->
+  <line x1="355" y1="175" x2="355" y2="110" stroke="#333" stroke-width="2"/>
+  <line x1="355" y1="110" x2="430" y2="110" stroke="#333" stroke-width="2" marker-end="url(#arrow-dark)"/>
+  <text x="390" y="100" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#333">"standard"</text>
+
+  <!-- Standard Execute Box -->
+  <rect x="440" y="60" width="250" height="105" rx="8" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="565" y="82" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">5a. Standard Execution</text>
+
+  <rect x="455" y="92" width="220" height="25" rx="4" fill="#FFF" stroke="#FA9D1B" stroke-width="1"/>
+  <text x="565" y="109" text-anchor="middle" font-family="Consolas, monospace" font-size="9" fill="#666">clEnqueueNDRangeKernel()</text>
+
+  <text x="460" y="135" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#666">✓ Any OpenCL GPU</text>
+  <text x="460" y="150" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#666">✓ Standard APIs, Development</text>
+
+  <!-- Arrow from Standard to Step 6 -->
+  <line x1="690" y1="110" x2="730" y2="110" stroke="#333" stroke-width="2"/>
+  <line x1="730" y1="110" x2="730" y2="215" stroke="#333" stroke-width="2"/>
+
+  <!-- ============ LOWER BRANCH: CL Extension ============ -->
+  <line x1="355" y1="255" x2="355" y2="320" stroke="#333" stroke-width="2"/>
+  <line x1="355" y1="320" x2="430" y2="320" stroke="#333" stroke-width="2" marker-end="url(#arrow-dark)"/>
+  <text x="390" y="338" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" font-weight="bold" fill="#333">"cl_extension"</text>
+
+  <!-- Extension Execute Box -->
+  <rect x="440" y="270" width="250" height="105" rx="8" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="565" y="292" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">5b. Extension Execution</text>
+
+  <rect x="455" y="301" width="220" height="42" rx="4" fill="#FFF" stroke="#333" stroke-width="1"/>
+  <text x="565" y="315" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#666">clBatchNDRangeKernelMTK()</text>
+  <text x="565" y="326" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#666">clFinalizeBatchMTK()</text>
+  <text x="565" y="337" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#666">clEnqueueBatchMTK()</text>
+
+  <text x="460" y="360" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">✓ Vendor-optimized, Production</text>
+
+  <!-- Arrow from Extension to Step 6 -->
+  <line x1="690" y1="320" x2="730" y2="320" stroke="#333" stroke-width="2"/>
+  <line x1="730" y1="320" x2="730" y2="215" stroke="#333" stroke-width="2"/>
+
+  <!-- Converge point -->
+  <line x1="730" y1="215" x2="755" y2="215" stroke="#333" stroke-width="2" marker-end="url(#arrow-dark)"/>
+
+  <!-- ============ RIGHT: Step 6 Finalize ============ -->
+  <rect x="765" y="130" width="175" height="170" rx="8" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <circle cx="852" cy="160" r="14" fill="#FA9D1B"/>
+  <text x="852" y="165" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">6</text>
+  <text x="852" y="190" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Finalize</text>
+  <text x="852" y="205" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">&amp; Release</text>
+  <text x="852" y="230" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clEnqueueRead</text>
+  <text x="852" y="245" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clReleaseMem</text>
+  <text x="852" y="260" text-anchor="middle" font-family="Consolas, monospace" font-size="7" fill="#666">clReleaseContext</text>
+  <text x="852" y="290" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="8" fill="#666">(Shared)</text>
+
+  <!-- ============ Legend Boxes (Bottom) ============ -->
+  <rect x="20" y="395" width="220" height="70" rx="6" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="1"/>
+  <text x="130" y="415" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Key Insight</text>
+  <text x="130" y="432" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#666">Only Step 5 differs: kernel execution</text>
+  <text x="130" y="450" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FA9D1B" font-weight="bold">Same kernel.cl works on both!</text>
+
+  <rect x="260" y="395" width="220" height="70" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="1"/>
+  <text x="370" y="415" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#FFF">One-Line Config Switch</text>
+  <text x="370" y="435" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#FFF">"host_type": "standard"</text>
+  <text x="370" y="455" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#FFF">"host_type": "cl_extension"</text>
+
+  <!-- Flow direction indicator -->
+  <text x="480" y="500" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#999">← Steps 1-4 → Decision → Step 5a/5b → Step 6 →</text>
+</svg>

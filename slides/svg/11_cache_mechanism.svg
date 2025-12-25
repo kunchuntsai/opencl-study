@@ -1,0 +1,132 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="9" refX="11" refY="4.5" orient="auto">
+      <polygon points="0 0, 12 4.5, 0 9" fill="#ffbb62"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="960" y="60" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#666666">OpenCL Kernel Binary Cache Mechanism</text>
+
+  <!-- ============ SAVE FLOW (Left Side) ============ -->
+  <text x="400" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#666666">SAVE FLOW</text>
+  <text x="400" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#8b7355">(First Run / Source Changed)</text>
+
+  <!-- Input: kernel.cl -->
+  <rect x="200" y="180" width="400" height="70" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="400" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">kernel.cl</text>
+  <text x="400" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666666">OpenCL source code</text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="250" x2="400" y2="285" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- Step 1: Compute Hash -->
+  <rect x="150" y="295" width="500" height="75" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="190" y="340" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">1</text>
+  <text x="400" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Compute Source Hash</text>
+  <text x="400" y="358" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">CacheComputeSourceHash()</text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="370" x2="400" y2="405" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Compile -->
+  <rect x="150" y="415" width="500" height="75" rx="12" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="190" y="460" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">2</text>
+  <text x="400" y="450" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Compile Kernel (JIT)</text>
+  <text x="400" y="478" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">clBuildProgram()</text>
+
+  <!-- Arrow -->
+  <line x1="400" y1="490" x2="400" y2="525" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: Extract & Save -->
+  <rect x="150" y="535" width="500" height="75" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="190" y="580" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">3</text>
+  <text x="400" y="570" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Extract &amp; Save Binary</text>
+  <text x="400" y="598" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">CacheSaveKernelBinary()</text>
+
+  <!-- Arrow to cache (down then right) -->
+  <line x1="400" y1="610" x2="400" y2="680" stroke="#666666" stroke-width="4"/>
+  <line x1="400" y1="680" x2="760" y2="680" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- ============ Cache Storage (Center) ============ -->
+  <rect x="780" y="620" width="360" height="140" rx="16" fill="#ffbb62" stroke="#666666" stroke-width="4"/>
+  <text x="960" y="665" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#666666">cache/</text>
+
+  <rect x="820" y="690" width="280" height="30" rx="6" fill="#fff" stroke="#666666" stroke-width="2"/>
+  <text x="960" y="712" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">{algo}_{variant}.bin</text>
+
+  <rect x="820" y="725" width="280" height="30" rx="6" fill="#fff" stroke="#666666" stroke-width="2"/>
+  <text x="960" y="747" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">{algo}_{variant}.hash</text>
+
+  <!-- ============ LOAD FLOW (Right Side) ============ -->
+  <text x="1520" y="120" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#666666">LOAD FLOW</text>
+  <text x="1520" y="155" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#8b7355">(Subsequent Runs)</text>
+
+  <!-- Input: kernel.cl for hash check -->
+  <rect x="1320" y="180" width="400" height="70" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="1520" y="215" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">kernel.cl</text>
+  <text x="1520" y="240" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666666">Check if changed</text>
+
+  <!-- Arrow -->
+  <line x1="1520" y1="250" x2="1520" y2="285" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- Step 1: Validate Cache -->
+  <rect x="1270" y="295" width="500" height="75" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="1310" y="340" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">1</text>
+  <text x="1520" y="330" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Validate Cache (Hash Check)</text>
+  <text x="1520" y="358" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">CacheKernelIsValid()</text>
+
+  <!-- Arrow from check to decision -->
+  <line x1="1520" y1="370" x2="1520" y2="405" stroke="#666666" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- Decision Diamond -->
+  <polygon points="1520,420 1620,480 1520,540 1420,480" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="1520" y="485" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Match?</text>
+
+  <!-- Yes path (down) -->
+  <line x1="1520" y1="540" x2="1520" y2="580" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="1555" y="565" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Yes</text>
+
+  <!-- Step 2: Load Binary -->
+  <rect x="1270" y="590" width="500" height="75" rx="12" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="1310" y="635" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">2</text>
+  <text x="1520" y="625" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Load Binary (Fast!)</text>
+  <text x="1520" y="653" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">clCreateProgramWithBinary()</text>
+
+  <!-- Arrow from cache to load (L-shape: right then up) -->
+  <line x1="1140" y1="690" x2="1200" y2="690" stroke="#666666" stroke-width="4"/>
+  <line x1="1200" y1="690" x2="1200" y2="627" stroke="#666666" stroke-width="4"/>
+  <line x1="1200" y1="627" x2="1265" y2="627" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- No path - recompile (right then down, across, and up to save flow) -->
+  <line x1="1620" y1="480" x2="1750" y2="480" stroke="#666666" stroke-width="3"/>
+  <text x="1685" y="465" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">No</text>
+  <line x1="1750" y1="480" x2="1750" y2="830" stroke="#666666" stroke-width="3" stroke-dasharray="8,4"/>
+  <line x1="1750" y1="830" x2="400" y2="830" stroke="#666666" stroke-width="3" stroke-dasharray="8,4"/>
+  <line x1="400" y1="830" x2="400" y2="615" stroke="#666666" stroke-width="3" stroke-dasharray="8,4" marker-end="url(#arrow)"/>
+  <text x="1080" y="855" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#666666">Source changed -> Recompile (go to Save Flow)</text>
+
+  <!-- ============ Performance Box ============ -->
+  <rect x="100" y="900" width="400" height="140" rx="12" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="300" y="940" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">Performance Gain</text>
+  <text x="300" y="975" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#666666">First run: ~100ms (compile)</text>
+  <text x="300" y="1005" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#666666">Cached: ~5ms (load binary)</text>
+  <text x="300" y="1035" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">20x faster!</text>
+
+  <!-- Code Reference Box -->
+  <rect x="1420" y="900" width="400" height="140" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="1620" y="940" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Code Reference</text>
+  <text x="1620" y="975" text-anchor="middle" font-family="monospace" font-size="18" fill="#666666">cache_manager.c</text>
+  <text x="1620" y="1005" text-anchor="middle" font-family="monospace" font-size="18" fill="#666666">opencl_utils.c:438-519</text>
+  <text x="1620" y="1035" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666666">Hash: FNV-1a (16 bytes)</text>
+
+  <!-- Center info -->
+  <rect x="660" y="900" width="600" height="140" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="960" y="940" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">How It Works</text>
+  <text x="960" y="975" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#666666">1. Hash source code to detect changes</text>
+  <text x="960" y="1005" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#666666">2. If hash matches -> load cached binary</text>
+  <text x="960" y="1035" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#666666">3. If hash differs -> recompile and update cache</text>
+</svg>

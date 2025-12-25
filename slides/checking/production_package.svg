@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220">
+  <!-- Background -->
+  <rect width="520" height="220" fill="#FFFFFF"/>
+  
+  <!-- Title -->
+  <text x="30" y="35" font-family="Calibri, Arial, sans-serif" font-size="18" font-weight="bold" fill="#333">Production Package:</text>
+  
+  <!-- Code block background -->
+  <rect x="20" y="50" width="480" height="150" rx="8" fill="#3C3C3C"/>
+  
+  <!-- Directory tree -->
+  <text x="40" y="85" font-family="Consolas, monospace" font-size="16" fill="#98C379">dist/</text>
+  <text x="40" y="115" font-family="Consolas, monospace" font-size="16" fill="#98C379">├── <tspan fill="#E06C75">opencl_host</tspan></text>
+  <text x="250" y="115" font-family="Consolas, monospace" font-size="16" fill="#98C379"># Executor binary</text>
+  <text x="40" y="145" font-family="Consolas, monospace" font-size="16" fill="#98C379">├── kernel.bin</text>
+  <text x="250" y="145" font-family="Consolas, monospace" font-size="16" fill="#98C379"># Compiled kernel</text>
+  <text x="40" y="175" font-family="Consolas, monospace" font-size="16" fill="#98C379">└── config.json</text>
+  <text x="250" y="175" font-family="Consolas, monospace" font-size="16" fill="#98C379"># Runtime config</text>
+</svg>

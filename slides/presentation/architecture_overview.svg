@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FA9D1B"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="540" fill="#FFFFFF"/>
+
+  <!-- USER SPACE (Left) -->
+  <rect x="40" y="60" width="400" height="420" rx="12" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="3"/>
+  
+  <!-- User Space Header -->
+  <rect x="40" y="60" width="400" height="45" rx="12" fill="#FA9D1B"/>
+  <rect x="40" y="90" width="400" height="15" fill="#FA9D1B"/>
+  <text x="240" y="92" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFFFFF">USER SPACE (You Focus Here)</text>
+
+  <!-- User Files - Horizontal Layout -->
+  <rect x="60" y="125" width="115" height="100" rx="8" fill="#FFF" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="117" y="160" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">kernel.cl</text>
+  <text x="117" y="180" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">GPU Kernel</text>
+  <text x="117" y="210" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#999">__kernel void...</text>
+
+  <rect x="185" y="125" width="115" height="100" rx="8" fill="#FFF" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="242" y="160" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">config.json</text>
+  <text x="242" y="180" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">Configuration</text>
+  <text x="242" y="210" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#999">work_size, args</text>
+
+  <rect x="310" y="125" width="115" height="100" rx="8" fill="#FFF" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="367" y="160" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold" fill="#333">c_ref.c</text>
+  <text x="367" y="180" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">CPU Reference</text>
+  <text x="367" y="210" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#999">void AlgoRef()</text>
+
+  <!-- Benefits List -->
+  <text x="70" y="260" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">What You Do:</text>
+  <text x="70" y="280" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">✓ Write kernel optimization</text>
+  <text x="70" y="298" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">✓ Configure JSON settings</text>
+  <text x="70" y="316" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">✓ Create CPU reference</text>
+  <text x="70" y="334" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">✓ Run and analyze results</text>
+
+  <!-- Command Box -->
+  <rect x="60" y="360" width="365" height="50" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="242" y="390" text-anchor="middle" font-family="Consolas, monospace" font-size="14" font-weight="bold" fill="#FFF">./opencl_host &lt;algo&gt; &lt;variant&gt;</text>
+
+  <!-- Benefits on right side -->
+  <text x="230" y="260" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">Benefits:</text>
+  <text x="230" y="280" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">• Zero host code</text>
+  <text x="230" y="298" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">• Instant comparison</text>
+  <text x="230" y="316" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">• Platform switching</text>
+  <text x="230" y="334" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">• Auto-verification</text>
+
+  <!-- Arrow -->
+  <line x1="450" y1="270" x2="510" y2="270" stroke="#333" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <!-- FRAMEWORK (Right) -->
+  <rect x="520" y="60" width="400" height="420" rx="12" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="3"/>
+  
+  <!-- Framework Header -->
+  <rect x="520" y="60" width="400" height="45" rx="12" fill="#FA9D1B"/>
+  <rect x="520" y="90" width="400" height="15" fill="#FA9D1B"/>
+  <text x="720" y="92" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFF">FRAMEWORK (We Handle This)</text>
+
+  <!-- Framework Components Grid -->
+  <rect x="540" y="125" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="625" y="157" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">OpenCL Init</text>
+
+  <rect x="730" y="125" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="815" y="157" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Kernel Compilation</text>
+
+  <rect x="540" y="195" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="625" y="227" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Memory Mgmt</text>
+
+  <rect x="730" y="195" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="815" y="227" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Argument Binding</text>
+
+  <rect x="540" y="265" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="625" y="297" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Execution</text>
+
+  <rect x="730" y="265" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="815" y="297" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Verification</text>
+
+  <rect x="540" y="335" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="625" y="367" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Binary Caching</text>
+
+  <rect x="730" y="335" width="170" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="815" y="367" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Result Reporting</text>
+
+  <!-- Output -->
+  <rect x="540" y="410" width="360" height="55" rx="8" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="720" y="435" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="14" font-weight="bold" fill="#FFF">Results: Metrics | Verification | Output</text>
+  <text x="720" y="455" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#FFF">Performance data + correctness check</text>
+</svg>
