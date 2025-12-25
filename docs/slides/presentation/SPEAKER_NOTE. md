@@ -1,0 +1,43 @@
+# Objective
+- Introduce MvpuExample - A Zero OpenCL Host Code Framework
+- How we will create the auto-generation tool on top of the idea
+
+
+# Storytelling Guide
+
+## Benefits
+OpenCL Host Framework
+- Zero Host Code
+- Instant Comparison
+- Platform Switching (Portability)
+- Binary Caching
+- Easy Extension: JSON Config
+Two Phases Architecture
+- why we need two-phase architecture
+- Auto-generation: Host code offline compiler
+
+## Storyline
+Part I: MvpuExample - OpenCL Host Framework
+// Introduce the problem we're gonna solve, how we solve it and what's the benefit
+
+- The problem we solve
+- introduce features & benefits
+- User journey: Introduce simplicity of each step
+- How we achieve this: High-Level Architecture
+- How we achieve this: Align the opencl host flow
+- How we achieve this: Reveal the differences between standard and cl extension; easy switching so don't worries
+- How we achieve this: Caching mechanism [it will be helpful for the Part II]
+- How we achieve this: Configuration system [we will notice audience that the development keeps going and we will make it simpler in the future]
+- Part I Recap
+
+Part II: Auto-Generation Mechanism
+// Introduce how we (will) achieve the cross-platoform (standard/cl_ext) support
+
+- Introduce what problem we solve and two-phase architecture
+- Compilation phase: What inputs/outputs are, what will be in the binary [TODO#1]
+- Execution phase: How many executables [TODO#2]
+- Cross-Platform Deliverable: What we will deliver and how the user use it
+
+### TODO
+TODO#1: Need to confirm how to explain batch binary, what will be inside (if it's okay to reveal)
+TODO#2: Output of compilation phase: GPU-exe(linux), MVPU-exe(linux, android)

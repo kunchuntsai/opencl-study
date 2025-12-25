@@ -180,7 +180,7 @@ cat config/relu.json      # See variants for relu
 │                                                                     │
 │   Standard OpenCL                    CL Extension                   │
 │   ──────────────                    ────────────                    │
-│   • Development & debugging          • Production on target HW     │
+│   • Development & debugging          • Production on target HW      │
 │   • Cross-platform testing           • Vendor-specific optimizations│
 │   • Algorithm validation             • Custom memory operations     │
 │   • Any GPU vendor                   • Specific accelerator         │
@@ -477,10 +477,10 @@ done
 │          │                                                          │
 │          ▼                                                          │
 │   ┌─────────────────────────────────────────┐                       │
-│   │         opencl_host (monolithic)         │                      │
-│   │  • Compile kernel (JIT)                  │                      │
-│   │  • Execute kernel                        │                      │
-│   │  • Verify results                        │                      │
+│   │         opencl_host (monolithic)        │                       │
+│   │  • Compile kernel (JIT)                 │                       │
+│   │  • Execute kernel                       │                       │
+│   │  • Verify results                       │                       │
 │   └─────────────────────────────────────────┘                       │
 │          │                                                          │
 │          ▼                                                          │
@@ -501,10 +501,10 @@ done
 │          │                                                          │
 │          ▼                                                          │
 │   ┌─────────────────────────────────────────┐                       │
-│   │         cl_compiler (new)                │                      │
-│   │  • Parse config                          │                      │
-│   │  • Compile kernel to binary              │                      │
-│   │  • Generate host configuration           │                      │
+│   │         cl_compiler (new)               │                       │
+│   │  • Parse config                         │                       │
+│   │  • Compile kernel to binary             │                       │
+│   │  • Generate host configuration          │                       │
 │   └─────────────────────────────────────────┘                       │
 │          │                                                          │
 │          ▼                                                          │
@@ -518,10 +518,10 @@ done
 │          │                                                          │
 │          ▼                                                          │
 │   ┌─────────────────────────────────────────┐                       │
-│   │         cl_executor (new)                │                      │
-│   │  • Load pre-compiled binary              │                      │
-│   │  • Execute with input data               │                      │
-│   │  • Return results                        │                      │
+│   │         cl_executor (new)               │                       │
+│   │  • Load pre-compiled binary             │                       │
+│   │  • Execute with input data              │                       │
+│   │  • Return results                       │                       │
 │   └─────────────────────────────────────────┘                       │
 │          │                                                          │
 │          ▼                                                          │
@@ -564,22 +564,22 @@ done
 │   PROCESSING                                                        │
 │   ──────────                                                        │
 │   ┌─────────────────────────────────────────┐                       │
-│   │           cl_compiler                    │                      │
+│   │           cl_compiler                   │                       │
 │   ├─────────────────────────────────────────┤                       │
-│   │ 1. Parse config.json                     │                      │
-│   │    - Extract kernel function name        │                      │
-│   │    - Extract work dimensions             │                      │
-│   │    - Extract argument specifications     │                      │
-│   │                                          │                      │
-│   │ 2. Compile kernel.cl                     │                      │
-│   │    - OpenCL offline compilation          │                      │
-│   │    - Target-specific optimizations       │                      │
-│   │    - Generate platform binary            │                      │
-│   │                                          │                      │
-│   │ 3. Generate host configuration           │                      │
-│   │    - Serialize argument bindings         │                      │
-│   │    - Serialize work size info            │                      │
-│   │    - Create binary metadata              │                      │
+│   │ 1. Parse config.json                    │                       │
+│   │    - Extract kernel function name       │                       │
+│   │    - Extract work dimensions            │                       │
+│   │    - Extract argument specifications    │                       │
+│   │                                         │                       │
+│   │ 2. Compile kernel.cl                    │                       │
+│   │    - OpenCL offline compilation         │                       │
+│   │    - Target-specific optimizations      │                       │
+│   │    - Generate platform binary           │                       │
+│   │                                         │                       │
+│   │ 3. Generate host configuration          │                       │
+│   │    - Serialize argument bindings        │                       │
+│   │    - Serialize work size info           │                       │
+│   │    - Create binary metadata             │                       │
 │   └─────────────────────────────────────────┘                       │
 │                   │                                                 │
 │                   ▼                                                 │
@@ -684,28 +684,28 @@ cl_compiler --kernel relu0.cl \
 │   PROCESSING                                                        │
 │   ──────────                                                        │
 │   ┌─────────────────────────────────────────┐                       │
-│   │           cl_executor                    │                      │
+│   │           cl_executor                   │                       │
 │   ├─────────────────────────────────────────┤                       │
-│   │ 1. Initialize OpenCL                     │                      │
-│   │    - Create context & queue              │                      │
-│   │    - NO compilation needed               │                      │
-│   │                                          │                      │
-│   │ 2. Load pre-compiled binary              │                      │
-│   │    - clCreateProgramWithBinary()         │                      │
-│   │    - Instant kernel ready                │                      │
-│   │                                          │                      │
-│   │ 3. Bind arguments (from host_config)     │                      │
-│   │    - Create buffers                      │                      │
-│   │    - Upload input data                   │                      │
-│   │    - Set kernel arguments                │                      │
-│   │                                          │                      │
-│   │ 4. Execute                               │                      │
-│   │    - clEnqueueNDRangeKernel()            │                      │
-│   │    - Wait for completion                 │                      │
-│   │                                          │                      │
-│   │ 5. Read results                          │                      │
-│   │    - Download output buffer              │                      │
-│   │    - Return to caller                    │                      │
+│   │ 1. Initialize OpenCL                    │                       │
+│   │    - Create context & queue             │                       │
+│   │    - NO compilation needed              │                       │
+│   │                                         │                       │
+│   │ 2. Load pre-compiled binary             │                       │
+│   │    - clCreateProgramWithBinary()        │                       │
+│   │    - Instant kernel ready               │                       │
+│   │                                         │                       │
+│   │ 3. Bind arguments (from host_config)    │                       │
+│   │    - Create buffers                     │                       │
+│   │    - Upload input data                  │                       │
+│   │    - Set kernel arguments               │                       │
+│   │                                         │                       │
+│   │ 4. Execute                              │                       │
+│   │    - clEnqueueNDRangeKernel()           │                       │
+│   │    - Wait for completion                │                       │
+│   │                                         │                       │
+│   │ 5. Read results                         │                       │
+│   │    - Download output buffer             │                       │
+│   │    - Return to caller                   │                       │
 │   └─────────────────────────────────────────┘                       │
 │                            │                                        │
 │                            ▼                                        │

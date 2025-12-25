@@ -1,0 +1,88 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="960" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#666666">Standard CL vs CL Extension</text>
+  <text x="960" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#8b7355">Two platforms, one framework</text>
+
+  <!-- ============ LEFT: Standard OpenCL ============ -->
+  <rect x="100" y="130" width="800" height="900" rx="24" fill="#fff8f0" stroke="#ffbb62" stroke-width="4"/>
+
+  <!-- Header -->
+  <rect x="100" y="130" width="800" height="80" rx="24" fill="#ffbb62"/>
+  <rect x="100" y="180" width="800" height="30" fill="#ffbb62"/>
+  <text x="500" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#fff">Standard OpenCL</text>
+
+  <!-- Config -->
+  <rect x="140" y="240" width="720" height="80" rx="12" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="500" y="275" text-anchor="middle" font-family="monospace" font-size="24" fill="#cc8800">"host_type": "standard"</text>
+  <text x="500" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">In config.json kernel definition</text>
+
+  <!-- API -->
+  <rect x="140" y="350" width="720" height="120" rx="16" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="500" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">API Used</text>
+  <text x="500" y="435" text-anchor="middle" font-family="monospace" font-size="18" fill="#cc8800">clEnqueueNDRangeKernel()</text>
+  <text x="500" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Standard OpenCL 1.2+ API</text>
+
+  <!-- Compatibility -->
+  <rect x="140" y="500" width="720" height="140" rx="16" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="500" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">Compatibility</text>
+  <text x="180" y="585" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Works on any OpenCL-capable GPU</text>
+  <text x="180" y="615" font-family="Arial, sans-serif" font-size="18" fill="#666666">* NVIDIA, AMD, Intel, ARM Mali, etc.</text>
+
+  <!-- Use Cases -->
+  <rect x="140" y="670" width="720" height="160" rx="16" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="500" y="715" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">Best For</text>
+  <text x="180" y="755" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Development &amp; debugging</text>
+  <text x="180" y="785" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Cross-platform testing</text>
+  <text x="180" y="815" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Algorithm validation</text>
+
+  <!-- Performance -->
+  <rect x="140" y="860" width="720" height="140" rx="16" fill="#ffe4c4"/>
+  <text x="500" y="905" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#cc8800">Performance</text>
+  <text x="500" y="945" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#666666">Good baseline performance</text>
+  <text x="500" y="975" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Standard optimizations apply</text>
+
+  <!-- ============ CENTER: VS ============ -->
+  <circle cx="960" cy="540" r="60" fill="#ffbb62"/>
+  <text x="960" y="555" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#fff">vs</text>
+
+  <!-- ============ RIGHT: CL Extension ============ -->
+  <rect x="1020" y="130" width="800" height="900" rx="24" fill="#fff3e0" stroke="#ff9800" stroke-width="4"/>
+
+  <!-- Header -->
+  <rect x="1020" y="130" width="800" height="80" rx="24" fill="#ff9800"/>
+  <rect x="1020" y="180" width="800" height="30" fill="#ff9800"/>
+  <text x="1420" y="185" text-anchor="middle" font-family="Arial, sans-serif" font-size="36" font-weight="bold" fill="#fff">CL Extension</text>
+
+  <!-- Config -->
+  <rect x="1060" y="240" width="720" height="80" rx="12" fill="#fff" stroke="#ff9800" stroke-width="2"/>
+  <text x="1420" y="275" text-anchor="middle" font-family="monospace" font-size="24" fill="#ff9800">"host_type": "cl_extension"</text>
+  <text x="1420" y="305" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">In config.json kernel definition</text>
+
+  <!-- API -->
+  <rect x="1060" y="350" width="720" height="120" rx="16" fill="#fff" stroke="#ff9800" stroke-width="2"/>
+  <text x="1420" y="395" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">API Used</text>
+  <text x="1420" y="435" text-anchor="middle" font-family="monospace" font-size="18" fill="#ff9800">Vendor Extension APIs</text>
+  <text x="1420" y="460" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Hardware-specific optimizations</text>
+
+  <!-- Compatibility -->
+  <rect x="1060" y="500" width="720" height="140" rx="16" fill="#fff" stroke="#ff9800" stroke-width="2"/>
+  <text x="1420" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">Compatibility</text>
+  <text x="1100" y="585" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Vendor-specific hardware only</text>
+  <text x="1100" y="615" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Requires matching GPU + driver</text>
+
+  <!-- Use Cases -->
+  <rect x="1060" y="670" width="720" height="160" rx="16" fill="#fff" stroke="#ff9800" stroke-width="2"/>
+  <text x="1420" y="715" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">Best For</text>
+  <text x="1100" y="755" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Production deployment</text>
+  <text x="1100" y="785" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Maximum performance</text>
+  <text x="1100" y="815" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Hardware-specific tuning</text>
+
+  <!-- Performance -->
+  <rect x="1060" y="860" width="720" height="140" rx="16" fill="#ffe0b2"/>
+  <text x="1420" y="905" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#ff9800">Performance</text>
+  <text x="1420" y="945" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#666666">Maximum hardware utilization</text>
+  <text x="1420" y="975" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666">Vendor-optimized code paths</text>
+</svg>

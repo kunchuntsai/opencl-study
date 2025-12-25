@@ -1,0 +1,97 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 540">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FA9D1B"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="540" fill="#FFFFFF"/>
+
+  <!-- Title -->
+  <text x="480" y="35" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="22" font-weight="bold" fill="#333">Two-Phase Architecture: Compile Once, Run Anywhere</text>
+
+  <!-- Phase 1: Compilation -->
+  <rect x="40" y="70" width="420" height="440" rx="12" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="3"/>
+  <rect x="40" y="70" width="420" height="45" rx="12" fill="#FA9D1B"/>
+  <rect x="40" y="100" width="420" height="15" fill="#FA9D1B"/>
+  <text x="250" y="100" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFF">PHASE 1: Compilation</text>
+  <text x="250" y="135" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" fill="#666">Linux Development Machine</text>
+
+  <!-- Compilation Inputs -->
+  <text x="60" y="165" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Inputs:</text>
+  <rect x="60" y="175" width="180" height="40" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="150" y="200" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" fill="#333">kernel.cl (source)</text>
+
+  <rect x="260" y="175" width="180" height="40" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="350" y="200" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" fill="#333">config.json</text>
+
+  <!-- Arrow down -->
+  <line x1="250" y1="215" x2="250" y2="250" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Compilation Process -->
+  <rect x="100" y="255" width="300" height="50" rx="8" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="250" y="280" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#FFF">clCreateProgramWithSource()</text>
+  <text x="250" y="295" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">Compile once, with HW Specific Library</text>
+
+  <!-- Arrow down -->
+  <line x1="250" y1="305" x2="250" y2="340" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Compilation Outputs -->
+  <text x="60" y="360" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Outputs:</text>
+  <rect x="60" y="370" width="180" height="50" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="150" y="393" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">kernel.bin</text>
+  <text x="150" y="410" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">Compiled binary</text>
+
+  <rect x="260" y="370" width="180" height="50" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="350" y="393" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">opencl_host</text>
+  <text x="350" y="410" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">Android executable</text>
+
+  <!-- Benefits -->
+  <rect x="60" y="440" width="380" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1"/>
+  <text x="250" y="460" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#333">✓ No source code on target</text>
+  <text x="250" y="478" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#333">✓ Pre-compiled for specific hardware</text>
+
+  <!-- Arrow between phases -->
+  <line x1="460" y1="290" x2="500" y2="290" stroke="#FA9D1B" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- Phase 2: Execution -->
+  <rect x="500" y="70" width="420" height="440" rx="12" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="3"/>
+  <rect x="500" y="70" width="420" height="45" rx="12" fill="#FA9D1B"/>
+  <rect x="500" y="100" width="420" height="15" fill="#FA9D1B"/>
+  <text x="710" y="100" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="18" font-weight="bold" fill="#FFF">PHASE 2: Execution</text>
+  <text x="710" y="135" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" fill="#666">Linux or Android Target</text>
+
+  <!-- Execution Inputs -->
+  <text x="520" y="165" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Inputs:</text>
+  <rect x="520" y="175" width="120" height="40" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="580" y="200" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" fill="#333">kernel.bin</text>
+
+  <rect x="655" y="175" width="120" height="40" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="715" y="200" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" fill="#333">config.json</text>
+
+  <rect x="790" y="175" width="110" height="40" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1.5"/>
+  <text x="845" y="200" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" fill="#333">input.bin</text>
+
+  <!-- Arrow down -->
+  <line x1="710" y1="215" x2="710" y2="250" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Execution Process -->
+  <rect x="560" y="255" width="300" height="50" rx="8" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="710" y="280" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#FFF">clCreateProgramWithBinary()</text>
+  <text x="710" y="295" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">Load pre-compiled, instant start</text>
+
+  <!-- Arrow down -->
+  <line x1="710" y1="305" x2="710" y2="340" stroke="#333" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Execution Output -->
+  <text x="520" y="360" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Output:</text>
+  <rect x="560" y="370" width="300" height="50" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="710" y="393" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">result.bin</text>
+  <text x="710" y="410" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">Processed output + metrics</text>
+
+  <!-- Timing comparison -->
+  <rect x="520" y="440" width="380" height="55" rx="6" fill="#FFF" stroke="#FA9D1B" stroke-width="1"/>
+  <text x="710" y="460" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#333">✓ Zero compile time (~5ms vs ~105ms)</text>
+  <text x="710" y="478" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#333">✓ Same binary runs on Linux &amp; Android</text>
+</svg>

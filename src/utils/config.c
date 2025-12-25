@@ -852,8 +852,8 @@ int ParseConfig(const char* filename, Config* config) {
         }
     }
 
-    (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n", filename,
-                 config->num_kernels, config->custom_buffer_count, config->scalar_arg_count);
+    // (void)printf("Parsed config file: %s (%d kernels, %d custom buffers, %d scalars)\n", filename,
+    //              config->num_kernels, config->custom_buffer_count, config->scalar_arg_count);
     return 0;
 }
 

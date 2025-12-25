@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <marker id="arrow" markerWidth="12" markerHeight="9" refX="11" refY="4.5" orient="auto">
+      <polygon points="0 0, 12 4.5, 0 9" fill="#ffbb62"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="960" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#666666">Standard OpenCL vs CL Extension</text>
+  <text x="960" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#8b7355">Shared flow with branching only at kernel execution</text>
+
+  <!-- ============ SHARED STEPS (Top Section) ============ -->
+  <rect x="560" y="120" width="800" height="400" rx="16" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="960" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="28" font-weight="bold" fill="#666666">Shared Steps (Both Paths)</text>
+
+  <!-- Step 1: Init -->
+  <rect x="600" y="180" width="720" height="60" rx="8" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="640" y="218" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">1</text>
+  <text x="720" y="205" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">OpenCL Init</text>
+  <text x="720" y="230" font-family="monospace" font-size="14" fill="#666666">clGetPlatformIDs, clGetDeviceIDs, clCreateContext</text>
+
+  <line x1="960" y1="240" x2="960" y2="258" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 2: Build -->
+  <rect x="600" y="263" width="720" height="60" rx="8" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="640" y="301" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">2</text>
+  <text x="720" y="288" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Build Program</text>
+  <text x="720" y="313" font-family="monospace" font-size="14" fill="#666666">clCreateProgramWithSource, clBuildProgram</text>
+
+  <line x1="960" y1="323" x2="960" y2="341" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 3: Buffers -->
+  <rect x="600" y="346" width="720" height="60" rx="8" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="640" y="384" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">3</text>
+  <text x="720" y="371" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Create Buffers</text>
+  <text x="720" y="396" font-family="monospace" font-size="14" fill="#666666">clCreateBuffer, clEnqueueWriteBuffer</text>
+
+  <line x1="960" y1="406" x2="960" y2="424" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Step 4: Args -->
+  <rect x="600" y="429" width="720" height="60" rx="8" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="640" y="467" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">4</text>
+  <text x="720" y="454" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Set Kernel Arguments</text>
+  <text x="720" y="479" font-family="monospace" font-size="14" fill="#666666">clSetKernelArg</text>
+
+  <line x1="960" y1="489" x2="960" y2="507" stroke="#666666" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Arrow to decision point -->
+  <line x1="960" y1="520" x2="960" y2="555" stroke="#666666" stroke-width="4"/>
+
+  <!-- ============ Decision Diamond ============ -->
+  <polygon points="960,560 1080,630 960,700 840,630" fill="#ffbb62" stroke="#666666" stroke-width="4"/>
+  <text x="960" y="620" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">host_type?</text>
+  <text x="960" y="650" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">config.json</text>
+
+  <!-- ============ LEFT BRANCH: Standard OpenCL ============ -->
+  <line x1="840" y1="630" x2="500" y2="630" stroke="#666666" stroke-width="4"/>
+  <line x1="500" y1="630" x2="500" y2="710" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="670" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">"standard"</text>
+
+  <!-- Standard Execute Box -->
+  <rect x="250" y="720" width="500" height="130" rx="16" fill="#fff8f0" stroke="#ffbb62" stroke-width="4"/>
+  <text x="500" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#666666">5a. Standard Execution</text>
+
+  <rect x="290" y="780" width="420" height="45" rx="8" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="500" y="810" text-anchor="middle" font-family="monospace" font-size="20" fill="#666666">clEnqueueNDRangeKernel()</text>
+
+  <!-- ============ RIGHT BRANCH: CL Extension ============ -->
+  <line x1="1080" y1="630" x2="1420" y2="630" stroke="#666666" stroke-width="4"/>
+  <line x1="1420" y1="630" x2="1420" y2="710" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="1250" y="610" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">"cl_extension"</text>
+
+  <!-- Extension Execute Box -->
+  <rect x="1170" y="720" width="500" height="130" rx="16" fill="#ffbb62" stroke="#666666" stroke-width="4"/>
+  <text x="1420" y="765" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#666666">5b. Extension Execution</text>
+
+  <rect x="1210" y="780" width="420" height="45" rx="8" fill="#fff" stroke="#666666" stroke-width="2"/>
+  <text x="1420" y="810" text-anchor="middle" font-family="monospace" font-size="20" fill="#666666">ExtensionEnqueueKernel()</text>
+
+  <!-- ============ Converge Back ============ -->
+  <line x1="500" y1="850" x2="500" y2="900" stroke="#666666" stroke-width="4"/>
+  <line x1="500" y1="900" x2="960" y2="900" stroke="#666666" stroke-width="4"/>
+  <line x1="1420" y1="850" x2="1420" y2="900" stroke="#666666" stroke-width="4"/>
+  <line x1="1420" y1="900" x2="960" y2="900" stroke="#666666" stroke-width="4"/>
+  <line x1="960" y1="900" x2="960" y2="930" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- ============ SHARED: Finalize ============ -->
+  <rect x="660" y="940" width="600" height="55" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="720" y="975" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#666666">6</text>
+  <text x="960" y="975" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Finalize &amp; Release (Shared)</text>
+
+  <!-- ============ Legend ============ -->
+  <rect x="60" y="930" width="280" height="120" rx="10" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="200" y="965" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Key Insight</text>
+  <text x="200" y="995" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666666">Only Step 5 differs:</text>
+  <text x="200" y="1020" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666666">kernel execution method</text>
+  <text x="200" y="1045" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#666666">All other steps shared</text>
+
+  <!-- Compile flag note -->
+  <rect x="1580" y="930" width="280" height="120" rx="10" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="1720" y="965" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Compile Flag</text>
+  <text x="1720" y="995" text-anchor="middle" font-family="monospace" font-size="18" fill="#666666">-DHOST_TYPE=0</text>
+  <text x="1720" y="1020" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#8b7355">(standard)</text>
+  <text x="1720" y="1045" text-anchor="middle" font-family="monospace" font-size="18" fill="#666666">-DHOST_TYPE=1</text>
+</svg>

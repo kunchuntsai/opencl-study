@@ -26,6 +26,7 @@
 #endif
 
 #include <stddef.h>
+#include "cl_extension_api.h"
 
 /* Cache base directory (organized per algorithm) */
 #define CACHE_BASE_DIR "out"
@@ -159,6 +160,8 @@ int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name, unsig
  */
 int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name, const char* source_file);
 
+
+int CacheSaveCustomBinary(CLExtensionContext* ctx);
 /* ============================================================================
  * GOLDEN SAMPLE CACHING
  * ============================================================================

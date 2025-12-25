@@ -1,0 +1,92 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="960" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#666666">What to Ship</text>
+  <text x="960" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#8b7355">Minimal production deployment package</text>
+
+  <!-- ============ LEFT: Required Files ============ -->
+  <rect x="100" y="140" width="800" height="800" rx="24" fill="#fff8f0" stroke="#ffbb62" stroke-width="4"/>
+
+  <!-- Header -->
+  <rect x="100" y="140" width="800" height="80" rx="24" fill="#ffbb62"/>
+  <rect x="100" y="190" width="800" height="30" fill="#ffbb62"/>
+  <text x="500" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#fff">Production Package</text>
+
+  <!-- Folder structure -->
+  <rect x="150" y="250" width="700" height="400" rx="16" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+
+  <text x="190" y="300" font-family="monospace" font-size="28" fill="#666666">dist/</text>
+
+  <!-- File 1: opencl_host -->
+  <rect x="220" y="325" width="580" height="80" rx="12" fill="#ffe4c4"/>
+  <text x="250" y="360" font-family="monospace" font-size="24" fill="#cc8800">├── opencl_host</text>
+  <text x="250" y="390" font-family="Arial, sans-serif" font-size="16" fill="#666666">    Executor binary (Linux or Android ARM)</text>
+
+  <!-- File 2: kernel.bin -->
+  <rect x="220" y="420" width="580" height="80" rx="12" fill="#ffe4c4"/>
+  <text x="250" y="455" font-family="monospace" font-size="24" fill="#cc8800">├── kernel.bin</text>
+  <text x="250" y="485" font-family="Arial, sans-serif" font-size="16" fill="#666666">    Compiled kernel (device-specific)</text>
+
+  <!-- File 3: config.json -->
+  <rect x="220" y="515" width="580" height="80" rx="12" fill="#ffe4c4"/>
+  <text x="250" y="550" font-family="monospace" font-size="24" fill="#cc8800">└── config.json</text>
+  <text x="250" y="580" font-family="Arial, sans-serif" font-size="16" fill="#666666">    Runtime configuration</text>
+
+  <!-- Size info -->
+  <rect x="150" y="680" width="700" height="80" rx="12" fill="#ffbb62"/>
+  <text x="500" y="720" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#fff">Total: ~500KB - 2MB</text>
+  <text x="500" y="750" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#fff">Minimal footprint for embedded deployment</text>
+
+  <!-- Benefits -->
+  <text x="150" y="810" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#cc8800">Benefits:</text>
+  <text x="170" y="845" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Small package size</text>
+  <text x="170" y="875" font-family="Arial, sans-serif" font-size="18" fill="#666666">* No source code exposure</text>
+  <text x="170" y="905" font-family="Arial, sans-serif" font-size="18" fill="#666666">* Fast startup (~5ms)</text>
+
+  <!-- ============ RIGHT: NOT Required ============ -->
+  <rect x="1020" y="140" width="800" height="800" rx="24" fill="#ffebee" stroke="#ef5350" stroke-width="4"/>
+
+  <!-- Header -->
+  <rect x="1020" y="140" width="800" height="80" rx="24" fill="#ef5350"/>
+  <rect x="1020" y="190" width="800" height="30" fill="#ef5350"/>
+  <text x="1420" y="195" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#fff">NOT Required in Production</text>
+
+  <!-- Excluded items -->
+  <rect x="1070" y="250" width="700" height="480" rx="16" fill="#fff" stroke="#ef5350" stroke-width="2"/>
+
+  <!-- Excluded 1: Source -->
+  <rect x="1100" y="280" width="640" height="90" rx="12" fill="#ffcdd2"/>
+  <line x1="1100" y1="325" x2="1740" y2="325" stroke="#ef5350" stroke-width="3"/>
+  <text x="1130" y="320" font-family="monospace" font-size="22" fill="#e57373" text-decoration="line-through">kernel.cl</text>
+  <text x="1130" y="355" font-family="Arial, sans-serif" font-size="16" fill="#666666">Source code not needed - already compiled</text>
+
+  <!-- Excluded 2: Headers -->
+  <rect x="1100" y="385" width="640" height="90" rx="12" fill="#ffcdd2"/>
+  <line x1="1100" y1="430" x2="1740" y2="430" stroke="#ef5350" stroke-width="3"/>
+  <text x="1130" y="425" font-family="monospace" font-size="22" fill="#e57373" text-decoration="line-through">include/</text>
+  <text x="1130" y="460" font-family="Arial, sans-serif" font-size="16" fill="#666666">Header files not needed at runtime</text>
+
+  <!-- Excluded 3: Build tools -->
+  <rect x="1100" y="490" width="640" height="90" rx="12" fill="#ffcdd2"/>
+  <line x1="1100" y1="535" x2="1740" y2="535" stroke="#ef5350" stroke-width="3"/>
+  <text x="1130" y="530" font-family="monospace" font-size="22" fill="#e57373" text-decoration="line-through">Makefile, build scripts</text>
+  <text x="1130" y="565" font-family="Arial, sans-serif" font-size="16" fill="#666666">Build tools not needed - pre-built</text>
+
+  <!-- Excluded 4: Dev dependencies -->
+  <rect x="1100" y="595" width="640" height="90" rx="12" fill="#ffcdd2"/>
+  <line x1="1100" y1="640" x2="1740" y2="640" stroke="#ef5350" stroke-width="3"/>
+  <text x="1130" y="635" font-family="monospace" font-size="22" fill="#e57373" text-decoration="line-through">OpenCL SDK, compilers</text>
+  <text x="1130" y="670" font-family="Arial, sans-serif" font-size="16" fill="#666666">Development tools stay on build machine</text>
+
+  <!-- Security note -->
+  <rect x="1070" y="760" width="700" height="90" rx="12" fill="#ef5350"/>
+  <text x="1420" y="800" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#fff">IP Protection</text>
+  <text x="1420" y="835" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#fff">Kernel source code never leaves build environment</text>
+
+  <!-- Why section -->
+  <text x="1070" y="900" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#e57373">Why exclude?</text>
+  <text x="1090" y="930" font-family="Arial, sans-serif" font-size="16" fill="#666666">* Reduce attack surface</text>
+  <text x="1390" y="930" font-family="Arial, sans-serif" font-size="16" fill="#666666">* Protect proprietary algorithms</text>
+</svg>

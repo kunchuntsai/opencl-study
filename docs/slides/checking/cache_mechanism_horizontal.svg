@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 480">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#FA9D1B"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="960" height="480" fill="#FFFFFF"/>
+
+  <!-- ===== TOP FLOW SECTION ===== -->
+  
+  <!-- Input: kernel.cl -->
+  <rect x="30" y="55" width="100" height="70" rx="8" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="80" y="80" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">kernel.cl</text>
+  <text x="80" y="97" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#666">Source Code</text>
+  <text x="80" y="113" text-anchor="middle" font-family="Consolas, monospace" font-size="8" fill="#999">SHA256 hash</text>
+
+  <!-- Arrow to decision -->
+  <line x1="130" y1="90" x2="175" y2="90" stroke="#FA9D1B" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Decision Diamond -->
+  <polygon points="250,90 310,55 370,90 310,125" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="310" y="85" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Cache</text>
+  <text x="310" y="100" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Valid?</text>
+
+  <!-- MISS Path (goes up) -->
+  <line x1="310" y1="55" x2="310" y2="30" stroke="#FA9D1B" stroke-width="2"/>
+  <line x1="310" y1="30" x2="480" y2="30" stroke="#FA9D1B" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="395" y="22" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FA9D1B" font-weight="bold">MISS (first run)</text>
+
+  <!-- Compile Box -->
+  <rect x="490" y="10" width="150" height="42" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="565" y="30" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#FFF">clBuildProgram()</text>
+  <text x="565" y="45" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">~100ms</text>
+
+  <!-- Arrow down from compile to merge point -->
+  <line x1="640" y1="31" x2="700" y2="31" stroke="#FA9D1B" stroke-width="2"/>
+  <line x1="700" y1="31" x2="700" y2="90" stroke="#FA9D1B" stroke-width="2"/>
+
+  <!-- HIT Path (goes right) -->
+  <line x1="370" y1="90" x2="480" y2="90" stroke="#FA9D1B" stroke-width="2" marker-end="url(#arrow)"/>
+  <text x="425" y="83" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FA9D1B" font-weight="bold">HIT (cached)</text>
+
+  <!-- Load Binary Box -->
+  <rect x="490" y="69" width="150" height="42" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="565" y="89" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#FFF">Load Binary</text>
+  <text x="565" y="104" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">~5ms</text>
+
+  <!-- Merge and continue -->
+  <line x1="640" y1="90" x2="700" y2="90" stroke="#FA9D1B" stroke-width="2"/>
+  <line x1="700" y1="90" x2="770" y2="90" stroke="#FA9D1B" stroke-width="2" marker-end="url(#arrow)"/>
+
+  <!-- Execute Box -->
+  <rect x="780" y="60" width="90" height="60" rx="6" fill="#FA9D1B" stroke="#333" stroke-width="2"/>
+  <text x="825" y="85" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">Execute</text>
+  <text x="825" y="103" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="9" fill="#FFF">Kernel</text>
+
+  <!-- ===== BOTTOM CACHE INFO SECTION ===== -->
+  
+  <!-- Standard CL Cache Box -->
+  <rect x="30" y="145" width="440" height="135" rx="8" fill="#FFF" stroke="#FA9D1B" stroke-width="2"/>
+  <rect x="30" y="145" width="440" height="26" rx="8" fill="#FA9D1B"/>
+  <rect x="30" y="161" width="440" height="10" fill="#FA9D1B"/>
+  <text x="250" y="165" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#FFF">Standard CL Cache</text>
+
+  <text x="50" y="195" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Cache Structure:</text>
+  <text x="60" y="213" font-family="Consolas, monospace" font-size="9" fill="#666">cache/</text>
+  <text x="75" y="228" font-family="Consolas, monospace" font-size="9" fill="#666">├── {algo}_{variant}/</text>
+  <text x="90" y="243" font-family="Consolas, monospace" font-size="9" fill="#666">│   ├── kernel.bin  # Compiled binary</text>
+  <text x="90" y="258" font-family="Consolas, monospace" font-size="9" fill="#666">│   └── kernel.hash # Source hash</text>
+  <text x="75" y="273" font-family="Consolas, monospace" font-size="9" fill="#666">└── ...</text>
+
+  <!-- CL Extension Cache Box -->
+  <rect x="490" y="145" width="440" height="135" rx="8" fill="#FFF" stroke="#FA9D1B" stroke-width="2"/>
+  <rect x="490" y="145" width="440" height="26" rx="8" fill="#FA9D1B"/>
+  <rect x="490" y="161" width="440" height="10" fill="#FA9D1B"/>
+  <text x="710" y="165" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#FFF">CL Extension Cache</text>
+
+  <text x="510" y="195" font-family="Calibri, Arial, sans-serif" font-size="10" font-weight="bold" fill="#333">Custom Binary Cache:</text>
+  <text x="520" y="213" font-family="Consolas, monospace" font-size="9" fill="#666">cache/</text>
+  <text x="535" y="228" font-family="Consolas, monospace" font-size="9" fill="#666">├── {algo}_{variant}/</text>
+  <text x="550" y="243" font-family="Consolas, monospace" font-size="9" fill="#666">│   ├── kernel_custom.bin # HW-specific</text>
+  <text x="550" y="258" font-family="Consolas, monospace" font-size="9" fill="#666">│   └── kernel.hash</text>
+  <text x="535" y="273" font-family="Consolas, monospace" font-size="9" fill="#666">└── ...</text>
+
+  <!-- ===== CACHE INVALIDATION SECTION ===== -->
+  <rect x="30" y="295" width="900" height="65" rx="8" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="480" y="318" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="12" font-weight="bold" fill="#333">Cache Invalidation</text>
+  
+  <text x="50" y="340" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">• Hash check on every run: If kernel.cl changes → cache invalidated → recompile</text>
+  <text x="50" y="355" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">• Code Reference: cache_manager.c → CacheLoad(), CacheSave(), CacheCheck()</text>
+
+  <!-- ===== KEY METRICS ===== -->
+  <rect x="30" y="375" width="290" height="48" rx="6" fill="#FA9D1B"/>
+  <text x="175" y="396" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">First Run: ~100ms (compile)</text>
+  <text x="175" y="413" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#FFF">Saves binary to cache</text>
+
+  <rect x="335" y="375" width="290" height="48" rx="6" fill="#FA9D1B"/>
+  <text x="480" y="396" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#FFF">Cached Run: ~5ms (load)</text>
+  <text x="480" y="413" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#FFF">20x faster startup!</text>
+
+  <rect x="640" y="375" width="290" height="48" rx="6" fill="#FFF8F0" stroke="#FA9D1B" stroke-width="2"/>
+  <text x="785" y="396" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="11" font-weight="bold" fill="#333">Auto-Invalidation</text>
+  <text x="785" y="413" text-anchor="middle" font-family="Calibri, Arial, sans-serif" font-size="10" fill="#666">SHA256 hash detects changes</text>
+</svg>

@@ -1,0 +1,43 @@
+Please walk through this codebase and generate a comprehensive docs. The objective is to make users know how to use this codebase, the main purposes are
+
+Part I (30 min)
+- objective: easy to run & explore optimization details, compare with different platform (custom cl extension or normal GPU)
+- how to check/run multiple algorithms with various optimization kernels
+- how to read the json config files and how the standard CL and CL extension are configured
+- create svg files to describe how we branch standard cl host and custom cl extension flow
+- create svg files to describe how the cache mechanism, how to save and how to load
+
+Outline (18 slides, 6 sections):
+  Section 1: Introduction / Features (Slides 1-5)
+  Section 2: General OpenCL Host Flow (Slide 6)
+  Section 3: Standard CL v.s. CL Extension (Slides 7-10)
+  Section 4: Caching Mechanism (Slide 11)
+  Section 5: JSON Configuration (Slides 12-16)
+  Section 6: Summary & Q&A (Slides 17-18)
+
+Part II (30 min)
+- objective: we will take care about the host and user can focus on kernel development
+- openCL host flow, split into compilation & execution phases
+- create svg files to describe how we split the monolithic flow into two phases
+- create svg files to describe what those two phases inputs/outputs are
+
+Two-Phase Architecture:
+[Compilation] (Linux): input kernel.cl, config.json → output kernel.bin, opencl_host (android)
+[Execution] (Linux/Android): input kernel.bin, config.json → output result.bin
+- Linux: use same opencl_host from compilation
+- Android: use opencl_host binary built for android
+
+Outline (12 slides, 6 sections):
+  Section 1: Introduction / Recap (Slides 1-2)
+  Section 2: Why Two-Phase Architecture (Slides 3-4)
+  Section 3: Compilation Phase (Slides 5-6)
+  Section 4: Execution Phase (Slides 7-8)
+  Section 5: Cross-Platform Deployment (Slides 9-10)
+  Section 6: Summary & Q&A (Slides 11-12)
+
+
+General Note:
+- refer to presentation/USER_GUILDE.md
+- create one docs for each parts, e.g. SLIDE_PLAN_I.md, SLIDE_PLAN_II.md
+- create the svg files in 16:9 for easier embedded into presentations
+- for the color theme, plz use lighter, less than 4 colors, use orange (about #FA9D1B or #F59526) as main color theme, but it's okay to use other color; do not use any dark color

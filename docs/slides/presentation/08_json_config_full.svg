@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 700 420">
+  <!-- Background -->
+  <rect width="700" height="420" fill="#FFFFFF"/>
+  
+  <!-- Code block background -->
+  <rect x="20" y="20" width="660" height="400" rx="8" fill="#3C3C3C"/>
+  
+  <!-- JSON Code -->
+  <text x="40" y="50" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel": {</text>
+  <text x="55" y="75" font-family="Consolas, monospace" font-size="14" fill="#98C379">"description": "standard cl implementation",</text>
+  <text x="55" y="100" font-family="Consolas, monospace" font-size="14" fill="#98C379">"host_type": "standard",</text>
+  <text x="55" y="125" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_option": "-g",</text>
+  <text x="55" y="150" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_file": "examples/resize/cl/resize0.cl",</text>
+  <text x="55" y="175" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_function": "resize",</text>
+  <text x="55" y="200" font-family="Consolas, monospace" font-size="14" fill="#98C379">"work_dim": 2,</text>
+  <text x="55" y="225" font-family="Consolas, monospace" font-size="14" fill="#98C379">"global_work_size": [1920, 1088],</text>
+  <text x="55" y="250" font-family="Consolas, monospace" font-size="14" fill="#98C379">"local_work_size": [16, 16],</text>
+  <text x="55" y="275" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_args": [</text>
+  <text x="70" y="300" font-family="Consolas, monospace" font-size="14" fill="#98C379">{"i_buffer": ["uchar", "src"]},</text>
+  <text x="70" y="325" font-family="Consolas, monospace" font-size="14" fill="#98C379">{"o_buffer": ["uchar", "dst"]},</text>
+  <text x="70" y="350" font-family="Consolas, monospace" font-size="14" fill="#98C379">{"param": ["int", "src_width"]}</text>
+  <text x="55" y="375" font-family="Consolas, monospace" font-size="14" fill="#98C379">]</text>
+  <text x="40" y="400" font-family="Consolas, monospace" font-size="14" fill="#98C379">}</text>
+</svg>

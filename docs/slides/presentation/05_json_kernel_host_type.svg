@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 420">
+  <!-- Background -->
+  <rect width="500" height="400" fill="#FFFFFF"/>
+  
+  <!-- Code block background -->
+  <rect x="20" y="20" width="460" height="330" rx="8" fill="#3C3C3C"/>
+  
+  <!-- JSON Code -->
+  <text x="40" y="55" font-family="Consolas, monospace" font-size="16" fill="#98C379">"kernels": {</text>
+  <text x="55" y="85" font-family="Consolas, monospace" font-size="16" fill="#98C379">"v0": {</text>
+  <text x="70" y="115" font-family="Consolas, monospace" font-size="16" fill="#98C379">"host_type": "standard",</text>
+  <text x="70" y="145" font-family="Consolas, monospace" font-size="16" fill="#98C379">"kernel_file": "resize1.cl"</text>
+  <text x="55" y="175" font-family="Consolas, monospace" font-size="16" fill="#98C379">},</text>
+  <text x="55" y="205" font-family="Consolas, monospace" font-size="16" fill="#98C379">"v1": {</text>
+  <text x="70" y="235" font-family="Consolas, monospace" font-size="16" fill="#98C379">"host_type": "cl_extension",</text>
+  <text x="70" y="265" font-family="Consolas, monospace" font-size="16" fill="#98C379">"kernel_file": "resize2.cl"</text>
+  <text x="55" y="295" font-family="Consolas, monospace" font-size="16" fill="#98C379">}</text>
+  <text x="40" y="325" font-family="Consolas, monospace" font-size="16" fill="#98C379">}</text>
+</svg>

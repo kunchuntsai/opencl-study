@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 520 220">
+  <!-- Background -->
+  <rect width="520" height="130" fill="#FFFFFF"/>
+  
+  <!-- Code block background -->
+  <rect x="20" y="35" width="480" height="120" rx="8" fill="#3C3C3C"/>
+  
+  <!-- Directory tree -->
+  <text x="40" y="60" font-family="Consolas, monospace" font-size="16" fill="#98C379">out/</text>
+  <text x="40" y="80" font-family="Consolas, monospace" font-size="16" fill="#98C379">├── opencl_host(s)</text>
+  <text x="250" y="80" font-family="Consolas, monospace" font-size="16" fill="#98C379"># Executor binary</text>
+  <text x="40" y="100" font-family="Consolas, monospace" font-size="16" fill="#98C379">├── kernel.bin</text>
+  <text x="250" y="100" font-family="Consolas, monospace" font-size="16" fill="#98C379"># Compiled kernel</text>
+  <text x="40" y="120" font-family="Consolas, monospace" font-size="16" fill="#98C379">└── config.json</text>
+  <text x="250" y="120" font-family="Consolas, monospace" font-size="16" fill="#98C379"># Runtime config</text>
+</svg>

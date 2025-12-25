@@ -320,6 +320,11 @@ cl_program CacheLoadKernelBinary(cl_context context, cl_device_id device, const 
     return program;
 }
 
+
+int CacheSaveCustomBinary(CLExtensionContext* ctx) {
+    return 0;
+}
+
 /* ============================================================================
  * SOURCE HASH FOR CACHE INVALIDATION
  * ============================================================================

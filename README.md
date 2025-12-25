@@ -208,22 +208,12 @@ Each algorithm has its own `.json` configuration file in the `config/` directory
 
 ```
 .
-├── ARCHITECTURE_v1.md              # Current SDK-ready architecture (Clean Architecture)
-├── ARCHITECTURE_v0.md              # Original architecture (reference)
-├── README.md                       # This file
-├── CMakeLists.txt                  # CMake build configuration
 ├── config/
 │   ├── inputs.json                 # Global input image definitions
 │   ├── outputs.json                # Global output image definitions
 │   ├── dilate3x3.json              # Dilate algorithm config
-│   ├── gaussian5x5.json            # Gaussian algorithm config
-│   └── template.json               # Template for new algorithms
+│   └── gaussian5x5.json            # Gaussian algorithm config
 ├── docs/
-│   ├── ADD_NEW_ALGO.md             # Algorithm development guide
-│   ├── CONFIG_SYSTEM.md            # Configuration system guide
-│   ├── CLEAN_ARCHITECTURE_ANALYSIS.md  # Architecture compliance analysis
-│   ├── SDK_PACKAGING.md            # SDK distribution guide
-│   └── Doxyfile                    # Doxygen documentation config
 ├── scripts/
 │   ├── build.sh                    # Build script (--lib, --clean options)
 │   ├── create_sdk.sh               # SDK packaging script
@@ -233,6 +223,18 @@ Each algorithm has its own `.json` configuration file in the `config/` directory
 │   └── run.sh                      # Interactive run script
 ├── lib/                            # 📦 Release library directory
 │   ├── README.md                   # Library release documentation
+│   ├── core/                       # Business Logic
+│   │   ├── algorithm_runner.c      # Execution pipeline
+│   │   ├── op_registry.c           # Algorithm registry
+│   │   └── auto_registry.c         # Auto-generated (don't edit)
+│   ├── platform/                   # OpenCL Abstraction
+│   │   ├── opencl_utils.c/.h       # Platform initialization
+│   │   ├── cache_manager.c/.h      # Binary & golden caching
+│   │   └── cl_extension_api.c/.h   # Custom host API
+│   ├── utils/                      # Infrastructure
+│   │   ├── config.c/.h             # Configuration parser
+│   │   ├── image_io.c/.h           # Image I/O
+│   │   └── verify.c                # Verification implementation
 │   └── libopencl_imgproc.a/.so     # Compiled library (for SDK distribution)
 ├── include/                        # ✅ Public API (Stable Interface)
 │   ├── op_interface.h              # Algorithm interface
@@ -249,19 +251,7 @@ Each algorithm has its own `.json` configuration file in the `config/` directory
 │       ├── c_ref/dilate3x3_ref.c   # CPU reference + registration
 │       └── cl/*.cl                 # GPU kernel variants
 ├── src/                            # 🔒 Library Implementation (Internal)
-│   ├── main.c                      # Application entry point
-│   ├── core/                       # Business Logic
-│   │   ├── algorithm_runner.c      # Execution pipeline
-│   │   ├── op_registry.c           # Algorithm registry
-│   │   └── auto_registry.c         # Auto-generated (don't edit)
-│   ├── platform/                   # OpenCL Abstraction
-│   │   ├── opencl_utils.c/.h       # Platform initialization
-│   │   ├── cache_manager.c/.h      # Binary & golden caching
-│   │   └── cl_extension_api.c/.h   # Custom host API
-│   └── utils/                      # Infrastructure
-│       ├── config.c/.h             # Configuration parser
-│       ├── image_io.c/.h           # Image I/O
-│       └── verify.c                # Verification implementation
+│   └── main.c                      # Application entry point
 └── test_data/
     ├── dilate3x3/
     └── gaussian5x5/
