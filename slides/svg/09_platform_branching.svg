@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffbb62"/>
+    </marker>
+    <marker id="arrow-orange" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffbb62"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="960" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="42" font-weight="bold" fill="#666666">Platform Selection Flow</text>
+  <text x="960" y="90" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" fill="#8b7355">How host_type determines API routing</text>
+
+  <!-- ============ INPUT: JSON Config ============ -->
+  <rect x="760" y="120" width="400" height="100" rx="16" fill="#fff8f0" stroke="#ffbb62" stroke-width="3"/>
+  <text x="960" y="160" text-anchor="middle" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="#666666">config.json</text>
+  <text x="960" y="195" text-anchor="middle" font-family="monospace" font-size="18" fill="#8b7355">"host_type": "standard" | "cl_extension"</text>
+
+  <!-- Arrow down to parser -->
+  <line x1="960" y1="220" x2="960" y2="270" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- ============ CONFIG PARSER ============ -->
+  <rect x="710" y="280" width="500" height="80" rx="12" fill="#ffbb62"/>
+  <text x="960" y="320" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#fff">Config Parser (config.c)</text>
+  <text x="960" y="345" text-anchor="middle" font-family="monospace" font-size="14" fill="#ccc">ParseHostType() → HOST_TYPE_STANDARD | HOST_TYPE_CL_EXTENSION</text>
+
+  <!-- Arrow down to decision point -->
+  <line x1="960" y1="360" x2="960" y2="420" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- ============ DECISION DIAMOND ============ -->
+  <polygon points="960,430 1080,510 960,590 840,510" fill="#ffbb62" stroke="#666666" stroke-width="3"/>
+  <text x="960" y="505" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">host_type?</text>
+  <text x="960" y="530" text-anchor="middle" font-family="monospace" font-size="14" fill="#666666">opencl_utils.c:585</text>
+
+  <!-- ============ LEFT BRANCH: Standard OpenCL ============ -->
+  <!-- Arrow left -->
+  <line x1="840" y1="510" x2="500" y2="510" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="670" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">STANDARD</text>
+
+  <!-- Standard OpenCL box -->
+  <rect x="120" y="440" width="380" height="140" rx="16" fill="#fff8f0" stroke="#cc9966" stroke-width="3"/>
+  <text x="310" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#cc8800">Standard OpenCL</text>
+  <text x="310" y="515" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">clEnqueueNDRangeKernel()</text>
+  <text x="310" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Works on any GPU</text>
+  <text x="310" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Cross-platform compatible</text>
+
+  <!-- ============ RIGHT BRANCH: CL Extension ============ -->
+  <!-- Arrow right -->
+  <line x1="1080" y1="510" x2="1420" y2="510" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+  <text x="1250" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">CL_EXTENSION</text>
+
+  <!-- CL Extension box -->
+  <rect x="1420" y="440" width="380" height="140" rx="16" fill="#fff3e0" stroke="#ff9800" stroke-width="3"/>
+  <text x="1610" y="480" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" font-weight="bold" fill="#ff9800">CL Extension</text>
+  <text x="1610" y="515" text-anchor="middle" font-family="monospace" font-size="16" fill="#666666">Vendor Extension APIs</text>
+  <text x="1610" y="545" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Hardware-specific optimizations</text>
+  <text x="1610" y="565" text-anchor="middle" font-family="Arial, sans-serif" font-size="14" fill="#666">Maximum performance</text>
+
+  <!-- ============ COMPILE TIME FLAG ============ -->
+  <rect x="560" y="640" width="800" height="80" rx="12" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="960" y="675" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Compile-Time Flag</text>
+  <text x="960" y="705" text-anchor="middle" font-family="monospace" font-size="18" fill="#8b7355">Build options: "-DHOST_TYPE=0" (standard) | "-DHOST_TYPE=1" (extension)</text>
+
+  <!-- Arrows connecting branches to compile time -->
+  <line x1="310" y1="580" x2="310" y2="680" stroke="#cc9966" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="310" y1="680" x2="560" y2="680" stroke="#cc9966" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="1610" y1="580" x2="1610" y2="680" stroke="#ff9800" stroke-width="2" stroke-dasharray="8,4"/>
+  <line x1="1610" y1="680" x2="1360" y2="680" stroke="#ff9800" stroke-width="2" stroke-dasharray="8,4"/>
+
+  <!-- ============ BOTTOM: Code References ============ -->
+  <rect x="120" y="760" width="560" height="280" rx="16" fill="#f5f5f5" stroke="#ccc" stroke-width="2"/>
+  <text x="400" y="800" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Code Flow</text>
+
+  <text x="150" y="840" font-family="monospace" font-size="14" fill="#666666">1. config.json → host_type: "standard"</text>
+  <text x="150" y="870" font-family="monospace" font-size="14" fill="#666666">2. config.c:738 → ParseHostType()</text>
+  <text x="150" y="900" font-family="monospace" font-size="14" fill="#666666">3. opencl_utils.c:452 → -DHOST_TYPE=0</text>
+  <text x="150" y="930" font-family="monospace" font-size="14" fill="#666666">4. algorithm_runner.c:413</text>
+  <text x="170" y="960" font-family="monospace" font-size="14" fill="#666666">   → op_params.host_type = kernel_cfg->host_type</text>
+  <text x="150" y="990" font-family="monospace" font-size="14" fill="#666666">5. opencl_utils.c:586</text>
+  <text x="170" y="1020" font-family="monospace" font-size="14" fill="#666666">   → if (host_type == HOST_TYPE_STANDARD)</text>
+
+  <!-- JSON Example -->
+  <rect x="720" y="760" width="560" height="280" rx="16" fill="#fff8f0" stroke="#ffbb62" stroke-width="2"/>
+  <text x="1000" y="800" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#666666">Example: Same Algorithm, Two Platforms</text>
+
+  <rect x="750" y="825" width="500" height="195" rx="8" fill="#fff"/>
+  <text x="770" y="855" font-family="monospace" font-size="14" fill="#666666">"kernels": {</text>
+  <text x="790" y="880" font-family="monospace" font-size="14" fill="#cc8800">  "v0": {</text>
+  <text x="810" y="905" font-family="monospace" font-size="14" fill="#cc8800">    "host_type": "standard",</text>
+  <text x="810" y="930" font-family="monospace" font-size="14" fill="#cc8800">    "kernel_file": "relu0.cl"</text>
+  <text x="790" y="955" font-family="monospace" font-size="14" fill="#cc8800">  },</text>
+  <text x="790" y="980" font-family="monospace" font-size="14" fill="#ff9800">  "v1": {</text>
+  <text x="810" y="1005" font-family="monospace" font-size="14" fill="#ff9800">    "host_type": "cl_extension",</text>
+  <text x="770" y="1020" font-family="monospace" font-size="14" fill="#666666">...</text>
+
+  <!-- Key insight box -->
+  <rect x="1320" y="760" width="480" height="280" rx="16" fill="#ffbb62"/>
+  <text x="1560" y="805" text-anchor="middle" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#fff">Key Insight</text>
+
+  <text x="1350" y="855" font-family="Arial, sans-serif" font-size="18" fill="#fff">* One JSON config file</text>
+  <text x="1350" y="890" font-family="Arial, sans-serif" font-size="18" fill="#fff">* Multiple platform variants</text>
+  <text x="1350" y="925" font-family="Arial, sans-serif" font-size="18" fill="#fff">* Runtime API switching</text>
+  <text x="1350" y="960" font-family="Arial, sans-serif" font-size="18" fill="#fff">* Compile-time optimization</text>
+  <text x="1350" y="1010" font-family="Arial, sans-serif" font-size="16" fill="#ccc">Switch platforms with one line</text>
+  <text x="1350" y="1035" font-family="Arial, sans-serif" font-size="16" fill="#ccc">change in JSON config</text>
+</svg>

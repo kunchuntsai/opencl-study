@@ -1,0 +1,129 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1920 1080">
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#ffbb62"/>
+    </marker>
+    <marker id="arrow-white" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#fff"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1920" height="1080" fill="#ffffff"/>
+
+  <!-- Title -->
+  <text x="960" y="55" text-anchor="middle" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#666666">Cross-Platform Deployment</text>
+  <text x="960" y="95" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#8b7355">Linux compilation, Linux/Android execution</text>
+
+  <!-- ============ COMPILATION (Top Center) ============ -->
+  <rect x="560" y="130" width="800" height="200" rx="20" fill="#ffbb62"/>
+  <text x="960" y="180" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#fff">Compilation Phase (Linux)</text>
+
+  <!-- Inputs -->
+  <rect x="600" y="205" width="160" height="50" rx="8" fill="#fff8f0"/>
+  <text x="680" y="237" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">kernel.cl</text>
+
+  <text x="780" y="235" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#fff">+</text>
+
+  <rect x="800" y="205" width="160" height="50" rx="8" fill="#fff8f0"/>
+  <text x="880" y="237" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#666666">config.json</text>
+
+  <!-- Arrow -->
+  <line x1="960" y1="255" x2="960" y2="280" stroke="#fff" stroke-width="3" marker-end="url(#arrow-white)"/>
+
+  <!-- Outputs -->
+  <rect x="1000" y="205" width="160" height="50" rx="8" fill="#fff8f0" stroke="#fff" stroke-width="2"/>
+  <text x="1080" y="237" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#cc8800">kernel.bin</text>
+
+  <rect x="1180" y="205" width="160" height="50" rx="8" fill="#fff8f0" stroke="#fff" stroke-width="2"/>
+  <text x="1260" y="237" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#cc8800">opencl_host</text>
+
+  <text x="960" y="310" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#fff">Produces binaries for all target platforms</text>
+
+  <!-- Arrows down to platforms -->
+  <line x1="660" y1="330" x2="460" y2="430" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+  <line x1="1260" y1="330" x2="1460" y2="430" stroke="#666666" stroke-width="4" marker-end="url(#arrow)"/>
+
+  <!-- ============ LEFT: Linux Execution ============ -->
+  <rect x="100" y="440" width="720" height="580" rx="24" fill="#fff5e6" stroke="#ffbb62" stroke-width="4"/>
+
+  <!-- Linux Header -->
+  <rect x="100" y="440" width="720" height="80" rx="24" fill="#ffbb62"/>
+  <rect x="100" y="490" width="720" height="30" fill="#ffbb62"/>
+  <text x="460" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#fff">Linux Execution</text>
+
+  <!-- Linux icon placeholder -->
+  <circle cx="200" cy="480" r="30" fill="#fff"/>
+  <text x="200" y="490" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#ffbb62">L</text>
+
+  <!-- Workflow -->
+  <text x="140" y="570" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Workflow:</text>
+
+  <rect x="140" y="590" width="640" height="100" rx="12" fill="#fff" stroke="#ffbb62" stroke-width="2"/>
+  <text x="460" y="630" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#666666">Same executable from compilation phase</text>
+  <text x="460" y="665" text-anchor="middle" font-family="monospace" font-size="20" font-weight="bold" fill="#cc8800">./opencl_host &lt;algo&gt; &lt;variant&gt;</text>
+
+  <!-- Files needed -->
+  <text x="140" y="730" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Files Needed:</text>
+
+  <rect x="140" y="755" width="200" height="50" rx="8" fill="#ffe4c4"/>
+  <text x="240" y="787" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#cc8800">opencl_host</text>
+
+  <rect x="360" y="755" width="200" height="50" rx="8" fill="#ffe4c4"/>
+  <text x="460" y="787" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#cc8800">kernel.bin</text>
+
+  <rect x="580" y="755" width="200" height="50" rx="8" fill="#ffe4c4"/>
+  <text x="680" y="787" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#cc8800">config.json</text>
+
+  <!-- Advantage -->
+  <rect x="140" y="840" width="640" height="80" rx="12" fill="#ffbb62"/>
+  <text x="460" y="875" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#fff">No additional setup required</text>
+  <text x="460" y="905" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#fff">Use binaries directly from build output</text>
+
+  <!-- Performance -->
+  <rect x="140" y="940" width="640" height="60" rx="8" fill="#fff"/>
+  <text x="460" y="980" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#cc8800">Execution: ~5ms (no compilation overhead)</text>
+
+  <!-- ============ RIGHT: Android Execution ============ -->
+  <rect x="1100" y="440" width="720" height="580" rx="24" fill="#fff3e0" stroke="#ff9800" stroke-width="4"/>
+
+  <!-- Android Header -->
+  <rect x="1100" y="440" width="720" height="80" rx="24" fill="#ff9800"/>
+  <rect x="1100" y="490" width="720" height="30" fill="#ff9800"/>
+  <text x="1460" y="495" text-anchor="middle" font-family="Arial, sans-serif" font-size="32" font-weight="bold" fill="#fff">Android Execution</text>
+
+  <!-- Android icon placeholder -->
+  <circle cx="1200" cy="480" r="30" fill="#fff"/>
+  <text x="1200" y="490" text-anchor="middle" font-family="Arial, sans-serif" font-size="24" fill="#ff9800">A</text>
+
+  <!-- Workflow -->
+  <text x="1140" y="570" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Workflow:</text>
+
+  <rect x="1140" y="590" width="640" height="140" rx="12" fill="#fff" stroke="#ff9800" stroke-width="2"/>
+  <text x="1460" y="630" text-anchor="middle" font-family="Arial, sans-serif" font-size="18" fill="#666666">Push binaries via ADB, then execute</text>
+  <text x="1170" y="670" font-family="monospace" font-size="14" fill="#ff9800">adb push opencl_host kernel.bin config.json</text>
+  <text x="1170" y="695" font-family="monospace" font-size="14" fill="#ff9800">       /data/local/tmp/</text>
+  <text x="1170" y="720" font-family="monospace" font-size="14" fill="#ff9800">adb shell /data/local/tmp/opencl_host &lt;algo&gt; &lt;var&gt;</text>
+
+  <!-- Files needed -->
+  <text x="1140" y="770" font-family="Arial, sans-serif" font-size="22" font-weight="bold" fill="#666666">Files Needed:</text>
+
+  <rect x="1140" y="795" width="200" height="50" rx="8" fill="#ffe0b2"/>
+  <text x="1240" y="827" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff9800">opencl_host</text>
+  <text x="1240" y="840" text-anchor="middle" font-family="Arial, sans-serif" font-size="10" fill="#666">(ARM binary)</text>
+
+  <rect x="1360" y="795" width="200" height="50" rx="8" fill="#ffe0b2"/>
+  <text x="1460" y="827" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff9800">kernel.bin</text>
+
+  <rect x="1580" y="795" width="200" height="50" rx="8" fill="#ffe0b2"/>
+  <text x="1680" y="827" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" font-weight="bold" fill="#ff9800">config.json</text>
+
+  <!-- Note -->
+  <rect x="1140" y="865" width="640" height="80" rx="12" fill="#ff9800"/>
+  <text x="1460" y="900" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" font-weight="bold" fill="#fff">Cross-compiled executable</text>
+  <text x="1460" y="930" text-anchor="middle" font-family="Arial, sans-serif" font-size="16" fill="#fff">Built with Android NDK toolchain</text>
+
+  <!-- Performance -->
+  <rect x="1140" y="965" width="640" height="60" rx="8" fill="#fff"/>
+  <text x="1460" y="1005" text-anchor="middle" font-family="Arial, sans-serif" font-size="20" fill="#ff9800">Execution: ~5ms (same as Linux)</text>
+</svg>

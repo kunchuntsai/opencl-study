@@ -583,17 +583,18 @@ int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_
     }
 
     /* Execute kernel using appropriate API based on host_type */
-    if (host_type == HOST_TYPE_CL_EXTENSION) {
-        (void)printf("\n=== Using Custom CL Extension API ===\n");
-        err = ClExtensionEnqueueNdrangeKernel(
-            &env->ext_ctx, env->queue, kernel, (cl_uint)work_dim, NULL, global_work_size,
-            (local_work_size[0] == 0U) ? NULL : local_work_size, 0U, NULL, &event);
-    } else {
-        /* Standard OpenCL API */
+    if (host_type == HOST_TYPE_STANDARD) {
         (void)printf("\n=== Using Standard OpenCL API ===\n");
         err = clEnqueueNDRangeKernel(env->queue, kernel, (cl_uint)work_dim, NULL, global_work_size,
                                      (local_work_size[0] == 0U) ? NULL : local_work_size, 0U, NULL,
                                      &event);
+    } else {
+        (void)printf("\n=== Using Custom CL Extension API ===\n");
+        err = ClExtensionEnqueueNdrangeKernel(
+            &env->ext_ctx, env->queue, kernel, (cl_uint)work_dim, NULL, global_work_size,
+            (local_work_size[0] == 0U) ? NULL : local_work_size, 0U, NULL, &event);
+
+            CacheSaveCustomBinary(&env->ext_ctx);
     }
 
     if (err != CL_SUCCESS) {
@@ -602,11 +603,7 @@ int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_
     }
 
     /* Wait for completion - use custom API if configured */
-    if (host_type == HOST_TYPE_CL_EXTENSION) {
-        err = ClExtensionFinish(&env->ext_ctx, env->queue);
-    } else {
-        err = clFinish(env->queue);
-    }
+    err = clFinish(env->queue);
 
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Failed to finish queue (error code: %d)\n", err);
