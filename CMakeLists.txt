@@ -13,6 +13,17 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
+# ============================================================================
+# Platform Configuration Options
+# ============================================================================
+
+# GPU mode: Exclude cl_extension APIs (use standard OpenCL API only)
+option(GPU_PLATFORM "Build for GPU platform (excludes cl_extension APIs)" OFF)
+
+if(GPU_PLATFORM)
+    message(STATUS "GPU platform mode enabled - cl_extension APIs excluded")
+endif()
+
 # Output directory
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
@@ -97,6 +108,11 @@ target_compile_definitions(opencl_host PRIVATE
     CL_INCLUDE_DIR="${CMAKE_SOURCE_DIR}/include/cl"
 )
 
+# GPU platform mode - exclude cl_extension APIs
+if(GPU_PLATFORM)
+    target_compile_definitions(opencl_host PRIVATE GPU)
+endif()
+
 # ============================================================================
 # Copy OpenCL kernel headers to build directory (portable deployment)
 # ============================================================================
@@ -124,6 +140,7 @@ add_dependencies(opencl_host copy_cl_headers)
 
 message(STATUS "=== OpenCL Image Processing Framework ===")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
+message(STATUS "GPU platform: ${GPU_PLATFORM}")
 message(STATUS "C Compiler: ${CMAKE_C_COMPILER}")
 message(STATUS "OpenCL Libraries: ${OpenCL_LIBRARIES}")
 message(STATUS "")
