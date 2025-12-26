@@ -24,7 +24,9 @@
 #endif
 
 /* Include op_interface for Algorithm and OpParams */
+#ifndef GPU
 #include "cl_extension_api.h"
+#endif
 #include "kernel_args.h"
 #include "op_interface.h"
 
@@ -39,7 +41,9 @@ typedef struct {
     cl_device_id device;        /**< OpenCL device (GPU/CPU) */
     cl_context context;         /**< OpenCL context for device */
     cl_command_queue queue;     /**< Command queue for kernel execution */
+#ifndef GPU
     CLExtensionContext ext_ctx; /**< Custom CL extension context */
+#endif
 } OpenCLEnv;
 
 /**

@@ -5,7 +5,11 @@
  * This file contains dummy implementations of custom OpenCL extensions.
  * Replace these with actual custom logic as needed for specific hardware
  * or optimization requirements.
+ *
+ * Note: cl_extension APIs are excluded when GPU is defined.
  */
+
+#ifndef GPU  /* cl_extension APIs are excluded for GPU platform */
 
 #include "cl_extension_api.h"
 
@@ -185,3 +189,5 @@ void ClExtensionPrintInfo(const CLExtensionContext* ctx) {
     (void)printf("Extension Data: %p\n", ctx->extension_data);
     (void)printf("===========================================\n");
 }
+
+#endif /* GPU */

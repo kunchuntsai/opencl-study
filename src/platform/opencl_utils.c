@@ -30,7 +30,9 @@
 #ifndef CL_INCLUDE_DIR
 #define CL_INCLUDE_DIR "include/cl"
 #endif
+#ifndef GPU
 #include "cl_extension_api.h"
+#endif
 #include "op_interface.h"
 #include "utils/config.h"
 #include "utils/safe_ops.h"
@@ -388,10 +390,12 @@ int OpenclInit(OpenCLEnv* env) {
     }
 
     /* Initialize custom CL extension context */
+#ifndef GPU
     if (ClExtensionInit(&env->ext_ctx) != 0) {
         (void)fprintf(stderr, "Warning: Failed to initialize CL extension context\n");
         /* Continue anyway - standard API will still work */
     }
+#endif
 
     (void)printf("OpenCL initialized successfully\n");
     return 0;
@@ -583,11 +587,14 @@ int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_
     }
 
     /* Execute kernel using appropriate API based on host_type */
+#ifndef GPU
     if (host_type == HOST_TYPE_STANDARD) {
+#endif
         (void)printf("\n=== Using Standard OpenCL API ===\n");
         err = clEnqueueNDRangeKernel(env->queue, kernel, (cl_uint)work_dim, NULL, global_work_size,
                                      (local_work_size[0] == 0U) ? NULL : local_work_size, 0U, NULL,
                                      &event);
+#ifndef GPU
     } else {
         (void)printf("\n=== Using Custom CL Extension API ===\n");
         err = ClExtensionEnqueueNdrangeKernel(
@@ -596,6 +603,7 @@ int OpenclRunKernel(OpenCLEnv* env, cl_kernel kernel, const Algorithm* algo, cl_
 
             CacheSaveCustomBinary(&env->ext_ctx);
     }
+#endif
 
     if (err != CL_SUCCESS) {
         (void)fprintf(stderr, "Failed to enqueue kernel (error code: %d)\n", err);
@@ -696,7 +704,9 @@ void OpenclCleanup(OpenCLEnv* env) {
     }
 
     /* Cleanup custom CL extension context */
+#ifndef GPU
     ClExtensionCleanup(&env->ext_ctx);
+#endif
 
     if (env->queue != NULL) {
         /* MISRA-C:2023 Rule 17.7: Check return value */

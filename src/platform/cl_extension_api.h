@@ -9,9 +9,14 @@
  * Configuration:
  * - Set host_type = "standard" in .ini for standard OpenCL API (default)
  * - Set host_type = "cl_extension" in .ini for custom extension API
+ *
+ * Note: cl_extension APIs are excluded when GPU is defined.
+ * Use #define GPU to disable cl_extension functionality for GPU platforms.
  */
 
 #pragma once
+
+#ifndef GPU  /* cl_extension APIs are excluded for GPU platform */
 
 #ifdef __APPLE__
 #include <OpenCL/opencl.h>
@@ -113,3 +118,5 @@ cl_int ClExtensionFinish(CLExtensionContext* ctx, cl_command_queue command_queue
  * @param[in] ctx Extension context
  */
 void ClExtensionPrintInfo(const CLExtensionContext* ctx);
+
+#endif /* GPU */

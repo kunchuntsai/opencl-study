@@ -321,9 +321,12 @@ cl_program CacheLoadKernelBinary(cl_context context, cl_device_id device, const 
 }
 
 
+#ifndef GPU
 int CacheSaveCustomBinary(CLExtensionContext* ctx) {
+    (void)ctx;  /* Suppress unused parameter warning */
     return 0;
 }
+#endif
 
 /* ============================================================================
  * SOURCE HASH FOR CACHE INVALIDATION

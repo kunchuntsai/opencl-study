@@ -26,7 +26,9 @@
 #endif
 
 #include <stddef.h>
+#ifndef GPU
 #include "cl_extension_api.h"
+#endif
 
 /* Cache base directory (organized per algorithm) */
 #define CACHE_BASE_DIR "out"
@@ -160,8 +162,10 @@ int CacheLoadSourceHash(const char* algorithm_id, const char* kernel_name, unsig
  */
 int CacheKernelIsValid(const char* algorithm_id, const char* kernel_name, const char* source_file);
 
-
+#ifndef GPU
 int CacheSaveCustomBinary(CLExtensionContext* ctx);
+#endif
+
 /* ============================================================================
  * GOLDEN SAMPLE CACHING
  * ============================================================================
