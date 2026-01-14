@@ -9,6 +9,10 @@
 #include "utils/config.h"
 #include "utils/safe_ops.h"
 
+#ifdef BUILD_ANDROID
+#include "core/android_runner.h"
+#endif
+
 /* MISRA-C:2023 Rule 21.3: Avoid dynamic memory allocation */
 #define MAX_PATH_LENGTH 512
 #define MAX_IMAGE_SIZE (4096 * 4096)
@@ -32,10 +36,16 @@ static int SelectAlgorithmAndVariant(const Config* config, const char* provided_
                                      int* variant_count, int* selected_variant_index);
 
 int main(int argc, char** argv) {
+#ifdef BUILD_ANDROID
+    /* Android build: use Android runner which loads pre-compiled binaries */
+    return AndroidRunner(argc, argv);
+#else
+    /* Desktop build: full pipeline with kernel compilation */
     Config config;
 
     /* Register all algorithms */
     AutoRegisterAlgorithms();
+
     OpenCLEnv env;
     Algorithm* algo;
     KernelConfig* variants[MAX_KERNEL_CONFIGS];
@@ -136,6 +146,7 @@ int main(int argc, char** argv) {
     /* Cleanup */
     OpenclCleanup(&env);
     return 0;
+#endif /* !BUILD_ANDROID */
 }
 
 /**

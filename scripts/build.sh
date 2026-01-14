@@ -13,7 +13,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 BUILD_DIR="$PROJECT_ROOT/build"
 OUT_DIR="$PROJECT_ROOT/out"
-SRC_DIR="$PROJECT_ROOT/src"
+SRC_DIR="$PROJECT_ROOT/src"  # Location of your CMakeLists.txt
 
 show_help() {
     echo "OpenCL Image Processing Framework - Build Script (CMake)"
@@ -58,8 +58,6 @@ clean_all() {
         rm -rf "$OUT_DIR"
     fi
 
-    # Note: test_data/ only contains input test data
-
     echo "Clean complete"
     echo ""
 }
@@ -70,11 +68,11 @@ build_library_only() {
     # Create build directory if it doesn't exist
     mkdir -p "$BUILD_DIR"
 
-    # Configure with CMake (only if not already configured or if clean build)
+    # Configure with CMake (pointing to SRC_DIR)
     if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
         echo "Configuring CMake..."
         cd "$BUILD_DIR"
-        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON "$PROJECT_ROOT"
+        cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON "$SRC_DIR"
         if [ $? -ne 0 ]; then
             echo "CMake configuration failed!"
             exit 1
@@ -83,33 +81,31 @@ build_library_only() {
 
     # Build ONLY the library target
     echo "Building library..."
+    # Note: Ensure you have add_library(opencl_imgproc ...) in your src/CMakeLists.txt
     cmake --build "$BUILD_DIR" --target opencl_imgproc --config Release
 
     if [ $? -eq 0 ]; then
         echo ""
         echo "Library build successful!"
 
-        # Create lib/ directory for releases
+        # Create lib/ directory for releases in project root
         mkdir -p "$PROJECT_ROOT/lib"
 
         # Copy library to lib/ directory
         COPIED=false
-        if [ -f "$BUILD_DIR/lib/libopencl_imgproc.dylib" ]; then
-            cp "$BUILD_DIR/lib/libopencl_imgproc.dylib" "$PROJECT_ROOT/lib/"
-            echo "Library: $BUILD_DIR/lib/libopencl_imgproc.dylib"
-            echo "Copied to: $PROJECT_ROOT/lib/libopencl_imgproc.dylib (for release)"
-            COPIED=true
-        elif [ -f "$BUILD_DIR/lib/libopencl_imgproc.so" ]; then
-            cp "$BUILD_DIR/lib/libopencl_imgproc.so" "$PROJECT_ROOT/lib/"
-            echo "Library: $BUILD_DIR/lib/libopencl_imgproc.so"
-            echo "Copied to: $PROJECT_ROOT/lib/libopencl_imgproc.so (for release)"
-            COPIED=true
-        elif [ -f "$BUILD_DIR/lib/libopencl_imgproc.a" ]; then
-            cp "$BUILD_DIR/lib/libopencl_imgproc.a" "$PROJECT_ROOT/lib/"
-            echo "Library: $BUILD_DIR/lib/libopencl_imgproc.a"
-            echo "Copied to: $PROJECT_ROOT/lib/libopencl_imgproc.a (for release)"
-            COPIED=true
-        fi
+        # Checking common locations based on CMake defaults
+        for libpath in "$BUILD_DIR/lib/libopencl_imgproc.dylib" \
+                        "$BUILD_DIR/lib/libopencl_imgproc.so" \
+                        "$BUILD_DIR/lib/libopencl_imgproc.a" \
+                        "$BUILD_DIR/libopencl_imgproc.so"; do
+            if [ -f "$libpath" ]; then
+                cp "$libpath" "$PROJECT_ROOT/lib/"
+                echo "Library found: $libpath"
+                echo "Copied to: $PROJECT_ROOT/lib/$(basename "$libpath")"
+                COPIED=true
+                break
+            fi
+        done
 
         if [ "$COPIED" = true ]; then
             echo ""
@@ -126,23 +122,25 @@ build_library_only() {
 
 build_project() {
     # Generate auto-registry before building
-    "$SCRIPT_DIR/generate_registry.sh"
-    if [ $? -ne 0 ]; then
-        echo "Failed to generate algorithm registry!"
-        exit 1
+    if [ -f "$SCRIPT_DIR/generate_registry.sh" ]; then
+        "$SCRIPT_DIR/generate_registry.sh"
+        if [ $? -ne 0 ]; then
+            echo "Failed to generate algorithm registry!"
+            exit 1
+        fi
+        echo ""
     fi
-    echo ""
 
     echo "=== Building OpenCL Image Processing Framework (CMake) ==="
 
     # Create build directory if it doesn't exist
     mkdir -p "$BUILD_DIR"
 
-    # Configure with CMake (only if not already configured or if clean build)
+    # Configure with CMake (pointing to SRC_DIR)
     if [ ! -f "$BUILD_DIR/CMakeCache.txt" ]; then
         echo "Configuring CMake..."
         cd "$BUILD_DIR"
-        cmake -DCMAKE_BUILD_TYPE=Release "$PROJECT_ROOT"
+        cmake -DCMAKE_BUILD_TYPE=Release "$SRC_DIR"
         if [ $? -ne 0 ]; then
             echo "CMake configuration failed!"
             exit 1
@@ -170,8 +168,13 @@ run_tests() {
     echo "=== Running Tests (level: $test_level) ==="
     echo ""
 
-    # Use the CI test script for proper test levels
-    "$PROJECT_ROOT/tests/ci_test.sh" "$test_level"
+    # Use the CI test script if it exists
+    if [ -f "$PROJECT_ROOT/tests/ci_test.sh" ]; then
+        "$PROJECT_ROOT/tests/ci_test.sh" "$test_level"
+    else
+        echo "Test script not found at $PROJECT_ROOT/tests/ci_test.sh"
+        exit 1
+    fi
     local result=$?
 
     if [ $result -eq 0 ]; then
