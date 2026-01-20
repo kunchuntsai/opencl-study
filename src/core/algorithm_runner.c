@@ -47,6 +47,7 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
     int run_result;
     int i;
     OpParams op_params = {0}; /* Common params reused throughout */
+    char configured_output_path[512] = {0}; /* Output path from outputs.json */
 
     if ((algo == NULL) || (kernel_cfg == NULL) || (config == NULL) || (env == NULL)) {
         (void)fprintf(stderr, "Error: NULL parameter in RunAlgorithm\n");
@@ -177,6 +178,12 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         op_params.dst_height = out_cfg->dst_height;
         op_params.dst_channels = (out_cfg->dst_channels > 0) ? out_cfg->dst_channels : 1;
         op_params.dst_stride = out_cfg->dst_stride;
+
+        /* Store configured output path for later use */
+        if (out_cfg->output_path[0] != '\0') {
+            (void)strncpy(configured_output_path, out_cfg->output_path,
+                          sizeof(configured_output_path) - 1);
+        }
     }
 
     /* Check if image fits in static buffers */
@@ -461,6 +468,17 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
                 (void)printf("Output saved to: %s\n", output_path);
             } else {
                 (void)fprintf(stderr, "Failed to save output image\n");
+            }
+        }
+
+        /* Also save to configured output path from outputs.json if specified */
+        if (configured_output_path[0] != '\0') {
+            write_result = WriteImage(configured_output_path, gpu_output_buffer, img_size_t);
+            if (write_result == 0) {
+                (void)printf("Output also saved to: %s\n", configured_output_path);
+            } else {
+                (void)fprintf(stderr, "Failed to save to configured output path: %s\n",
+                              configured_output_path);
             }
         }
     }

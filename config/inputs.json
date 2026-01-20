@@ -19,5 +19,27 @@
         "src_height": 1080,
         "src_channels": 1,
         "src_stride": "1920 * 1"
+    },
+    "svd_input": {
+        "input": "test_data/svd/input.bin",
+        "src_width": 1920,
+        "src_height": 1080,
+        "src_channels": 1,
+        "src_stride": "1920 * 1"
+    },
+    "harris_corner_input": {
+        "input": "test_data/harris_corner/input.bin",
+        "src_width": 1920,
+        "src_height": 1080,
+        "src_channels": 1,
+        "src_stride": "1920 * 1"
+    },
+    "lucas_kanade_input": {
+        "input": "test_data/lucas_kanade/prev_frame.bin",
+        "input2": "test_data/lucas_kanade/curr_frame.bin",
+        "src_width": 1920,
+        "src_height": 1080,
+        "src_channels": 1,
+        "src_stride": "1920 * 1"
     }
 }

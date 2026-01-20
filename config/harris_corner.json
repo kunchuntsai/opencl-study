@@ -1,0 +1,130 @@
+{
+    "input": {
+        "input_image_id": "harris_corner_input"
+    },
+
+    "output": {
+        "output_image_id": "harris_corner_output"
+    },
+
+    "verification": {
+        "tolerance": 100,
+        "error_rate_threshold": 0.01,
+        "golden_source": "file",
+        "golden_file": "test_data/harris_corner/golden_response.bin"
+    },
+
+    "scalars": {
+        "harris_k": {"type": "float", "value": 0.04},
+        "nms_threshold": {"type": "float", "value": 10000.0}
+    },
+
+    "buffers": {
+        "response": {
+            "type": "READ_WRITE",
+            "data_type": "float",
+            "size_expr": "src_width * src_height * 4"
+        },
+        "corners": {
+            "type": "WRITE_ONLY",
+            "data_type": "uchar",
+            "size_expr": "src_width * src_height"
+        }
+    },
+
+    "kernels": {
+        "v0": {
+            "description": "Harris corner response computation",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/harris_corner/cl/harris_corner0.cl",
+            "kernel_function": "harris_corner",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"buffer": ["float", "response", 8294400]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"param": ["float", "harris_k"]}
+            ],
+            "verification": {
+                "golden_file": "test_data/harris_corner/golden_response.bin",
+                "output_buffer": "response"
+            }
+        },
+        "v1": {
+            "description": "Harris with Scharr gradients",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/harris_corner/cl/harris_corner0.cl",
+            "kernel_function": "harris_corner_scharr",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"buffer": ["float", "response", 8294400]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"param": ["float", "harris_k"]}
+            ]
+        },
+        "v2": {
+            "description": "Minimum eigenvalue (Shi-Tomasi)",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/harris_corner/cl/harris_corner0.cl",
+            "kernel_function": "harris_min_eigenval",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"buffer": ["float", "response", 8294400]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]}
+            ]
+        },
+        "v3": {
+            "description": "Harris with local memory optimization",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/harris_corner/cl/harris_corner0.cl",
+            "kernel_function": "harris_corner_local",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"buffer": ["float", "response", 8294400]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"param": ["float", "harris_k"]}
+            ],
+            "verification": {
+                "golden_file": "test_data/harris_corner/golden_response.bin",
+                "output_buffer": "response"
+            }
+        },
+        "v4_nms": {
+            "description": "Non-maximum suppression",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/harris_corner/cl/harris_corner0.cl",
+            "kernel_function": "harris_nms",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "requires_pre_kernel": "v0",
+            "kernel_args": [
+                {"buffer": ["float", "response", 8294400]},
+                {"buffer": ["uchar", "corners", 2073600]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]},
+                {"param": ["float", "nms_threshold"]}
+            ]
+        }
+    }
+}

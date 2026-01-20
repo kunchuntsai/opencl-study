@@ -1,0 +1,96 @@
+{
+    "input": {
+        "input_image_id": "svd_input"
+    },
+
+    "output": {
+        "output_image_id": "svd_output"
+    },
+
+    "verification": {
+        "tolerance": 2,
+        "error_rate_threshold": 0.01,
+        "golden_source": "file",
+        "golden_file": "test_data/svd/golden_sigma1.bin"
+    },
+
+    "buffers": {
+        "sigma1": {
+            "type": "WRITE_ONLY",
+            "data_type": "float",
+            "size_expr": "src_width * src_height * 4"
+        },
+        "sigma2": {
+            "type": "WRITE_ONLY",
+            "data_type": "float",
+            "size_expr": "src_width * src_height * 4"
+        },
+        "angle": {
+            "type": "WRITE_ONLY",
+            "data_type": "float",
+            "size_expr": "src_width * src_height * 4"
+        },
+        "s1": {
+            "type": "WRITE_ONLY",
+            "data_type": "float",
+            "size_expr": "src_width * src_height * 4"
+        },
+        "s2": {
+            "type": "WRITE_ONLY",
+            "data_type": "float",
+            "size_expr": "src_width * src_height * 4"
+        },
+        "coherence": {
+            "type": "WRITE_ONLY",
+            "data_type": "float",
+            "size_expr": "src_width * src_height * 4"
+        }
+    },
+
+    "kernels": {
+        "v0": {
+            "description": "SVD of structure tensor per pixel",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/svd/cl/svd0.cl",
+            "kernel_function": "svd",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"buffer": ["float", "sigma1", 8294400]},
+                {"buffer": ["float", "sigma2", 8294400]},
+                {"buffer": ["float", "angle", 8294400]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]}
+            ],
+            "verification": {
+                "golden_file": "test_data/svd/golden_sigma1.bin",
+                "output_buffer": "sigma1"
+            }
+        },
+        "v1": {
+            "description": "SVD patch with coherence output",
+            "host_type": "standard",
+            "kernel_option": "",
+            "kernel_file": "examples/svd/cl/svd0.cl",
+            "kernel_function": "svd_patch",
+            "work_dim": 2,
+            "global_work_size": [1920, 1088],
+            "local_work_size": [16, 16],
+            "kernel_args": [
+                {"i_buffer": ["uchar", "src"]},
+                {"buffer": ["float", "s1", 8294400]},
+                {"buffer": ["float", "s2", 8294400]},
+                {"buffer": ["float", "coherence", 8294400]},
+                {"param": ["int", "src_width"]},
+                {"param": ["int", "src_height"]}
+            ],
+            "verification": {
+                "golden_file": "test_data/svd/golden_sigma1.bin",
+                "output_buffer": "s1"
+            }
+        }
+    }
+}

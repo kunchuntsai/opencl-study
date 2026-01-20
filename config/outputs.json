@@ -33,5 +33,29 @@
         "dst_height": 1080,
         "dst_channels": 1,
         "dst_stride": "1920 * 1"
+    },
+    "svd_output": {
+        "output": "test_data/svd/output.bin",
+        "dst_width": 1920,
+        "dst_height": 1080,
+        "dst_channels": 1,
+        "dst_stride": "1920 * 1",
+        "data_type": "float"
+    },
+    "harris_corner_output": {
+        "output": "test_data/harris_corner/output.bin",
+        "dst_width": 1920,
+        "dst_height": 1080,
+        "dst_channels": 1,
+        "dst_stride": "1920 * 1",
+        "data_type": "float"
+    },
+    "lucas_kanade_output": {
+        "output": "test_data/lucas_kanade/output.bin",
+        "dst_width": 1920,
+        "dst_height": 1080,
+        "dst_channels": 1,
+        "dst_stride": "1920 * 1",
+        "data_type": "float"
     }
 }
