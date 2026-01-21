@@ -1,5 +1,7 @@
 #include <math.h>
+#include <stdbool.h>
 #include <stddef.h>
+#include <string.h>
 
 #include "op_interface.h"
 #include "op_registry.h"
@@ -159,6 +161,127 @@ void HarrisCornerRef(const OpParams* params) {
             response = det - k * trace * trace;
 
             output[idx] = response;
+        }
+    }
+}
+
+/**
+ * @brief Non-maximum suppression reference implementation
+ *
+ * Applies non-maximum suppression to the Harris response map
+ * to extract discrete corner points. This matches the harris_nms OpenCL kernel.
+ *
+ * Algorithm:
+ * 1. Check if response value exceeds threshold
+ * 2. Check if it's a local maximum in 3x3 neighborhood
+ * 3. Output 255 for corner, 0 otherwise
+ *
+ * Reference: OpenCV modules/imgproc/src/opencl/corner.cl (harris_nms kernel)
+ *
+ * @param[in] params Operation parameters containing:
+ *   - custom_buffers[0]: response (float array) - Harris response map
+ *   - custom_buffers[1]: corners (uchar array) - Output corner map
+ *   - src_width, src_height: Image dimensions
+ *   - custom_scalars: nms_threshold (float) - Minimum response for corner
+ *
+ * NOTE: This function is provided for documentation and golden data generation.
+ * It is NOT automatically called by the framework (HarrisCornerRef is the main entry).
+ * To generate golden NMS data, use tools/generate_harris_corners_golden instead.
+ */
+void HarrisNmsRef(const OpParams* params) {
+    int y;
+    int x;
+    int width;
+    int height;
+    const float* response;
+    unsigned char* corners;
+    float threshold;
+    int total_pixels;
+    int dy;
+    int dx;
+
+    if (params == NULL) {
+        return;
+    }
+
+    /* Extract parameters */
+    width = params->src_width;
+    height = params->src_height;
+
+    if ((width <= 0) || (height <= 0)) {
+        return;
+    }
+
+    /* MISRA-C:2023 Rule 1.3: Check for integer overflow */
+    if (!SafeMulInt(width, height, &total_pixels)) {
+        return;
+    }
+
+    /* Get response and corners buffers from custom_buffers */
+    if ((params->custom_buffers == NULL) ||
+        (params->custom_buffers->count < 2)) {
+        return;
+    }
+
+    response = (const float*)params->custom_buffers->buffers[0].host_data;
+    corners = params->custom_buffers->buffers[1].host_data;
+
+    if ((response == NULL) || (corners == NULL)) {
+        return;
+    }
+
+    /* Get threshold from custom_scalars */
+    threshold = 10000.0f; /* Default value (matches config) */
+    if ((params->custom_scalars != NULL) &&
+        (params->custom_scalars->count > 0)) {
+        /* Look for "nms_threshold" scalar */
+        int i;
+        for (i = 0; i < params->custom_scalars->count; i++) {
+            if (strcmp(params->custom_scalars->scalars[i].name, "nms_threshold") == 0) {
+                threshold = params->custom_scalars->scalars[i].value.float_value;
+                break;
+            }
+        }
+    }
+
+    /* Apply non-maximum suppression */
+    for (y = 0; y < height; y++) {
+        for (x = 0; x < width; x++) {
+            int idx = y * width + x;
+            float val;
+            bool is_max;
+
+            /* Skip border pixels */
+            if ((x < 1) || (x >= width - 1) ||
+                (y < 1) || (y >= height - 1)) {
+                corners[idx] = 0;
+                continue;
+            }
+
+            val = response[idx];
+
+            /* Check if below threshold */
+            if (val < threshold) {
+                corners[idx] = 0;
+                continue;
+            }
+
+            /* Check if local maximum in 3x3 neighborhood */
+            is_max = true;
+            for (dy = -1; dy <= 1 && is_max; dy++) {
+                for (dx = -1; dx <= 1 && is_max; dx++) {
+                    int nidx;
+                    if ((dx == 0) && (dy == 0)) {
+                        continue;
+                    }
+                    nidx = (y + dy) * width + (x + dx);
+                    if (response[nidx] >= val) {
+                        is_max = false;
+                    }
+                }
+            }
+
+            corners[idx] = is_max ? (unsigned char)255 : (unsigned char)0;
         }
     }
 }

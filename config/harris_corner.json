@@ -124,7 +124,11 @@
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
                 {"param": ["float", "nms_threshold"]}
-            ]
+            ],
+            "verification": {
+                "golden_file": "test_data/harris_corner/golden_corners.bin",
+                "output_buffer": "corners"
+            }
         }
     }
 }
