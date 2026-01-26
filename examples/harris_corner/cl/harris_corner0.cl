@@ -20,11 +20,60 @@
  *     (see corner kernel with CORNER_HARRIS and CORNER_MINEIGENVAL modes)
  *   - Sobel/Scharr: https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/deriv.cpp
  *
- * @param input    Input grayscale image (uchar)
- * @param output   Output corner response map (float)
- * @param width    Image width in pixels
- * @param height   Image height in pixels
- * @param k        Harris detector free parameter (typically 0.04-0.06)
+ * ==============================================================================
+ * KERNEL I/O SUMMARY
+ * ==============================================================================
+ *
+ * Kernel: harris_corner
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - input   : __global const uchar*  [width * height]     - Grayscale image
+ *     - width   : int                                         - Image width
+ *     - height  : int                                         - Image height
+ *     - k       : float                                       - Harris parameter (0.04-0.06)
+ *   Output:
+ *     - output  : __global float*        [width * height]     - Harris response map
+ *
+ * Kernel: harris_corner_scharr
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - input   : __global const uchar*  [width * height]     - Grayscale image
+ *     - width   : int                                         - Image width
+ *     - height  : int                                         - Image height
+ *     - k       : float                                       - Harris parameter (0.04-0.06)
+ *   Output:
+ *     - output  : __global float*        [width * height]     - Harris response map (Scharr gradients)
+ *
+ * Kernel: harris_min_eigenval
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - input   : __global const uchar*  [width * height]     - Grayscale image
+ *     - width   : int                                         - Image width
+ *     - height  : int                                         - Image height
+ *   Output:
+ *     - output  : __global float*        [width * height]     - Minimum eigenvalue map (Shi-Tomasi)
+ *
+ * Kernel: harris_nms
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - response  : __global const float* [width * height]    - Harris response map
+ *     - width     : int                                       - Image width
+ *     - height    : int                                       - Image height
+ *     - threshold : float                                     - Minimum response threshold
+ *   Output:
+ *     - corners   : __global uchar*       [width * height]    - Binary corner map (255=corner, 0=not)
+ *
+ * Kernel: harris_corner_local
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - input   : __global const uchar*  [width * height]     - Grayscale image
+ *     - width   : int                                         - Image width
+ *     - height  : int                                         - Image height
+ *     - k       : float                                       - Harris parameter (0.04-0.06)
+ *   Output:
+ *     - output  : __global float*        [width * height]     - Harris response map (local mem optimized)
+ *
+ * ==============================================================================
  */
 
 /* Local memory tile size for optimized processing */

@@ -21,12 +21,44 @@
  *   - Eigenvalue computation: https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/corner.cpp
  *     (see calcMinEigenVal, calcEigenValsVecs)
  *
- * @param input     Input grayscale image (uchar)
- * @param sigma1    Output: first singular value (larger)
- * @param sigma2    Output: second singular value (smaller)
- * @param angle     Output: principal orientation angle in radians
- * @param width     Image width in pixels
- * @param height    Image height in pixels
+ * ==============================================================================
+ * KERNEL I/O SUMMARY
+ * ==============================================================================
+ *
+ * Kernel: svd
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - input   : __global const uchar*  [width * height]     - Grayscale image
+ *     - width   : int                                         - Image width
+ *     - height  : int                                         - Image height
+ *   Output:
+ *     - sigma1  : __global float*        [width * height]     - Larger singular value per pixel
+ *     - sigma2  : __global float*        [width * height]     - Smaller singular value per pixel
+ *     - angle   : __global float*        [width * height]     - Principal orientation (radians)
+ *
+ * Kernel: svd_patch
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - input   : __global const uchar*  [width * height]     - Grayscale image
+ *     - width   : int                                         - Image width
+ *     - height  : int                                         - Image height
+ *   Output:
+ *     - s1_out    : __global float*      [width * height]     - Larger singular value (Gaussian-weighted)
+ *     - s2_out    : __global float*      [width * height]     - Smaller singular value (Gaussian-weighted)
+ *     - coherence : __global float*      [width * height]     - Anisotropy measure (s1-s2)/(s1+s2)
+ *
+ * Kernel: svd_jacobi
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - input   : __global const uchar*  [width * height]     - Grayscale image
+ *     - width   : int                                         - Image width
+ *     - height  : int                                         - Image height
+ *   Output:
+ *     - U_out   : __global float*        [width * height * 4] - Left singular vectors (2x2 flattened)
+ *     - S_out   : __global float*        [width * height * 2] - Singular values (2 per pixel)
+ *     - V_out   : __global float*        [width * height * 4] - Right singular vectors (2x2 flattened)
+ *
+ * ==============================================================================
  */
 
 /**

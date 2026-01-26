@@ -22,13 +22,58 @@
  *     (see lkSparse kernel, SetPatch, GetPatch, reduce functions)
  *   - Scharr derivatives: https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/deriv.cpp
  *
- * @param prev_frame  Previous frame (grayscale uchar)
- * @param curr_frame  Current frame (grayscale uchar)
- * @param flow_x      Output: horizontal flow component (float)
- * @param flow_y      Output: vertical flow component (float)
- * @param width       Image width in pixels
- * @param height      Image height in pixels
- * @param window_size Window size for local averaging (typically 5, 7, or 9)
+ * ==============================================================================
+ * KERNEL I/O SUMMARY
+ * ==============================================================================
+ *
+ * Kernel: lucas_kanade
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - prev_frame  : __global const uchar* [width * height]  - Previous grayscale frame
+ *     - curr_frame  : __global const uchar* [width * height]  - Current grayscale frame
+ *     - width       : int                                     - Image width
+ *     - height      : int                                     - Image height
+ *     - window_size : int                                     - Window size (odd, typically 5-21)
+ *   Output:
+ *     - flow_x      : __global float*       [width * height]  - Horizontal flow (pixels)
+ *     - flow_y      : __global float*       [width * height]  - Vertical flow (pixels)
+ *
+ * Kernel: lucas_kanade_iterative
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - prev_frame  : __global const uchar* [width * height]  - Previous grayscale frame
+ *     - curr_frame  : __global const uchar* [width * height]  - Current grayscale frame
+ *     - width       : int                                     - Image width
+ *     - height      : int                                     - Image height
+ *     - window_size : int                                     - Window size (odd, typically 5-21)
+ *     - max_iters   : int                                     - Max iterations for refinement
+ *   Output:
+ *     - flow_x      : __global float*       [width * height]  - Horizontal flow (sub-pixel)
+ *     - flow_y      : __global float*       [width * height]  - Vertical flow (sub-pixel)
+ *
+ * Kernel: lucas_kanade_gaussian
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - prev_frame  : __global const uchar* [width * height]  - Previous grayscale frame
+ *     - curr_frame  : __global const uchar* [width * height]  - Current grayscale frame
+ *     - width       : int                                     - Image width
+ *     - height      : int                                     - Image height
+ *   Output:
+ *     - flow_x      : __global float*       [width * height]  - Horizontal flow (Gaussian-weighted)
+ *     - flow_y      : __global float*       [width * height]  - Vertical flow (Gaussian-weighted)
+ *
+ * Kernel: flow_to_polar
+ * ----------------------------------------------------------------------------
+ *   Input:
+ *     - flow_x      : __global const float* [width * height]  - Horizontal flow component
+ *     - flow_y      : __global const float* [width * height]  - Vertical flow component
+ *     - width       : int                                     - Image width
+ *     - height      : int                                     - Image height
+ *   Output:
+ *     - magnitude   : __global float*       [width * height]  - Flow magnitude (pixels)
+ *     - angle       : __global float*       [width * height]  - Flow angle (radians)
+ *
+ * ==============================================================================
  */
 
 /* Constants for iterative refinement */
