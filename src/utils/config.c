@@ -946,6 +946,7 @@ int ParseInputsConfig(const char* filename, Config* config) {
     char* json_str;
     cJSON* root;
     cJSON* image;
+    int custom_index;
 
     if ((filename == NULL) || (config == NULL)) {
         return -1;
@@ -973,31 +974,61 @@ int ParseInputsConfig(const char* filename, Config* config) {
     /* Initialize input images count */
     config->input_image_count = 0;
 
-    /* Iterate over all image entries */
+    /* First pass: Count image_N entries to determine starting index for custom entries */
+    int max_image_index = 0;
     cJSON_ArrayForEach(image, root) {
-        /* Skip non-image entries */
-        if (strncmp(image->string, "image_", 6U) != 0) {
-            continue;
+        if (strncmp(image->string, "image_", 6U) == 0) {
+            long temp_long;
+            if (SafeStrtol(image->string + 6, &temp_long) && (temp_long >= 1) &&
+                (temp_long <= MAX_INPUT_IMAGES)) {
+                if ((int)temp_long > max_image_index) {
+                    max_image_index = (int)temp_long;
+                }
+            }
         }
+    }
 
-        /* Parse image index from name (image_1 -> 0, image_2 -> 1, etc.) */
-        long temp_long;
-        if (!SafeStrtol(image->string + 6, &temp_long) || (temp_long < 1) ||
-            (temp_long > MAX_INPUT_IMAGES)) {
-            (void)fprintf(stderr, "Error: Invalid image name: %s\n", image->string);
-            cJSON_Delete(root);
-            return -1;
+    /* Custom entries start after image_N entries */
+    custom_index = max_image_index;
+
+    /* Second pass: Parse all entries */
+    cJSON_ArrayForEach(image, root) {
+        int image_index;
+        InputImageConfig* img;
+
+        /* Handle image_N entries */
+        if (strncmp(image->string, "image_", 6U) == 0) {
+            long temp_long;
+            if (!SafeStrtol(image->string + 6, &temp_long) || (temp_long < 1) ||
+                (temp_long > MAX_INPUT_IMAGES)) {
+                (void)fprintf(stderr, "Error: Invalid image name: %s\n", image->string);
+                cJSON_Delete(root);
+                return -1;
+            }
+            image_index = (int)temp_long - 1;
         }
-
-        int image_index = (int)temp_long - 1;
+        /* Handle custom-named entries (e.g., lucas_kanade_input, svd_input) */
+        else {
+            if (custom_index >= MAX_INPUT_IMAGES) {
+                (void)fprintf(stderr, "Error: Too many input images (max %d)\n", MAX_INPUT_IMAGES);
+                cJSON_Delete(root);
+                return -1;
+            }
+            image_index = custom_index;
+            custom_index++;
+        }
 
         /* Update image count */
         if (image_index + 1 > config->input_image_count) {
             config->input_image_count = image_index + 1;
         }
 
-        InputImageConfig* img = &config->input_images[image_index];
+        img = &config->input_images[image_index];
         (void)memset(img, 0, sizeof(InputImageConfig));
+
+        /* Store entry name for lookup */
+        (void)strncpy(img->name, image->string, sizeof(img->name) - 1U);
+        img->name[sizeof(img->name) - 1U] = '\0';
 
         /* Parse image properties */
         (void)GetJsonString(image, "input", img->input_path, sizeof(img->input_path));
@@ -1023,6 +1054,7 @@ int ParseOutputsConfig(const char* filename, Config* config) {
     char* json_str;
     cJSON* root;
     cJSON* output;
+    int custom_index;
 
     if ((filename == NULL) || (config == NULL)) {
         return -1;
@@ -1050,31 +1082,61 @@ int ParseOutputsConfig(const char* filename, Config* config) {
     /* Initialize output images count */
     config->output_image_count = 0;
 
-    /* Iterate over all output entries */
+    /* First pass: Count output_N entries to determine starting index for custom entries */
+    int max_output_index = 0;
     cJSON_ArrayForEach(output, root) {
-        /* Skip non-output entries */
-        if (strncmp(output->string, "output_", 7U) != 0) {
-            continue;
+        if (strncmp(output->string, "output_", 7U) == 0) {
+            long temp_long;
+            if (SafeStrtol(output->string + 7, &temp_long) && (temp_long >= 1) &&
+                (temp_long <= MAX_OUTPUT_IMAGES)) {
+                if ((int)temp_long > max_output_index) {
+                    max_output_index = (int)temp_long;
+                }
+            }
         }
+    }
 
-        /* Parse output index from name (output_1 -> 0, output_2 -> 1, etc.) */
-        long temp_long;
-        if (!SafeStrtol(output->string + 7, &temp_long) || (temp_long < 1) ||
-            (temp_long > MAX_OUTPUT_IMAGES)) {
-            (void)fprintf(stderr, "Error: Invalid output name: %s\n", output->string);
-            cJSON_Delete(root);
-            return -1;
+    /* Custom entries start after output_N entries */
+    custom_index = max_output_index;
+
+    /* Second pass: Parse all entries */
+    cJSON_ArrayForEach(output, root) {
+        int output_index;
+        OutputImageConfig* img;
+
+        /* Handle output_N entries */
+        if (strncmp(output->string, "output_", 7U) == 0) {
+            long temp_long;
+            if (!SafeStrtol(output->string + 7, &temp_long) || (temp_long < 1) ||
+                (temp_long > MAX_OUTPUT_IMAGES)) {
+                (void)fprintf(stderr, "Error: Invalid output name: %s\n", output->string);
+                cJSON_Delete(root);
+                return -1;
+            }
+            output_index = (int)temp_long - 1;
         }
-
-        int output_index = (int)temp_long - 1;
+        /* Handle custom-named entries (e.g., lucas_kanade_output, svd_output) */
+        else {
+            if (custom_index >= MAX_OUTPUT_IMAGES) {
+                (void)fprintf(stderr, "Error: Too many output images (max %d)\n", MAX_OUTPUT_IMAGES);
+                cJSON_Delete(root);
+                return -1;
+            }
+            output_index = custom_index;
+            custom_index++;
+        }
 
         /* Update output count */
         if (output_index + 1 > config->output_image_count) {
             config->output_image_count = output_index + 1;
         }
 
-        OutputImageConfig* img = &config->output_images[output_index];
+        img = &config->output_images[output_index];
         (void)memset(img, 0, sizeof(OutputImageConfig));
+
+        /* Store entry name for lookup */
+        (void)strncpy(img->name, output->string, sizeof(img->name) - 1U);
+        img->name[sizeof(img->name) - 1U] = '\0';
 
         /* Parse output properties */
         (void)GetJsonString(output, "output", img->output_path, sizeof(img->output_path));

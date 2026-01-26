@@ -59,6 +59,7 @@
  * and image dimensions.
  */
 typedef struct {
+    char name[64];        /**< Entry name (e.g., "image_1", "lucas_kanade_input") */
     char input_path[256]; /**< Path to input image file */
     int src_width;        /**< Source image width in pixels */
     int src_height;       /**< Source image height in pixels */
@@ -73,6 +74,7 @@ typedef struct {
  * and image dimensions.
  */
 typedef struct {
+    char name[64];         /**< Entry name (e.g., "output_1", "lucas_kanade_output") */
     char output_path[256]; /**< Path to output image file */
     int dst_width;         /**< Destination image width in pixels */
     int dst_height;        /**< Destination image height in pixels */

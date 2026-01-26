@@ -36,7 +36,8 @@
     },
     "lucas_kanade_input": {
         "input": "test_data/lucas_kanade/prev_frame.bin",
-        "input2": "test_data/lucas_kanade/curr_frame.bin",
+        "i_prev_frame": "test_data/lucas_kanade/prev_frame.bin",
+        "i_curr_frame": "test_data/lucas_kanade/curr_frame.bin",
         "src_width": 1920,
         "src_height": 1080,
         "src_channels": 1,

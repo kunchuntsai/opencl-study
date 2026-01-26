@@ -74,10 +74,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         /* If input_image_id is specified, find matching image */
         if (config->input_image_id[0] != '\0') {
             for (i = 0; i < config->input_image_count; i++) {
-                /* Extract image_N from section name for comparison */
-                char image_name[64];
-                (void)snprintf(image_name, sizeof(image_name), "image_%d", i + 1);
-                if (strcmp(config->input_image_id, image_name) == 0) {
+                /* Match against stored entry name (supports both image_N and custom names) */
+                if (strcmp(config->input_image_id, config->input_images[i].name) == 0) {
                     img_cfg = &config->input_images[i];
                     selected_index = i + 1;
                     break;
@@ -86,8 +84,11 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             if (img_cfg == NULL) {
                 (void)fprintf(stderr, "Error: Specified input_image_id '%s' not found\n",
                               config->input_image_id);
-                (void)fprintf(stderr, "Available images: image_1 to image_%d\n",
-                              config->input_image_count);
+                (void)fprintf(stderr, "Available images:");
+                for (i = 0; i < config->input_image_count; i++) {
+                    (void)fprintf(stderr, " %s", config->input_images[i].name);
+                }
+                (void)fprintf(stderr, "\n");
                 return;
             }
         } else {
@@ -145,10 +146,8 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
         /* If output_image_id is specified, find matching output */
         if (config->output_image_id[0] != '\0') {
             for (i = 0; i < config->output_image_count; i++) {
-                /* Extract output_N from section name for comparison */
-                char output_name[64];
-                (void)snprintf(output_name, sizeof(output_name), "output_%d", i + 1);
-                if (strcmp(config->output_image_id, output_name) == 0) {
+                /* Match against stored entry name (supports both output_N and custom names) */
+                if (strcmp(config->output_image_id, config->output_images[i].name) == 0) {
                     out_cfg = &config->output_images[i];
                     selected_index = i + 1;
                     break;
@@ -157,8 +156,11 @@ void RunAlgorithm(const Algorithm* algo, const KernelConfig* kernel_cfg, const C
             if (out_cfg == NULL) {
                 (void)fprintf(stderr, "Error: Specified output_image_id '%s' not found\n",
                               config->output_image_id);
-                (void)fprintf(stderr, "Available outputs: output_1 to output_%d\n",
-                              config->output_image_count);
+                (void)fprintf(stderr, "Available outputs:");
+                for (i = 0; i < config->output_image_count; i++) {
+                    (void)fprintf(stderr, " %s", config->output_images[i].name);
+                }
+                (void)fprintf(stderr, "\n");
                 return;
             }
         } else {

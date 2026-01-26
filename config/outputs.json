@@ -36,6 +36,9 @@
     },
     "svd_output": {
         "output": "test_data/svd/output.bin",
+        "o_sigma1": "test_data/svd/output_sigma1.bin",
+        "o_sigma2": "test_data/svd/output_sigma2.bin",
+        "o_angle": "test_data/svd/output_angle.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,
@@ -44,6 +47,8 @@
     },
     "harris_corner_output": {
         "output": "test_data/harris_corner/output.bin",
+        "io_response": "test_data/harris_corner/output_response.bin",
+        "o_corners": "test_data/harris_corner/output_corners.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,
@@ -52,6 +57,10 @@
     },
     "lucas_kanade_output": {
         "output": "test_data/lucas_kanade/output.bin",
+        "o_flow_x": "test_data/lucas_kanade/output_flow_x.bin",
+        "o_flow_y": "test_data/lucas_kanade/output_flow_y.bin",
+        "o_magnitude": "test_data/lucas_kanade/output_magnitude.bin",
+        "o_angle": "test_data/lucas_kanade/output_angle.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,
