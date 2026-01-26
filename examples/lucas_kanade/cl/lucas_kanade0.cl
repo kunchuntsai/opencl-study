@@ -21,59 +21,6 @@
  *   - OpenCL kernel: https://github.com/opencv/opencv/blob/4.x/modules/video/src/opencl/pyrlk.cl
  *     (see lkSparse kernel, SetPatch, GetPatch, reduce functions)
  *   - Scharr derivatives: https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/deriv.cpp
- *
- * ==============================================================================
- * KERNEL I/O SUMMARY
- * ==============================================================================
- *
- * Kernel: lucas_kanade
- * ----------------------------------------------------------------------------
- *   Input:
- *     - prev_frame  : __global const uchar* [width * height]  - Previous grayscale frame
- *     - curr_frame  : __global const uchar* [width * height]  - Current grayscale frame
- *     - width       : int                                     - Image width
- *     - height      : int                                     - Image height
- *     - window_size : int                                     - Window size (odd, typically 5-21)
- *   Output:
- *     - flow_x      : __global float*       [width * height]  - Horizontal flow (pixels)
- *     - flow_y      : __global float*       [width * height]  - Vertical flow (pixels)
- *
- * Kernel: lucas_kanade_iterative
- * ----------------------------------------------------------------------------
- *   Input:
- *     - prev_frame  : __global const uchar* [width * height]  - Previous grayscale frame
- *     - curr_frame  : __global const uchar* [width * height]  - Current grayscale frame
- *     - width       : int                                     - Image width
- *     - height      : int                                     - Image height
- *     - window_size : int                                     - Window size (odd, typically 5-21)
- *     - max_iters   : int                                     - Max iterations for refinement
- *   Output:
- *     - flow_x      : __global float*       [width * height]  - Horizontal flow (sub-pixel)
- *     - flow_y      : __global float*       [width * height]  - Vertical flow (sub-pixel)
- *
- * Kernel: lucas_kanade_gaussian
- * ----------------------------------------------------------------------------
- *   Input:
- *     - prev_frame  : __global const uchar* [width * height]  - Previous grayscale frame
- *     - curr_frame  : __global const uchar* [width * height]  - Current grayscale frame
- *     - width       : int                                     - Image width
- *     - height      : int                                     - Image height
- *   Output:
- *     - flow_x      : __global float*       [width * height]  - Horizontal flow (Gaussian-weighted)
- *     - flow_y      : __global float*       [width * height]  - Vertical flow (Gaussian-weighted)
- *
- * Kernel: flow_to_polar
- * ----------------------------------------------------------------------------
- *   Input:
- *     - flow_x      : __global const float* [width * height]  - Horizontal flow component
- *     - flow_y      : __global const float* [width * height]  - Vertical flow component
- *     - width       : int                                     - Image width
- *     - height      : int                                     - Image height
- *   Output:
- *     - magnitude   : __global float*       [width * height]  - Flow magnitude (pixels)
- *     - angle       : __global float*       [width * height]  - Flow angle (radians)
- *
- * ==============================================================================
  */
 
 /* Constants for iterative refinement */
@@ -158,16 +105,14 @@ inline float bilinear_sample(__global const uchar* input,
  * @brief Dense Lucas-Kanade Optical Flow kernel
  *
  * Computes optical flow for every pixel using the Lucas-Kanade method.
- * Based on OpenCV's implementation with the optical flow constraint:
- *   Ix*vx + Iy*vy + It = 0
  *
- * @param prev_frame  Previous frame
- * @param curr_frame  Current frame
- * @param flow_x      Output: horizontal flow
- * @param flow_y      Output: vertical flow
- * @param width       Image width
- * @param height      Image height
- * @param window_size Window size (odd number, typically 5-21)
+ * @param[in]  prev_frame   Previous grayscale frame [width * height]
+ * @param[in]  curr_frame   Current grayscale frame [width * height]
+ * @param[out] flow_x       Horizontal flow in pixels [width * height]
+ * @param[out] flow_y       Vertical flow in pixels [width * height]
+ * @param[in]  width        Image width
+ * @param[in]  height       Image height
+ * @param[in]  window_size  Window size (odd, typically 5-21)
  */
 __kernel void lucas_kanade(__global const uchar* prev_frame,
                            __global const uchar* curr_frame,
@@ -256,23 +201,16 @@ __kernel void lucas_kanade(__global const uchar* prev_frame,
 /**
  * @brief Lucas-Kanade with iterative refinement (OpenCV-style)
  *
- * Adds iterative refinement for sub-pixel accuracy, similar to
- * OpenCV's pyramidal LK implementation.
+ * Adds iterative refinement for sub-pixel accuracy.
  *
- * OpenCV Reference:
- *   - https://github.com/opencv/opencv/blob/4.x/modules/video/src/opencl/pyrlk.cl
- *     (lkSparse kernel with iterative Newton-Raphson refinement)
- *   - https://github.com/opencv/opencv/blob/4.x/modules/video/src/lkpyramid.cpp#L350
- *     (LKTrackerInvoker::operator() with iteration loop)
- *
- * @param prev_frame  Previous frame
- * @param curr_frame  Current frame
- * @param flow_x      Output: horizontal flow
- * @param flow_y      Output: vertical flow
- * @param width       Image width
- * @param height      Image height
- * @param window_size Window size
- * @param max_iters   Maximum iterations for refinement
+ * @param[in]  prev_frame   Previous grayscale frame [width * height]
+ * @param[in]  curr_frame   Current grayscale frame [width * height]
+ * @param[out] flow_x       Horizontal flow, sub-pixel [width * height]
+ * @param[out] flow_y       Vertical flow, sub-pixel [width * height]
+ * @param[in]  width        Image width
+ * @param[in]  height       Image height
+ * @param[in]  window_size  Window size (odd, typically 5-21)
+ * @param[in]  max_iters    Maximum iterations for refinement
  */
 __kernel void lucas_kanade_iterative(__global const uchar* prev_frame,
                                      __global const uchar* curr_frame,
@@ -383,14 +321,13 @@ __kernel void lucas_kanade_iterative(__global const uchar* prev_frame,
  * @brief Lucas-Kanade with Gaussian weighting (improved accuracy)
  *
  * Uses Gaussian weighting in the window instead of uniform weights.
- * This gives more weight to pixels near the center.
  *
- * @param prev_frame  Previous frame
- * @param curr_frame  Current frame
- * @param flow_x      Output: horizontal flow
- * @param flow_y      Output: vertical flow
- * @param width       Image width
- * @param height      Image height
+ * @param[in]  prev_frame  Previous grayscale frame [width * height]
+ * @param[in]  curr_frame  Current grayscale frame [width * height]
+ * @param[out] flow_x      Horizontal flow, Gaussian-weighted [width * height]
+ * @param[out] flow_y      Vertical flow, Gaussian-weighted [width * height]
+ * @param[in]  width       Image width
+ * @param[in]  height      Image height
  */
 __kernel void lucas_kanade_gaussian(__global const uchar* prev_frame,
                                     __global const uchar* curr_frame,
@@ -468,15 +405,14 @@ __kernel void lucas_kanade_gaussian(__global const uchar* prev_frame,
 /**
  * @brief Compute flow magnitude and angle from flow vectors
  *
- * Utility kernel to convert flow vectors to magnitude and angle.
- * Useful for visualization (HSV color coding).
+ * Utility kernel to convert flow vectors to polar coordinates.
  *
- * @param flow_x      Input: horizontal flow
- * @param flow_y      Input: vertical flow
- * @param magnitude   Output: flow magnitude
- * @param angle       Output: flow angle in radians
- * @param width       Image width
- * @param height      Image height
+ * @param[in]  flow_x     Horizontal flow component [width * height]
+ * @param[in]  flow_y     Vertical flow component [width * height]
+ * @param[out] magnitude  Flow magnitude in pixels [width * height]
+ * @param[out] angle      Flow angle in radians [width * height]
+ * @param[in]  width      Image width
+ * @param[in]  height     Image height
  */
 __kernel void flow_to_polar(__global const float* flow_x,
                             __global const float* flow_y,

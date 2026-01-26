@@ -20,45 +20,6 @@
  *     (see JacobiSVDImpl_, SVD::compute)
  *   - Eigenvalue computation: https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/corner.cpp
  *     (see calcMinEigenVal, calcEigenValsVecs)
- *
- * ==============================================================================
- * KERNEL I/O SUMMARY
- * ==============================================================================
- *
- * Kernel: svd
- * ----------------------------------------------------------------------------
- *   Input:
- *     - input   : __global const uchar*  [width * height]     - Grayscale image
- *     - width   : int                                         - Image width
- *     - height  : int                                         - Image height
- *   Output:
- *     - sigma1  : __global float*        [width * height]     - Larger singular value per pixel
- *     - sigma2  : __global float*        [width * height]     - Smaller singular value per pixel
- *     - angle   : __global float*        [width * height]     - Principal orientation (radians)
- *
- * Kernel: svd_patch
- * ----------------------------------------------------------------------------
- *   Input:
- *     - input   : __global const uchar*  [width * height]     - Grayscale image
- *     - width   : int                                         - Image width
- *     - height  : int                                         - Image height
- *   Output:
- *     - s1_out    : __global float*      [width * height]     - Larger singular value (Gaussian-weighted)
- *     - s2_out    : __global float*      [width * height]     - Smaller singular value (Gaussian-weighted)
- *     - coherence : __global float*      [width * height]     - Anisotropy measure (s1-s2)/(s1+s2)
- *
- * Kernel: svd_jacobi
- * ----------------------------------------------------------------------------
- *   Input:
- *     - input   : __global const uchar*  [width * height]     - Grayscale image
- *     - width   : int                                         - Image width
- *     - height  : int                                         - Image height
- *   Output:
- *     - U_out   : __global float*        [width * height * 4] - Left singular vectors (2x2 flattened)
- *     - S_out   : __global float*        [width * height * 2] - Singular values (2 per pixel)
- *     - V_out   : __global float*        [width * height * 4] - Right singular vectors (2x2 flattened)
- *
- * ==============================================================================
  */
 
 /**
@@ -177,6 +138,16 @@ void compute_scharr_gradients(__global const uchar* input,
         + k1 * ((float)input[(y+1) * width + (x+1)] - (float)input[(y-1) * width + (x+1)]);
 }
 
+/**
+ * @brief Compute per-pixel SVD of structure tensor
+ *
+ * @param[in]  input   Grayscale image [width * height]
+ * @param[out] sigma1  Larger singular value per pixel [width * height]
+ * @param[out] sigma2  Smaller singular value per pixel [width * height]
+ * @param[out] angle   Principal orientation in radians [width * height]
+ * @param[in]  width   Image width
+ * @param[in]  height  Image height
+ */
 __kernel void svd(__global const uchar* input,
                   __global float* sigma1,
                   __global float* sigma2,
@@ -225,12 +196,12 @@ __kernel void svd(__global const uchar* input,
  * Computes SVD of accumulated structure tensor over a window.
  * Uses Gaussian weighting similar to OpenCV's cornerEigenValsVecs.
  *
- * @param input       Input image (uchar)
- * @param s1_out      Output: larger singular value
- * @param s2_out      Output: smaller singular value
- * @param coherence   Output: anisotropy measure (s1-s2)/(s1+s2)
- * @param width       Image width
- * @param height      Image height
+ * @param[in]  input      Grayscale image [width * height]
+ * @param[out] s1_out     Larger singular value per pixel [width * height]
+ * @param[out] s2_out     Smaller singular value per pixel [width * height]
+ * @param[out] coherence  Anisotropy measure (s1-s2)/(s1+s2) [width * height]
+ * @param[in]  width      Image width
+ * @param[in]  height     Image height
  */
 __kernel void svd_patch(__global const uchar* input,
                         __global float* s1_out,
@@ -304,12 +275,12 @@ __kernel void svd_patch(__global const uchar* input,
  * Performs one Jacobi rotation to zero out the largest off-diagonal element.
  * This is the core operation in OpenCV's JacobiSVDImpl.
  *
- * @param input       Input image patch
- * @param U_out       Output: Left singular vectors (flattened 2x2)
- * @param S_out       Output: Singular values
- * @param V_out       Output: Right singular vectors (flattened 2x2)
- * @param width       Image width
- * @param height      Image height
+ * @param[in]  input   Grayscale image [width * height]
+ * @param[out] U_out   Left singular vectors, 2x2 flattened [width * height * 4]
+ * @param[out] S_out   Singular values [width * height * 2]
+ * @param[out] V_out   Right singular vectors, 2x2 flattened [width * height * 4]
+ * @param[in]  width   Image width
+ * @param[in]  height  Image height
  */
 __kernel void svd_jacobi(__global const uchar* input,
                          __global float* U_out,
