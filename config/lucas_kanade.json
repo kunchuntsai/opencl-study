@@ -20,34 +20,34 @@
     },
 
     "buffers": {
-        "prev_frame": {
+        "i_prev_frame": {
             "type": "READ_ONLY",
             "data_type": "uchar",
             "source_file": "test_data/lucas_kanade/prev_frame.bin",
             "size_expr": "src_width * src_height"
         },
-        "curr_frame": {
+        "i_curr_frame": {
             "type": "READ_ONLY",
             "data_type": "uchar",
             "source_file": "test_data/lucas_kanade/curr_frame.bin",
             "size_expr": "src_width * src_height"
         },
-        "flow_x": {
+        "o_flow_x": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "flow_y": {
+        "o_flow_y": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "magnitude": {
+        "o_magnitude": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "angle": {
+        "o_angle": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
@@ -65,17 +65,17 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"buffer": ["uchar", "prev_frame", 2073600]},
-                {"buffer": ["uchar", "curr_frame", 2073600]},
-                {"buffer": ["float", "flow_x", 8294400]},
-                {"buffer": ["float", "flow_y", 8294400]},
+                {"buffer": ["uchar", "i_prev_frame", 2073600]},
+                {"buffer": ["uchar", "i_curr_frame", 2073600]},
+                {"buffer": ["float", "o_flow_x", 8294400]},
+                {"buffer": ["float", "o_flow_y", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
                 {"param": ["int", "window_size"]}
             ],
             "verification": {
                 "golden_file": "test_data/lucas_kanade/golden_flow_x.bin",
-                "output_buffer": "flow_x"
+                "output_buffer": "o_flow_x"
             }
         },
         "v1": {
@@ -88,10 +88,10 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"buffer": ["uchar", "prev_frame", 2073600]},
-                {"buffer": ["uchar", "curr_frame", 2073600]},
-                {"buffer": ["float", "flow_x", 8294400]},
-                {"buffer": ["float", "flow_y", 8294400]},
+                {"buffer": ["uchar", "i_prev_frame", 2073600]},
+                {"buffer": ["uchar", "i_curr_frame", 2073600]},
+                {"buffer": ["float", "o_flow_x", 8294400]},
+                {"buffer": ["float", "o_flow_y", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
                 {"param": ["int", "window_size"]},
@@ -99,7 +99,7 @@
             ],
             "verification": {
                 "golden_file": "test_data/lucas_kanade/golden_flow_x.bin",
-                "output_buffer": "flow_x"
+                "output_buffer": "o_flow_x"
             }
         },
         "v2": {
@@ -112,10 +112,10 @@
             "global_work_size": [1920, 1088],
             "local_work_size": [16, 16],
             "kernel_args": [
-                {"buffer": ["uchar", "prev_frame", 2073600]},
-                {"buffer": ["uchar", "curr_frame", 2073600]},
-                {"buffer": ["float", "flow_x", 8294400]},
-                {"buffer": ["float", "flow_y", 8294400]},
+                {"buffer": ["uchar", "i_prev_frame", 2073600]},
+                {"buffer": ["uchar", "i_curr_frame", 2073600]},
+                {"buffer": ["float", "o_flow_x", 8294400]},
+                {"buffer": ["float", "o_flow_y", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]}
             ]
@@ -131,10 +131,10 @@
             "local_work_size": [16, 16],
             "requires_pre_kernel": "v0",
             "kernel_args": [
-                {"buffer": ["float", "flow_x", 8294400]},
-                {"buffer": ["float", "flow_y", 8294400]},
-                {"buffer": ["float", "magnitude", 8294400]},
-                {"buffer": ["float", "angle", 8294400]},
+                {"buffer": ["float", "o_flow_x", 8294400]},
+                {"buffer": ["float", "o_flow_y", 8294400]},
+                {"buffer": ["float", "o_magnitude", 8294400]},
+                {"buffer": ["float", "o_angle", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]}
             ]
