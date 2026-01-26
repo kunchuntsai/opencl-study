@@ -1,6 +1,6 @@
 /**
- * @file svd0.cl
- * @brief Singular Value Decomposition (SVD) OpenCL kernel implementation
+ * @file svd_1.cl
+ * @brief SVD standard kernels - per-pixel structure tensor and full Jacobi SVD
  *
  * Computes SVD for 2x2 matrices extracted from image patches.
  * Based on OpenCV's SVD implementation approach with Jacobi rotation.
@@ -20,13 +20,6 @@
  *     (see JacobiSVDImpl_, SVD::compute)
  *   - Eigenvalue computation: https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/corner.cpp
  *     (see calcMinEigenVal, calcEigenValsVecs)
- *
- * @param input     Input grayscale image (uchar)
- * @param sigma1    Output: first singular value (larger)
- * @param sigma2    Output: second singular value (smaller)
- * @param angle     Output: principal orientation angle in radians
- * @param width     Image width in pixels
- * @param height    Image height in pixels
  */
 
 /**
@@ -145,6 +138,19 @@ void compute_scharr_gradients(__global const uchar* input,
         + k1 * ((float)input[(y+1) * width + (x+1)] - (float)input[(y-1) * width + (x+1)]);
 }
 
+/**
+ * @brief SVD of per-pixel structure tensor
+ *
+ * Computes SVD of the 2x2 structure tensor at each pixel.
+ * The structure tensor M = [Ix^2, Ix*Iy; Ix*Iy, Iy^2] captures local gradient information.
+ *
+ * @param[in]  input   Input grayscale image buffer (uchar, size: width * height)
+ * @param[out] sigma1  First (larger) singular value output (float, size: width * height)
+ * @param[out] sigma2  Second (smaller) singular value output (float, size: width * height)
+ * @param[out] angle   Principal orientation angle in radians (float, size: width * height)
+ * @param[in]  width   Image width in pixels
+ * @param[in]  height  Image height in pixels
+ */
 __kernel void svd(__global const uchar* input,
                   __global float* sigma1,
                   __global float* sigma2,
@@ -188,96 +194,17 @@ __kernel void svd(__global const uchar* input,
 }
 
 /**
- * @brief SVD-based image patch decomposition with Gaussian weighting
+ * @brief Full Jacobi SVD decomposition for structure tensor (OpenCV-style)
  *
- * Computes SVD of accumulated structure tensor over a window.
- * Uses Gaussian weighting similar to OpenCV's cornerEigenValsVecs.
+ * Computes full SVD (U, S, V) of the per-pixel structure tensor.
+ * For symmetric matrices, U = V (rotation matrix).
  *
- * @param input       Input image (uchar)
- * @param s1_out      Output: larger singular value
- * @param s2_out      Output: smaller singular value
- * @param coherence   Output: anisotropy measure (s1-s2)/(s1+s2)
- * @param width       Image width
- * @param height      Image height
- */
-__kernel void svd_patch(__global const uchar* input,
-                        __global float* s1_out,
-                        __global float* s2_out,
-                        __global float* coherence,
-                        int width,
-                        int height) {
-    int x = get_global_id(0);
-    int y = get_global_id(1);
-
-    if (x >= width || y >= height) return;
-
-    int idx = y * width + x;
-
-    /* Skip border pixels where we can't compute 3x3 patch with gradients */
-    if (x < 2 || x >= width - 2 || y < 2 || y >= height - 2) {
-        s1_out[idx] = 0.0f;
-        s2_out[idx] = 0.0f;
-        coherence[idx] = 0.0f;
-        return;
-    }
-
-    /* Gaussian weights for 3x3 window (sigma ~= 0.85)
-     * Similar to OpenCV's approach but with Gaussian instead of box filter */
-    const float gauss[3][3] = {
-        {0.0625f, 0.125f, 0.0625f},
-        {0.125f,  0.25f,  0.125f},
-        {0.0625f, 0.125f, 0.0625f}
-    };
-
-    /* Accumulate weighted structure tensor over 3x3 window */
-    float Sxx = 0.0f;
-    float Syy = 0.0f;
-    float Sxy = 0.0f;
-
-    for (int dy = -1; dy <= 1; dy++) {
-        for (int dx = -1; dx <= 1; dx++) {
-            int px = x + dx;
-            int py = y + dy;
-
-            /* Compute Scharr gradients */
-            float Ix, Iy;
-            compute_scharr_gradients(input, px, py, width, &Ix, &Iy);
-
-            /* Apply Gaussian weight */
-            float w = gauss[dy + 1][dx + 1];
-
-            Sxx += w * Ix * Ix;
-            Syy += w * Iy * Iy;
-            Sxy += w * Ix * Iy;
-        }
-    }
-
-    /* SVD of symmetric 2x2 structure tensor */
-    float s1, s2, theta;
-    svd_2x2_symmetric(Sxx, Sxy, Syy, &s1, &s2, &theta);
-
-    s1_out[idx] = s1;
-    s2_out[idx] = s2;
-
-    /* Coherence measures how anisotropic the local structure is
-     * coherence = (s1 - s2) / (s1 + s2 + epsilon)
-     * Range: [0, 1], where 1 = highly directional, 0 = isotropic */
-    float epsilon = 1e-6f;
-    coherence[idx] = (s1 - s2) / (s1 + s2 + epsilon);
-}
-
-/**
- * @brief Jacobi SVD iteration for general matrices (OpenCV-style)
- *
- * Performs one Jacobi rotation to zero out the largest off-diagonal element.
- * This is the core operation in OpenCV's JacobiSVDImpl.
- *
- * @param input       Input image patch
- * @param U_out       Output: Left singular vectors (flattened 2x2)
- * @param S_out       Output: Singular values
- * @param V_out       Output: Right singular vectors (flattened 2x2)
- * @param width       Image width
- * @param height      Image height
+ * @param[in]  input   Input grayscale image buffer (uchar, size: width * height)
+ * @param[out] U_out   Left singular vectors, flattened 2x2 per pixel (float, size: width * height * 4)
+ * @param[out] S_out   Singular values, 2 values per pixel (float, size: width * height * 2)
+ * @param[out] V_out   Right singular vectors, flattened 2x2 per pixel (float, size: width * height * 4)
+ * @param[in]  width   Image width in pixels
+ * @param[in]  height  Image height in pixels
  */
 __kernel void svd_jacobi(__global const uchar* input,
                          __global float* U_out,

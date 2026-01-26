@@ -10,7 +10,7 @@
   <text x="55" y="75" font-family="Consolas, monospace" font-size="14" fill="#98C379">"description": "standard cl implementation",</text>
   <text x="55" y="100" font-family="Consolas, monospace" font-size="14" fill="#98C379">"host_type": "standard",</text>
   <text x="55" y="125" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_option": "-g",</text>
-  <text x="55" y="150" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_file": "examples/resize/cl/resize0.cl",</text>
+  <text x="55" y="150" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_file": "examples/resize/cl/resize_1.cl",</text>
   <text x="55" y="175" font-family="Consolas, monospace" font-size="14" fill="#98C379">"kernel_function": "resize",</text>
   <text x="55" y="200" font-family="Consolas, monospace" font-size="14" fill="#98C379">"work_dim": 2,</text>
   <text x="55" y="225" font-family="Consolas, monospace" font-size="14" fill="#98C379">"global_work_size": [1920, 1088],</text>

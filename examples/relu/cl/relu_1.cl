@@ -1,5 +1,5 @@
 /**
- * @file relu0.cl
+ * @file relu_1.cl
  * @brief Relu OpenCL kernel implementation
  *
  * TODO: Add algorithm description here

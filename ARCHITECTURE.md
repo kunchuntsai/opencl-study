@@ -340,9 +340,9 @@ examples/gaussian/                   ← User algorithm module (NOT in library)
 │                                      (verification & kernel args are config-driven)
 │
 └── cl/                              ← GPU kernel variants
-    ├── gaussian0.cl                 → Kernel variant 0
-    ├── gaussian1.cl                 → Kernel variant 1 (optimized)
-    └── gaussian2.cl                 → Kernel variant 2 (separable)
+    ├── gaussian_1.cl                 → Kernel variant 0
+    ├── gaussian_2.cl                 → Kernel variant 1 (optimized)
+    └── gaussian_3.cl                 → Kernel variant 2 (separable)
 
 Configuration (config/gaussian5x5.ini):
 ───────────────────────────────────────
@@ -378,7 +378,7 @@ error_rate_threshold = 0.001         ← Max % of pixels that can differ
 # Kernel variants (supports multiple variants with different signatures)
 [kernel.v0]
 host_type = standard
-kernel_file = examples/gaussian/cl/gaussian0.cl
+kernel_file = examples/gaussian/cl/gaussian_1.cl
 kernel_function = gaussian5x5
 work_dim = 2
 global_work_size = 1920,1088
@@ -394,7 +394,7 @@ kernel_args = {                      ← Config-driven kernel args!
 
 [kernel.v1]
 host_type = cl_extension
-kernel_file = examples/gaussian/cl/gaussian1.cl
+kernel_file = examples/gaussian/cl/gaussian_2.cl
 kernel_function = gaussian5x5_optimized
 work_dim = 2
 global_work_size = 1920,1088
@@ -538,14 +538,14 @@ test_data/gaussian5x5/
 │                                                               │
 │  [kernel.v0]                  ← Kernel variant 0 (auto)      │
 │  host_type = standard                                        │
-│  kernel_file = examples/gaussian/cl/gaussian0.cl             │
+│  kernel_file = examples/gaussian/cl/gaussian_1.cl             │
 │  kernel_function = gaussian5x5                               │
 │  global_work_size = 1920,1088                                │
 │  local_work_size = 16,16                                     │
 │                                                               │
 │  [kernel.v1]                  ← Kernel variant 1 (auto)      │
 │  host_type = cl_extension                                    │
-│  kernel_file = examples/gaussian/cl/gaussian1.cl             │
+│  kernel_file = examples/gaussian/cl/gaussian_2.cl             │
 │  kernel_function = gaussian5x5_optimized                     │
 │  global_work_size = 1920,1088                                │
 │  local_work_size = 16,16                                     │
@@ -944,7 +944,7 @@ OUTPUT: JSON metadata file
   "variants": [
     {
       "variant_id": 0,
-      "kernel_file": "examples/gaussian/cl/gaussian0.cl",
+      "kernel_file": "examples/gaussian/cl/gaussian_1.cl",
       "function_name": "gaussian5x5",
       "host_type": "standard",
       "parameters": [
@@ -1074,7 +1074,7 @@ opencl-imgproc-sdk-1.0.0/
 │   ├── main.c.example                 → Example main.c
 │   ├── dilate/
 │   │   ├── c_ref/dilate3x3_ref.c
-│   │   └── cl/dilate0.cl
+│   │   └── cl/dilate_1.cl
 │   └── gaussian/
 │       ├── c_ref/gaussian5x5_ref.c
 │       └── cl/gaussian*.cl

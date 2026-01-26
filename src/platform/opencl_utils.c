@@ -427,8 +427,8 @@ cl_kernel OpenclBuildKernel(OpenCLEnv* env, const char* algorithm_id,
     kernel_option = kernel_cfg->kernel_option;
     host_type = kernel_cfg->host_type;
 
-    /* Extract cache name from kernel file (e.g., "dilate0" from
-     * "src/dilate/cl/dilate0.cl") */
+    /* Extract cache name from kernel file (e.g., "dilate_1" from
+     * "src/dilate/cl/dilate_1.cl") */
     if (ExtractCacheName(kernel_file, cache_name, sizeof(cache_name)) != 0) {
         (void)fprintf(stderr, "Error: Failed to extract cache name from %s\n", kernel_file);
         return NULL;

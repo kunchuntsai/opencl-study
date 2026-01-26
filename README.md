@@ -120,7 +120,7 @@ Use the `create_new_algo` script to generate all required files automatically:
 This creates:
 - Configuration file: `config/myalgo.json`
 - C reference: `examples/myalgo/c_ref/myalgo_ref.c` (with 2 required functions)
-- OpenCL kernel: `examples/myalgo/cl/myalgo0.cl`
+- OpenCL kernel: `examples/myalgo/cl/myalgo_1.cl`
 - Test data directory: `test_data/myalgo/`
 
 Then build and run:
@@ -133,7 +133,7 @@ Then build and run:
 
 1. **Create a configuration file:** `config/myalgo.json`
 2. **Implement C reference:** `examples/myalgo/c_ref/myalgo_ref.c` (2 required functions)
-3. **Write OpenCL kernel:** `examples/myalgo/cl/myalgo0.cl`
+3. **Write OpenCL kernel:** `examples/myalgo/cl/myalgo_1.cl`
 
 Then build (registry auto-generated):
 ```bash
@@ -163,7 +163,7 @@ Each algorithm has its own `.json` configuration file in the `config/` directory
     },
     "kernels": {
         "v0": {
-            "kernel_file": "examples/myalgo/cl/myalgo0.cl",
+            "kernel_file": "examples/myalgo/cl/myalgo_1.cl",
             "kernel_function": "myalgo",
             "work_dim": 2,
             "global_work_size": [1920, 1088],

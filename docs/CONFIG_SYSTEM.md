@@ -302,7 +302,7 @@ The following built-in fields can be referenced in `param`:
     "kernels": {
         "v0": {
             "host_type": "standard",
-            "kernel_file": "examples/gaussian5x5/cl/gaussian0.cl",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian_1.cl",
             "kernel_function": "gaussian5x5",
             "work_dim": 2,
             "global_work_size": [1920, 1088],
@@ -318,7 +318,7 @@ The following built-in fields can be referenced in `param`:
         },
         "v1": {
             "host_type": "cl_extension",
-            "kernel_file": "examples/gaussian5x5/cl/gaussian1.cl",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian_2.cl",
             "kernel_function": "gaussian5x5_optimized",
             "work_dim": 2,
             "global_work_size": [1920, 1088],

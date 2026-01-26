@@ -26,7 +26,7 @@ To add a new algorithm (e.g., `erode3x3`):
 
 1. **Configuration file:** `config/erode3x3.json`
 2. **C reference file:** `examples/erode3x3/c_ref/erode3x3_ref.c` with reference function
-3. **OpenCL kernel:** `examples/erode3x3/cl/erode3x30.cl`
+3. **OpenCL kernel:** `examples/erode3x3/cl/erode3x3_1.cl`
 
 ---
 
@@ -41,7 +41,7 @@ Use the helper script to create all boilerplate:
 This creates:
 - `config/erode3x3.json` - JSON configuration
 - `examples/erode3x3/c_ref/erode3x3_ref.c` - C reference implementation
-- `examples/erode3x3/cl/erode3x30.cl` - OpenCL kernel template
+- `examples/erode3x3/cl/erode3x3_1.cl` - OpenCL kernel template
 
 Then add input/output entries to `config/inputs.json` and `config/outputs.json`.
 
@@ -66,7 +66,7 @@ Then add input/output entries to `config/inputs.json` and `config/outputs.json`.
     },
     "kernels": {
         "v0": {
-            "kernel_file": "examples/erode3x3/cl/erode0.cl",
+            "kernel_file": "examples/erode3x3/cl/erode_1.cl",
             "kernel_function": "erode3x3",
             "work_dim": 2,
             "global_work_size": [1920, 1088],
@@ -80,7 +80,7 @@ Then add input/output entries to `config/inputs.json` and `config/outputs.json`.
         },
         "v1": {
             "host_type": "cl_extension",
-            "kernel_file": "examples/erode3x3/cl/erode1.cl",
+            "kernel_file": "examples/erode3x3/cl/erode_2.cl",
             "kernel_function": "erode3x3_optimized",
             "work_dim": 2,
             "global_work_size": [1920, 1088],
@@ -285,7 +285,7 @@ Simply regenerate the registry:
 |------|---------|
 | `config/<algo>.json` | Algorithm configuration (JSON format) |
 | `examples/<algo>/c_ref/<algo>_ref.c` | Reference implementation function |
-| `examples/<algo>/cl/<algo>0.cl` | OpenCL kernel variant 0 |
+| `examples/<algo>/cl/<algo>_1.cl` | OpenCL kernel variant 0 |
 
 ### Mandatory Function
 
@@ -302,7 +302,7 @@ Simply regenerate the registry:
 
 - [ ] Created `config/<algo>.json` with `input`, `output`, `verification`, and `kernels` sections
 - [ ] Created `examples/<algo>/c_ref/<algo>_ref.c` with `<AlgoName>Ref()` function
-- [ ] Created `examples/<algo>/cl/<algo>0.cl` kernel file
+- [ ] Created `examples/<algo>/cl/<algo>_1.cl` kernel file
 - [ ] Added input entry to `config/inputs.json`
 - [ ] Added output entry to `config/outputs.json`
 - [ ] Kernel signature matches `kernel_args` order exactly
@@ -322,8 +322,8 @@ examples/erode3x3/
   ├── c_ref/
   │   └── erode3x3_ref.c          # Two required functions
   └── cl/
-      ├── erode0.cl               # Variant 0 kernel
-      └── erode1.cl               # Variant 1 kernel (optional)
+      ├── erode_1.cl               # Variant 0 kernel
+      └── erode_2.cl               # Variant 1 kernel (optional)
 
 test_data/erode3x3/
   ├── input.bin                   # Input image

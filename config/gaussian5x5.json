@@ -54,7 +54,7 @@
         "v1f": {
             "description": "standard CL (float)",
             "host_type": "standard",
-            "kernel_file": "examples/gaussian5x5/cl/gaussian0.cl",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian_1.cl",
             "kernel_function": "gaussian5x5",
             "work_dim": 2,
             "global_work_size": [1920, 1088],
@@ -71,7 +71,7 @@
         "v1": {
             "description": "CL extension with temp buffer",
             "host_type": "cl_extension",
-            "kernel_file": "examples/gaussian5x5/cl/gaussian1.cl",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian_2.cl",
             "kernel_function": "gaussian5x5_optimized",
             "work_dim": 2,
             "global_work_size": [1920, 1088],
@@ -89,7 +89,7 @@
         "v2": {
             "description": "separable horizontal pass",
             "host_type": "cl_extension",
-            "kernel_file": "examples/gaussian5x5/cl/gaussian2.cl",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian_3.cl",
             "kernel_function": "gaussian5x5_horizontal",
             "work_dim": 2,
             "global_work_size": [1920, 1088],
@@ -108,7 +108,7 @@
         "v3": {
             "description": "custom sigma/radius params",
             "host_type": "standard",
-            "kernel_file": "examples/gaussian5x5/cl/gaussian3.cl",
+            "kernel_file": "examples/gaussian5x5/cl/gaussian_4.cl",
             "kernel_function": "gaussian_custom",
             "work_dim": 2,
             "global_work_size": [1920, 1088],

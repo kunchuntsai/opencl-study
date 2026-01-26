@@ -91,7 +91,7 @@
   <text x="770" y="855" font-family="monospace" font-size="14" fill="#666666">"kernels": {</text>
   <text x="790" y="880" font-family="monospace" font-size="14" fill="#cc8800">  "v0": {</text>
   <text x="810" y="905" font-family="monospace" font-size="14" fill="#cc8800">    "host_type": "standard",</text>
-  <text x="810" y="930" font-family="monospace" font-size="14" fill="#cc8800">    "kernel_file": "relu0.cl"</text>
+  <text x="810" y="930" font-family="monospace" font-size="14" fill="#cc8800">    "kernel_file": "relu_1.cl"</text>
   <text x="790" y="955" font-family="monospace" font-size="14" fill="#cc8800">  },</text>
   <text x="790" y="980" font-family="monospace" font-size="14" fill="#ff9800">  "v1": {</text>
   <text x="810" y="1005" font-family="monospace" font-size="14" fill="#ff9800">    "host_type": "cl_extension",</text>

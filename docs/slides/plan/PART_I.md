@@ -201,12 +201,12 @@ This diagram shows how the framework branches between platforms. The decision ha
     "v0": {
       "description": "Standard OpenCL baseline",
       "host_type": "standard",
-      "kernel_file": "examples/relu/cl/relu0.cl"
+      "kernel_file": "examples/relu/cl/relu_1.cl"
     },
     "v1": {
       "description": "CL extension optimized",
       "host_type": "cl_extension",
-      "kernel_file": "examples/relu/cl/relu1.cl"
+      "kernel_file": "examples/relu/cl/relu_2.cl"
     }
   }
 }
@@ -336,7 +336,7 @@ Input images define dimensions and file paths. Outputs can use template variable
   "description": "standard with struct params",
   "host_type": "standard",
   "kernel_option": "-cl-fast-relaxed-math",
-  "kernel_file": "examples/relu/cl/relu0.cl",
+  "kernel_file": "examples/relu/cl/relu_1.cl",
   "kernel_function": "relu",
   "work_dim": 2,
   "global_work_size": [1920, 1088],

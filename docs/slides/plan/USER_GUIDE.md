@@ -198,12 +198,12 @@ Platforms are configured **per kernel variant** in JSON:
     "v0": {
       "description": "standard OpenCL baseline",
       "host_type": "standard",          // ← Standard GPU
-      "kernel_file": "examples/relu/cl/relu0.cl"
+      "kernel_file": "examples/relu/cl/relu_1.cl"
     },
     "v1": {
       "description": "CL extension optimized",
       "host_type": "cl_extension",      // ← Custom hardware
-      "kernel_file": "examples/relu/cl/relu1.cl"
+      "kernel_file": "examples/relu/cl/relu_2.cl"
     }
   }
 }
@@ -305,7 +305,7 @@ config/
       "description": "standard 2D workgroup",
       "host_type": "standard",
       "kernel_option": "-cl-fast-relaxed-math",
-      "kernel_file": "examples/relu/cl/relu0.cl",
+      "kernel_file": "examples/relu/cl/relu_1.cl",
       "kernel_function": "relu_kernel",
       "work_dim": 2,
       "global_work_size": [1920, 1088],
@@ -380,7 +380,7 @@ Passed to kernel as arguments automatically.
       "description": "Human-readable description",
       "host_type": "standard",           // or "cl_extension"
       "kernel_option": "-cl-fast-relaxed-math",
-      "kernel_file": "examples/algo/cl/algo0.cl",
+      "kernel_file": "examples/algo/cl/algo_1.cl",
       "kernel_function": "my_kernel",
       "work_dim": 2,
       "global_work_size": [1920, 1088],
@@ -607,7 +607,7 @@ done
 
 ```bash
 # Compile kernel for target platform
-cl_compiler --kernel relu0.cl \
+cl_compiler --kernel relu_1.cl \
             --config relu.json \
             --variant v0 \
             --platform standard \
@@ -813,7 +813,7 @@ config.json ┼──► cl_compiler ──► program.bin ──┬──► cl
 │   Generated:                                                        │
 │   ├── config/myalgo.json                                            │
 │   ├── examples/myalgo/c_ref/myalgo_ref.c                            │
-│   └── examples/myalgo/cl/myalgo0.cl                                 │
+│   └── examples/myalgo/cl/myalgo_1.cl                                 │
 │                                                                     │
 │                                                                     │
 │ STEP 2: Implement C Reference                                       │
@@ -833,7 +833,7 @@ config.json ┼──► cl_compiler ──► program.bin ──┬──► cl
 │ STEP 3: Implement OpenCL Kernel                                     │
 │ ───────────────────────────────                                     │
 │                                                                     │
-│   // examples/myalgo/cl/myalgo0.cl                                  │
+│   // examples/myalgo/cl/myalgo_1.cl                                  │
 │   __kernel void myalgo_kernel(                                      │
 │       __global const uchar* input,                                  │
 │       __global uchar* output,                                       │
@@ -962,7 +962,7 @@ config.json ┼──► cl_compiler ──► program.bin ──┬──► cl
 
 # Edit generated files
 vim examples/myalgo/c_ref/myalgo_ref.c
-vim examples/myalgo/cl/myalgo0.cl
+vim examples/myalgo/cl/myalgo_1.cl
 vim config/myalgo.json
 
 # Build and test
@@ -976,7 +976,7 @@ vim config/myalgo.json
    ```
    examples/myalgo/
    ├── c_ref/myalgo_ref.c
-   └── cl/myalgo0.cl
+   └── cl/myalgo_1.cl
    ```
 
 2. Create config file: `config/myalgo.json`
@@ -1041,7 +1041,7 @@ See full guide: [docs/ADD_NEW_ALGO.md](ADD_NEW_ALGO.md)
       "description": "Variant description",
       "host_type": "standard|cl_extension",
       "kernel_option": "-cl-fast-relaxed-math",
-      "kernel_file": "examples/algo/cl/algo0.cl",
+      "kernel_file": "examples/algo/cl/algo_1.cl",
       "kernel_function": "kernel_entry_point",
       "work_dim": 1|2|3,
       "global_work_size": [1920, 1088],

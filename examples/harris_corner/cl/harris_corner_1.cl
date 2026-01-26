@@ -1,5 +1,5 @@
 /**
- * @file harris_corner0.cl
+ * @file harris_corner_1.cl
  * @brief Harris Corner Detection OpenCL kernel implementation
  *
  * Based on OpenCV's cornerHarris implementation.
@@ -94,18 +94,18 @@ inline void compute_scharr_gradients(__global const uchar* input,
  *
  * Implements the Harris corner detector following OpenCV's approach:
  * 1. Compute gradients using Sobel operator
- * 2. Build structure tensor with Gaussian weighting
+ * 2. Build structure tensor with Gaussian weighting (5x5 window)
  * 3. Compute Harris response: R = det(M) - k * trace(M)^2
  *
  * OpenCV Reference:
  *   - https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/corner.cpp#L127
- *     (calcHarris function: dst[j] = a*c - b*b - k*(a + c)*(a + c))
  *
- * @param input    Input grayscale image
- * @param output   Output Harris response map
- * @param width    Image width
- * @param height   Image height
- * @param k        Harris parameter (typically 0.04-0.06)
+ * @param[in]  input   Input grayscale image (uchar, size: width * height)
+ * @param[out] output  Harris corner response map (float, size: width * height)
+ *                     Positive values indicate corners, larger = stronger
+ * @param[in]  width   Image width in pixels
+ * @param[in]  height  Image height in pixels
+ * @param[in]  k       Harris detector sensitivity parameter (typically 0.04-0.06)
  */
 __kernel void harris_corner(__global const uchar* input,
                             __global float* output,
@@ -180,11 +180,12 @@ __kernel void harris_corner(__global const uchar* input,
  * Scharr provides better rotational symmetry than Sobel.
  * Equivalent to OpenCV's cornerHarris with ksize=-1.
  *
- * @param input    Input grayscale image
- * @param output   Output Harris response map
- * @param width    Image width
- * @param height   Image height
- * @param k        Harris parameter (typically 0.04-0.06)
+ * @param[in]  input   Input grayscale image (uchar, size: width * height)
+ * @param[out] output  Harris corner response map (float, size: width * height)
+ *                     Positive values indicate corners, larger = stronger
+ * @param[in]  width   Image width in pixels
+ * @param[in]  height  Image height in pixels
+ * @param[in]  k       Harris detector sensitivity parameter (typically 0.04-0.06)
  */
 __kernel void harris_corner_scharr(__global const uchar* input,
                                    __global float* output,
@@ -243,20 +244,16 @@ __kernel void harris_corner_scharr(__global const uchar* input,
  *
  * Computes the minimum eigenvalue of the structure tensor.
  * This is used in Shi-Tomasi "Good Features to Track" algorithm.
- *
  * min_eigenvalue = (trace - sqrt(trace^2 - 4*det)) / 2
- *                = (a+c)/2 - sqrt((a-c)^2/4 + b^2)
  *
  * OpenCV Reference:
  *   - https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/corner.cpp#L104
- *     (calcMinEigenVal function)
- *   - https://github.com/opencv/opencv/blob/4.x/modules/imgproc/src/opencl/corner.cl
- *     (CORNER_MINEIGENVAL mode: (a+c) - native_sqrt((a-c)*(a-c) + b*b))
  *
- * @param input    Input grayscale image
- * @param output   Output minimum eigenvalue map
- * @param width    Image width
- * @param height   Image height
+ * @param[in]  input   Input grayscale image (uchar, size: width * height)
+ * @param[out] output  Minimum eigenvalue map (float, size: width * height)
+ *                     Larger values indicate stronger corners
+ * @param[in]  width   Image width in pixels
+ * @param[in]  height  Image height in pixels
  */
 __kernel void harris_min_eigenval(__global const uchar* input,
                                   __global float* output,
@@ -316,13 +313,16 @@ __kernel void harris_min_eigenval(__global const uchar* input,
  * @brief Non-maximum suppression for Harris corners
  *
  * Applies non-maximum suppression to the Harris response map
- * to get discrete corner points.
+ * to get discrete corner points. A pixel is marked as corner if:
+ * 1. Its response exceeds the threshold, AND
+ * 2. It is the local maximum in a 3x3 neighborhood
  *
- * @param response   Input Harris response map (float)
- * @param corners    Output binary corner map (uchar, 255=corner, 0=not corner)
- * @param width      Image width in pixels
- * @param height     Image height in pixels
- * @param threshold  Minimum response value to be considered a corner
+ * @param[in]  response   Harris response map from harris_corner kernel (float, size: width * height)
+ * @param[out] corners    Binary corner map (uchar, size: width * height)
+ *                        255 = corner detected, 0 = not a corner
+ * @param[in]  width      Image width in pixels
+ * @param[in]  height     Image height in pixels
+ * @param[in]  threshold  Minimum response value to be considered a corner candidate
  */
 __kernel void harris_nms(__global const float* response,
                          __global uchar* corners,
@@ -369,13 +369,15 @@ __kernel void harris_nms(__global const float* response,
  * @brief Harris corner with local memory optimization (OpenCV-style)
  *
  * Uses local memory to cache input data for better memory bandwidth.
- * Based on OpenCV's corner.cl kernel pattern.
+ * Functionally equivalent to harris_corner but with optimized memory access.
+ * Based on OpenCV's corner.cl kernel pattern with tile-based processing.
  *
- * @param input    Input grayscale image
- * @param output   Output Harris response map
- * @param width    Image width
- * @param height   Image height
- * @param k        Harris parameter
+ * @param[in]  input   Input grayscale image (uchar, size: width * height)
+ * @param[out] output  Harris corner response map (float, size: width * height)
+ *                     Positive values indicate corners, larger = stronger
+ * @param[in]  width   Image width in pixels
+ * @param[in]  height  Image height in pixels
+ * @param[in]  k       Harris detector sensitivity parameter (typically 0.04-0.06)
  */
 __kernel void harris_corner_local(__global const uchar* input,
                                   __global float* output,

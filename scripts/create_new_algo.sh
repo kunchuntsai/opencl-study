@@ -11,7 +11,7 @@
 #
 # This will create:
 # - examples/<algo>/c_ref/<algo>_ref.c (C reference implementation)
-# - examples/<algo>/cl/<algo>0.cl (OpenCL kernel)
+# - examples/<algo>/cl/<algo>_1.cl (OpenCL kernel)
 # - config/<algo>.json (Configuration file)
 ################################################################################
 
@@ -55,7 +55,7 @@ ALGO_NAME_PASCAL=$(echo "$ALGO_NAME_C" | awk -F'_' '{for(i=1;i<=NF;i++) printf "
 C_REF_DIR="examples/${ALGO_NAME}/c_ref"
 CL_DIR="examples/${ALGO_NAME}/cl"
 C_REF_FILE="${C_REF_DIR}/${ALGO_NAME_C}_ref.c"
-CL_FILE="${CL_DIR}/${ALGO_NAME_C}0.cl"
+CL_FILE="${CL_DIR}/${ALGO_NAME_C}_1.cl"
 CONFIG_FILE="config/${ALGO_NAME}.json"
 
 # Check if files already exist
@@ -179,7 +179,7 @@ echo -e "${GREEN}✓${NC} Created file: $C_REF_FILE"
 ################################################################################
 cat > "$CL_FILE" << EOF
 /**
- * @file ${ALGO_NAME_C}0.cl
+ * @file ${ALGO_NAME_C}_1.cl
  * @brief ${ALGO_NAME_PASCAL} OpenCL kernel implementation
  *
  * TODO: Add algorithm description here
@@ -236,7 +236,7 @@ cat > "$CONFIG_FILE" << EOF
             "description": "standard OpenCL",
             "host_type": "standard",
             "kernel_option": "",
-            "kernel_file": "examples/${ALGO_NAME}/cl/${ALGO_NAME_C}0.cl",
+            "kernel_file": "examples/${ALGO_NAME}/cl/${ALGO_NAME_C}_1.cl",
             "kernel_function": "${ALGO_NAME_C}",
             "work_dim": 2,
             "global_work_size": [1920, 1088],
