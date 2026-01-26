@@ -1,44 +1,41 @@
 {
     "output_1": {
-        "output": "test_data/dilate3x3/output.bin",
+        "o_buffer": "test_data/dilate3x3/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 3,
         "dst_stride": "1920 * 3"
     },
     "output_2": {
-        "output": "test_data/gaussian5x5/output.bin",
+        "o_buffer": "test_data/gaussian5x5/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,
         "dst_stride": "1920 * 1"
     },
     "output_3": {
-        "output": "test_data/dilate3x3/output.bin",
+        "o_buffer": "test_data/dilate3x3/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 3,
         "dst_stride": "1920 * 3"
     },
     "output_4": {
-        "output": "test_data/dilate3x3/output.bin",
+        "o_buffer": "test_data/dilate3x3/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 3,
         "dst_stride": "1920 * 3"
     },
     "output_5": {
-        "output": "test_data/relu/output.bin",
+        "o_buffer": "test_data/relu/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,
         "dst_stride": "1920 * 1"
     },
     "svd_output": {
-        "output": "test_data/svd/output.bin",
-        "o_sigma1": "test_data/svd/output_sigma1.bin",
-        "o_sigma2": "test_data/svd/output_sigma2.bin",
-        "o_angle": "test_data/svd/output_angle.bin",
+        "o_buffer": "test_data/svd/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,
@@ -46,9 +43,7 @@
         "data_type": "float"
     },
     "harris_corner_output": {
-        "output": "test_data/harris_corner/output.bin",
-        "io_response": "test_data/harris_corner/output_response.bin",
-        "o_corners": "test_data/harris_corner/output_corners.bin",
+        "o_buffer": "test_data/harris_corner/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,
@@ -56,11 +51,7 @@
         "data_type": "float"
     },
     "lucas_kanade_output": {
-        "output": "test_data/lucas_kanade/output.bin",
-        "o_flow_x": "test_data/lucas_kanade/output_flow_x.bin",
-        "o_flow_y": "test_data/lucas_kanade/output_flow_y.bin",
-        "o_magnitude": "test_data/lucas_kanade/output_magnitude.bin",
-        "o_angle": "test_data/lucas_kanade/output_angle.bin",
+        "o_buffer": "test_data/lucas_kanade/output.bin",
         "dst_width": 1920,
         "dst_height": 1080,
         "dst_channels": 1,

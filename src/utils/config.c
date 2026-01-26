@@ -1030,8 +1030,10 @@ int ParseInputsConfig(const char* filename, Config* config) {
         (void)strncpy(img->name, image->string, sizeof(img->name) - 1U);
         img->name[sizeof(img->name) - 1U] = '\0';
 
-        /* Parse image properties */
-        (void)GetJsonString(image, "input", img->input_path, sizeof(img->input_path));
+        /* Parse image properties - try i_buffer first, then fall back to input */
+        if (GetJsonString(image, "i_buffer", img->input_path, sizeof(img->input_path)) != 0) {
+            (void)GetJsonString(image, "input", img->input_path, sizeof(img->input_path));
+        }
         (void)GetJsonInt(image, "src_width", &img->src_width);
         (void)GetJsonInt(image, "src_height", &img->src_height);
         (void)GetJsonInt(image, "src_channels", &img->src_channels);
@@ -1138,8 +1140,10 @@ int ParseOutputsConfig(const char* filename, Config* config) {
         (void)strncpy(img->name, output->string, sizeof(img->name) - 1U);
         img->name[sizeof(img->name) - 1U] = '\0';
 
-        /* Parse output properties */
-        (void)GetJsonString(output, "output", img->output_path, sizeof(img->output_path));
+        /* Parse output properties - try o_buffer first, then fall back to output */
+        if (GetJsonString(output, "o_buffer", img->output_path, sizeof(img->output_path)) != 0) {
+            (void)GetJsonString(output, "output", img->output_path, sizeof(img->output_path));
+        }
         (void)GetJsonInt(output, "dst_width", &img->dst_width);
         (void)GetJsonInt(output, "dst_height", &img->dst_height);
         (void)GetJsonInt(output, "dst_channels", &img->dst_channels);

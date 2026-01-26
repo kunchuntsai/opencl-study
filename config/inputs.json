@@ -1,43 +1,41 @@
 {
     "image_1": {
-        "input": "test_data/dilate3x3/input.bin",
+        "i_buffer": "test_data/dilate3x3/input.bin",
         "src_width": 1920,
         "src_height": 1080,
         "src_channels": 3,
         "src_stride": "1920 * 3"
     },
     "image_2": {
-        "input": "test_data/gaussian5x5/input.bin",
+        "i_buffer": "test_data/gaussian5x5/input.bin",
         "src_width": 1920,
         "src_height": 1080,
         "src_channels": 1,
         "src_stride": "1920 * 1"
     },
     "image_3": {
-        "input": "test_data/relu/input.bin",
+        "i_buffer": "test_data/relu/input.bin",
         "src_width": 1920,
         "src_height": 1080,
         "src_channels": 1,
         "src_stride": "1920 * 1"
     },
     "svd_input": {
-        "input": "test_data/svd/input.bin",
+        "i_buffer": "test_data/svd/input.bin",
         "src_width": 1920,
         "src_height": 1080,
         "src_channels": 1,
         "src_stride": "1920 * 1"
     },
     "harris_corner_input": {
-        "input": "test_data/harris_corner/input.bin",
+        "i_buffer": "test_data/harris_corner/input.bin",
         "src_width": 1920,
         "src_height": 1080,
         "src_channels": 1,
         "src_stride": "1920 * 1"
     },
     "lucas_kanade_input": {
-        "input": "test_data/lucas_kanade/prev_frame.bin",
-        "i_prev_frame": "test_data/lucas_kanade/prev_frame.bin",
-        "i_curr_frame": "test_data/lucas_kanade/curr_frame.bin",
+        "i_buffer": "test_data/lucas_kanade/prev_frame.bin",
         "src_width": 1920,
         "src_height": 1080,
         "src_channels": 1,
