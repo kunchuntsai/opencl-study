@@ -15,32 +15,32 @@
     },
 
     "buffers": {
-        "sigma1": {
+        "o_sigma1": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "sigma2": {
+        "o_sigma2": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "angle": {
+        "o_angle": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "s1": {
+        "o_s1": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "s2": {
+        "o_s2": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "coherence": {
+        "o_coherence": {
             "type": "WRITE_ONLY",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
@@ -59,15 +59,15 @@
             "local_work_size": [16, 16],
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
-                {"buffer": ["float", "sigma1", 8294400]},
-                {"buffer": ["float", "sigma2", 8294400]},
-                {"buffer": ["float", "angle", 8294400]},
+                {"buffer": ["float", "o_sigma1", 8294400]},
+                {"buffer": ["float", "o_sigma2", 8294400]},
+                {"buffer": ["float", "o_angle", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]}
             ],
             "verification": {
                 "golden_file": "test_data/svd/golden_sigma1.bin",
-                "output_buffer": "sigma1"
+                "output_buffer": "o_sigma1"
             }
         },
         "v1": {
@@ -81,15 +81,15 @@
             "local_work_size": [16, 16],
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
-                {"buffer": ["float", "s1", 8294400]},
-                {"buffer": ["float", "s2", 8294400]},
-                {"buffer": ["float", "coherence", 8294400]},
+                {"buffer": ["float", "o_s1", 8294400]},
+                {"buffer": ["float", "o_s2", 8294400]},
+                {"buffer": ["float", "o_coherence", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]}
             ],
             "verification": {
                 "golden_file": "test_data/svd/golden_sigma1.bin",
-                "output_buffer": "s1"
+                "output_buffer": "o_s1"
             }
         }
     }

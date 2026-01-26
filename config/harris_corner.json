@@ -20,12 +20,12 @@
     },
 
     "buffers": {
-        "response": {
+        "io_response": {
             "type": "READ_WRITE",
             "data_type": "float",
             "size_expr": "src_width * src_height * 4"
         },
-        "corners": {
+        "o_corners": {
             "type": "WRITE_ONLY",
             "data_type": "uchar",
             "size_expr": "src_width * src_height"
@@ -44,14 +44,14 @@
             "local_work_size": [16, 16],
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
-                {"buffer": ["float", "response", 8294400]},
+                {"buffer": ["float", "io_response", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
                 {"param": ["float", "harris_k"]}
             ],
             "verification": {
                 "golden_file": "test_data/harris_corner/golden_response.bin",
-                "output_buffer": "response"
+                "output_buffer": "io_response"
             }
         },
         "v1": {
@@ -65,7 +65,7 @@
             "local_work_size": [16, 16],
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
-                {"buffer": ["float", "response", 8294400]},
+                {"buffer": ["float", "io_response", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
                 {"param": ["float", "harris_k"]}
@@ -82,7 +82,7 @@
             "local_work_size": [16, 16],
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
-                {"buffer": ["float", "response", 8294400]},
+                {"buffer": ["float", "io_response", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]}
             ]
@@ -98,14 +98,14 @@
             "local_work_size": [16, 16],
             "kernel_args": [
                 {"i_buffer": ["uchar", "src"]},
-                {"buffer": ["float", "response", 8294400]},
+                {"buffer": ["float", "io_response", 8294400]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
                 {"param": ["float", "harris_k"]}
             ],
             "verification": {
                 "golden_file": "test_data/harris_corner/golden_response.bin",
-                "output_buffer": "response"
+                "output_buffer": "io_response"
             }
         },
         "v4_nms": {
@@ -119,15 +119,15 @@
             "local_work_size": [16, 16],
             "requires_pre_kernel": "v0",
             "kernel_args": [
-                {"buffer": ["float", "response", 8294400]},
-                {"buffer": ["uchar", "corners", 2073600]},
+                {"buffer": ["float", "io_response", 8294400]},
+                {"buffer": ["uchar", "o_corners", 2073600]},
                 {"param": ["int", "src_width"]},
                 {"param": ["int", "src_height"]},
                 {"param": ["float", "nms_threshold"]}
             ],
             "verification": {
                 "golden_file": "test_data/harris_corner/golden_corners.bin",
-                "output_buffer": "corners"
+                "output_buffer": "o_corners"
             }
         }
     }
